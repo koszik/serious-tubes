@@ -5,6 +5,9 @@ Series of Tubes is a static web game hosted on **GitHub Pages, and only there**
 the build joins them into **one self-contained `index.html`** (one inline `<style>`, one inline
 `<script>`), exactly the page players have always loaded ([ADR 0002](adr/0002-one-page-assembled-at-build.md)).
 
+Planned: a new simulation engine with BGP communities, separate in and out directions on every link and port,
+hourly traffic by customer type and timezone, and packet loss ([spec](specs/network-engine.md), under review).
+
 ```
 src/                         the game page, in pieces
   index.html                 shell: <head>, static markup, the language loader, the @include lines
