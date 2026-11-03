@@ -74,7 +74,7 @@ test('Pitcairn: no cable and no network, but you may land your own, and the UK p
   const served = ev("sfOf(R,'pcn')");
   assert.equal(ev('R.rev.grant'), served >= 0.9 ? ev('GRANT_MO') : 0);
   // islanders served: the grant shows in the monthly revenue
-  ev("R.citySrv.pcn=R.cityDem.pcn");
+  ev("R.citySrv.pcn=R.cityDem.pcn;R.psf.pcn=1");
   assert.equal(ev("grantOn(R)"), true);
   ev("S.pops.pcn.down=S.day+3");
   assert.equal(ev("grantOn(R)"), false, 'not while the POP is down');

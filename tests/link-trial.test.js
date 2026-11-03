@@ -11,7 +11,7 @@ test('#62 a redundancy check computes only the trial, and matches comparing two 
   const t = JSON.parse(ev("JSON.stringify(linkTrial('main'))"));
   assert.equal(ev('window.__n'), 1, 'one routing pass per check');
   assert.equal(t.split, false);
-  assert.equal(t.loss, 70);
+  assert.equal(t.loss, 80, 'a circuit squeezed onto 10G loses everything');
   assert.equal(ev("linkTrial('nope')"), null);
   assert.equal(ev('window.__n'), 1, 'an unknown link costs nothing');
   ev('compute=window.__c');

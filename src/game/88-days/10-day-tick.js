@@ -34,7 +34,7 @@ function dayPre(){
   return d;}
 function dayPost(d){
   ddosNews();ddosTrack();
-  for(const t of S.transit){(t.hist=t.hist||[]).push(R.useT[t.id]||0);if(t.hist.length>30)t.hist.shift();}
+  for(const t of S.transit){const s=R.tday&&R.tday[t.id];(t.hist=t.hist||[]).push({d,i:s?s.i:[],o:s?s.o:[]});if(t.hist.length>30)t.hist.shift();}
   S.cash+=(R.revMo-R.costMo)/monLen(d);
   S.stats.peak=Math.max(S.stats.peak,R.served);
   S.hist=S.hist||[];S.hist.push({d,dem:+R.demand.toFixed(2),srv:+R.served.toFixed(2),c:+(R.egT.c||0).toFixed(2),p:+(R.egT.p||0).toFixed(2),ix:+(R.egT.ix||0).toFixed(2),t:+(R.egT.t||0).toFixed(2),l2:+(R.egT.l2||0).toFixed(2),rev:Math.round(R.revMo),cost:Math.round(R.costMo),cash:Math.round(S.cash),inc:S.inc.length});if(S.hist.length>180)S.hist.shift();

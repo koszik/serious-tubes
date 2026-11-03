@@ -90,3 +90,10 @@ section h3{font-size:17px;margin-bottom:6px;display:flex;align-items:center;gap:
 
 /* The NOC tab only says whether something is broken, never how many notifications wait (2.0). */
 .cnt.dot{min-width:0;width:9px;height:9px;padding:0;border-radius:50%;vertical-align:middle}
+/* Pipes (93-ui/15-pipes.js): the day of a link or port, hour by hour, under its two bars. */
+.g24{display:block;width:100%;max-width:340px;height:auto;margin:4px 0 2px}
+.g24 text{fill:var(--ink);opacity:.6}
+/* The rule editor in the Routing modal (93-ui/47-bgp-panel.js): one picker per line, never wider than the phone. */
+.polnew{display:grid;gap:6px;margin:6px 0}
+.polnew label{display:grid;gap:2px;font-size:13px;font-weight:700}
+.polnew select,.polnew input,.btns select,.btns input{max-width:100%;min-width:0;font:inherit;padding:4px 6px;border:2px solid var(--ink);border-radius:8px;background:#fff}

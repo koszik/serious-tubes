@@ -5,8 +5,8 @@ Series of Tubes is a static web game hosted on **GitHub Pages, and only there**
 the build joins them into **one self-contained `index.html`** (one inline `<style>`, one inline
 `<script>`), exactly the page players have always loaded ([ADR 0002](adr/0002-one-page-assembled-at-build.md)).
 
-Planned: a new simulation engine with BGP communities, separate in and out directions on every link and port,
-hourly traffic by customer type and timezone, and packet loss ([spec](specs/network-engine.md), under review).
+The simulation is a BGP network that does not see capacity, with two pipes per link and port and 24 hours a day: see
+[the engine spec](specs/network-engine.md) and [ADR 0004](adr/0004-bgp-hourly-engine.md).
 
 ```
 src/                         the game page, in pieces
@@ -86,9 +86,12 @@ Development runs on `npm run dev` (assembles on every request, reloads on save);
 - **`S`**: the whole saved game (one JSON object). Cash, day, POPs, links, transit,
   IX ports, PNIs, caches, customers (`biz`), offers, incidents (`inc`), live events
   (`ev`), stats, settings. Saved to `localStorage` key `sot-save-v1:<slot>` (one per network, see below).
-- **`R`**: results of the last `compute()`: per-link load, per-exit use, served and
-  demanded traffic, reach, costs and revenue. Never saved; always rebuilt.
-- **`UI`**: view state (selection, open tabs, speed, confirmations). Not game state.
+- **`R`**: results of the last `compute()`, one whole day: per-link and per-port load each way and its loss (the
+  busiest hour's), served and demanded traffic at the peak hour (`R.hp`), service per endpoint (`R.psf`, `R.bsf`,
+  `R.svc`), reach, costs and revenue. The hours themselves sit in `R.dp` (not listed, read through `pipeOfLink()`,
+  `pipeOfExit()`, `pipeAt()`). Never saved; always rebuilt.
+- **`UI`**: view state (selection, open tabs, speed, confirmations, `UI.hour`: the hour of the day the map and panels
+  show, from the clock). Not game state.
 - **`cam`**: map camera (x, y, zoom).
 
 Lookup tables built at load: `CITY[id]`, `NET[id]`, `CABLE`, `FAB`, `BIZ_T`, `REQS`.
@@ -102,8 +105,9 @@ never freezes the game.
 `dayTick()`:
 
 1. Advances `S.day`, runs scheduled world events (conferences, IX price wars, licences).
-2. Runs `compute()` to route today's traffic.
-3. Records history for 95th-percentile billing, stats and streaks.
+2. Runs `compute()` to route today's traffic, all 24 hours.
+3. Records history for 95th-percentile billing (each transit port keeps its day's six busiest hours each way), stats and
+   streaks. While the next day is being worked out, the hour shown moves with the clock (`UI.hour`): nothing recomputes.
 4. Rolls failures (`fireFailure()`) and events (`fireEvent()`) when their timers run out,
    and expires incidents.
    Then the NOC intern's standing orders (`opsDay()`), if one is hired: each order clicks the same `ACT`
@@ -115,49 +119,37 @@ never freezes the game.
 
 ## compute(): the traffic model
 
-1. Builds a graph from your live links: parallel links between the same two cities
-   merge into one edge with summed capacity. The routing metric belongs to the city pair
-   (`S.pairMet`) and sets the edge's weight; Dijkstra gives shortest paths from each POP.
-   Links on standby (`l.standby`) add their capacity to the edge, but when loads are
-   handed back to links the active ones fill first and standby links take the rest.
-2. Builds the exit list `E`: embedded caches (rank 0), PNIs (1), IX ports (2),
-   transit (3). Each exit has a capacity, the networks it can reach (`ok(net)`) and an
-   egress preference (`high`, `normal`, `low` = backup only). A transit port can also be set to
-   carry (`t.carry`): see step 4.
-3. Builds flows: for every POP, its demand (eyeballs and customers) split across
-   destination networks by their traffic share (`NSH`, with regional variants for
-   China, Russia and Korea). Incidents can add junk flows or scale demand.
-4. Routes flows rank by rank: the nearest usable exit first, ECMP across equal exits,
-   consuming link, router (`nodeCap`) and exit capacity. A carrier's own transit port also
-   goes first, before plain transit, for traffic bound for that carrier or for a network that buys
-   transit from it (`25-direct-egress.js`: the shorter AS path): always at its own POP, and from every
-   POP when the port is set to carry. Such a port is still an ordinary transit exit for the other
-   POPs. Backup, RouteScript and Auto-TE rules keep their say, and so does a Prefer-marked port at its own POP (the other
-   POPs keep the rule). With Auto-TE, overflow spills
-   onto alternate paths; RouteScript rules (`teRules()`) can prefer, avoid, cap, drain
-   or blackhole.
-5. Layer-2 customers (L2VPN, SD-WAN, waves) are carved out of link capacity first.
-6. Totals costs (`R.cost`) and revenue (`R.rev`) per month.
+The model is in [docs/specs/network-engine.md](specs/network-engine.md); the code is `src/game/80-simulation/31-35`.
 
-It runs every day and after every action, so it is built for big networks: the graph works on city
-indices (`CIDX`), each exit is asked once per network what it can reach, and `R.ef` (what crosses each
-link) is only put together for a link when something reads it.
+1. **The graph** (`32-engine.js`): live links between two cities merge into one edge (they balance); the pair's metric
+   (`S.pairMet`) is its weight; Dijkstra from every POP (`rcGraph()`, kept between calls). Islands are the parts no
+   backbone joins.
+2. **The exits** (`engExits()`): transit, exchange ports, PNIs, caches, the courtesy route; `okBy[net]` lists the exits
+   that reach a network (cones included); events filter them.
+3. **Endpoints and items** (`33-engine-routes.js`, `engItems()`): a POP's eyeballs, a group of customers of one class in
+   one city, each pair of an L2 circuit, a cache's fill. Each class (`TRAFFIC`, `40-progress/15-traffic.js`) says who
+   it talks to (the nearest origin of each network it uses, or an audience of eyeballs), which way and when. An item is
+   one endpoint and one far end with its peak volume. `R.demTo` is what each network would get if reachable.
+4. **The control plane** (`engRouteBuild()`): BGP, blind to capacity. Out: local-pref (100, rules change it), AS path,
+   eBGP over iBGP, IGP distance in the route's view (the graph without the links a `nocarry` rule keeps it off), oldest;
+   multipath shares ties. In: the far network's choice (cache, peer, provider; AS path with your prepends; nearest to
+   it). Policy (`31-policy.js`): tags, rules, QoS and session switches in `S.pol`, plus what a live RouteScript compiles
+   to. Items with the same paths, class, hour and queue are merged into flows; every path is a list of pipes, shared.
+5. **The data plane** (`34-engine-hours.js`): for each of 24 hours, every list's volume is offered to its pipes (two per
+   edge, rx and tx per exit) and routers. Floods' junk is served first, then the priority queue, then best effort; what
+   does not fit is dropped, plus a little burst loss near the top; a second pass offers each pipe only what survived
+   before it. CDNs fill a port to 95% and move the rest to their next way in; Auto-TE moves what is over its mark onto
+   each path's second one. A session gets the worse of its two directions.
+6. **The results** (`35-engine-results.js`): each pipe's busiest hour (`R.load`, `R.ldir`, `R.use*`, `R.lossD`…), the
+   peak hour's traffic by exit and network, service per endpoint over its busy hours, latency (the detour your network
+   adds), DDoS reports, and the lazy views `R.ef` and `R.fl` over `R.dp`. Then `computeMoney()`.
 
-What follows from the network's shape alone is kept from one call to the next (`29-route-cache.js`): the shortest
-paths from every POP, and who reaches whom with each network's exit lists. Each has a key made of everything it is
-built from (the live graph with its weights; every exit with what it reaches and how it is preferred, RouteScript and
-the events that move routes), so most days, when only demand changes, they are reused, and any other change rebuilds
-them. Only indices are kept: exits, lists and paths are made fresh every call, because routing writes on them.
-`tests/route-cache.test.js` checks the keys, and the equivalence tests route with and without the kept tables.
-`scripts/route-fuzz.js` plays hundreds of random seeded games on main's page and this checkout's at once, comparing all
-of R and S after every move and day, with the kept tables and without (`tests/route-fuzz.test.js` plays a few).
+What follows from the network's structure is kept between calls: the graph (`29-route-cache.js`), and in `ENGS` the
+views, best paths, ways in and pipe lists; with every item the same (`ENGC`), the flows too. Keys hold everything they
+are built from; `tests/route-cache.test.js` routes with and without them. Puzzles and Architect runs have no clock: flat
+days, circuits ahead of best effort, spill on (see `FLAT`).
 
-Each loop of `compute()` runs in a function of its own (the stages are closures, the busiest is `rankPass`;
-the money is `computeMoney()`). V8 optimises a small function quickly and keeps it; `compute()` as one 33 KB function
-never stayed optimised: it ran in baseline code, boxing every number, and was compiled again and again in the background
-only to be thrown away, which cost more CPU than the routing itself. Keep it that way: a new loop goes in a function.
-
-Served share per city (`sfOf`) drives eyeball revenue and customer mood.
+Each hot loop is a function of its own and reads typed arrays: V8 optimises small functions and keeps them.
 
 ## Routing in a worker
 
@@ -170,10 +162,10 @@ network does not freeze the page once a day.
   In the worker `RW_IN` is true and `boot()` never runs; the catalogs are rebuilt by the same top-level code.
 - **The day split.** `dayTick()` is `dayPre()` (the world moves on), `compute()`, `dayPost()` (bills, moods, offers,
   goals). In play, `frame()` calls `rwDay()` instead: `dayPre()`, then S and what routing reads of yesterday's R
-  (`R.load`, `R.l2route`, `R.efg`) are posted, and the next day waits until R comes back and `dayPost()` has run. So a day
+  (`R.load`, `R.l2route`) are posted, and the next day waits until R comes back and `dayPost()` has run. So a day
   sees exactly the routing it would have had in one go: same results, same random numbers. Half a day is never saved.
-- **What crosses.** `R.ef` and `R.fl` are lazy getters; their pieces (`R.efp`, `R.flc`) travel instead, typed arrays
-  transferred, and `efBuild()`/`flDefine()` (in `30-compute.js`) rebuild the same lazy R on the page.
+- **What crosses.** `R.ef` and `R.fl` are lazy views over `R.dp`; `R.dp` travels instead, its typed arrays
+  transferred, and `engDefine()` (in `35-engine-results.js`) rebuilds the same lazy R on the page.
 - **Actions mid-day.** Every `compute()` bumps `RW.gen`. If an action routed while a day was in flight, the worker's
   answer is stale: it is dropped and the day ends with the action's R.
 - **Fallbacks.** Tests (`__TUBES_TEST__`, and jsdom has no Worker), `window.__TUBES_SYNC__`, a browser without workers, a

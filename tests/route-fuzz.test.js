@@ -20,6 +20,8 @@ function pages() {
   // Then the base is this checkout too, and the cache on/off check still runs; equivalence with main resumes once it lands.
   const world = (p) => p.ev("JSON.stringify([CITIES.map(c=>[c.id,c.land,c.P]),NETS.map(n=>[n.id,n.pops,n.ix,n.share,n.price,n.up]),CABLES.map(c=>[c.id,c.pairs.map(q=>[q[0],q[1]])])])");
   if (base !== head && world(P.base) !== world(P.head)) { console.log('# route fuzz: the world differs from main, so both pages are this checkout'); P = { base: openPage(head, 'base'), head: P.head }; }
+  // Nor can a new routing engine (docs/specs/network-engine.md): until main has it, the cache on/off check runs alone.
+  else if (base !== head && P.base.ev('typeof engRoute') !== P.head.ev('typeof engRoute')) { console.log('# route fuzz: main routes with the old engine, so both pages are this checkout'); P = { base: openPage(head, 'base'), head: P.head }; }
   return P;
 }
 

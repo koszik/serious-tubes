@@ -76,9 +76,10 @@ test('new circuits do not take service away from healthy signed customers', () =
   const { ev, dom, errors } = load();
   setup(ev);
   ev("ACT.buildPop({city:'ams'});S.pops.ams.rgen=3;S.links.push({id:'path',a:'fra',b:'ams',kind:'wave',tier:1,km:450,sub:false,cut:0,mo:1});S.transit[0].city='ams';compute()");
-  offer(ev, 'existing', { bw: 80 });
+  // 150G of office DIA pulls 90G into Frankfurt at its peak over the 100G wave; a 100G circuit adds 25G that way.
+  offer(ev, 'existing', { bw: 150 });
   ev("ACT.accept({id:'existing'})");
-  offer(ev, 'new-circuit', { type: 'l2vpn', city2: 'ams', bw: 50 });
+  offer(ev, 'new-circuit', { type: 'l2vpn', city2: 'ams', bw: 100 });
   assert.equal(ev('bizWhy(S.biz[0]).length'), 0);
   assert.equal(ev('!!autoOffer(S.offers[0])'), false);
   assert.ok(ev('bizSf(S.biz[0])') >= 0.95, 'failed preview leaves the old routing result intact');
@@ -127,7 +128,8 @@ test('future event demand is tested before signing, with booked events reserving
   ev('S.ops.on.sales=true;opsDay(S.day)');
   assert.equal(ev('S.biz[0].start'), 10, 'the trial does not move the actual event date');
   assert.equal(ev('R.cityDem.fra'), 0);
-  offer(ev, 'too-large', { bw: 30 });
+  // The event sends 56G out at Frankfurt's evening; a host sending as much to the same evening audience does not fit.
+  offer(ev, 'too-large', { type: 'host', bw: 80, rate: 60 });
   assert.equal(ev('!!autoOffer(S.offers[0])'), false);
   ev('S.offers[0].bw=10');
   assert.equal(ev('!!autoOffer(S.offers[0])'), true);

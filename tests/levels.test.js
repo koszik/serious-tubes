@@ -34,7 +34,7 @@ test('traffic eras raise the eyeball ceiling as you level up', () => {
   ev('S.lvl=13');
   assert.ok(Math.abs(ev("eyeP('fra')") / P - 1.15 * 1.15 * 1.2 * 1.25) < 1e-6);
   // with great service, Frankfurt's eyeballs now grow past the old ceiling
-  ev("S.pops.fra.bb.d=CITY.fra.P*0.99;R.cityDem={fra:1};R.citySrv={fra:1};const t=compute;compute=()=>{};for(let i=0;i<60;i++){S.day++;dayTick();R.cityDem={fra:1};R.citySrv={fra:1};}compute=t");
+  ev("S.pops.fra.bb.d=CITY.fra.P*0.99;R.cityDem={fra:1};R.citySrv={fra:1};R.psf={fra:1};const t=compute;compute=()=>{};for(let i=0;i<60;i++){S.day++;dayTick();R.cityDem={fra:1};R.citySrv={fra:1};R.psf={fra:1};}compute=t");
   assert.ok(ev('S.pops.fra.bb.d') > P * 1.05, `grew to ${ev('S.pops.fra.bb.d')} of ${P}`);
   assert.deepEqual(errors, []);
 });

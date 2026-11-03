@@ -10,7 +10,8 @@ const { play } = require('../scripts/lib/scenario-ref');
 const HIRE = ['hire', ['transit', 'routers', 'repair', 'sales', 'ix']];
 const home = (c) => [['bb', c], ['tr', c, 1], ['ix', c]];
 const GN_H = ['hire', ['transit', 'routers', 'repair', 'sales', 'ix', 'caches', 'pni']];
-const GN_REF = [['bb', 'icn'], ['ix', 'icn'], ['tr', 'icn', 1], ['pni', 'icn', 'ktt', 0], GN_H, ['served', 120], ['link', 'icn', 'tok', 1], ['tr', 'tok', 1], ['ix', 'tok'], ['last', 'icn'], ['pop', 'hkg']];
+// 3.0: traffic over a full wave is dropped, not spilled back onto Seoul transit, so the haul to Tokyo takes two waves.
+const GN_REF = [['bb', 'icn'], ['ix', 'icn'], ['tr', 'icn', 1], ['pni', 'icn', 'ktt', 0], GN_H, ['served', 120], ['link', 'icn', 'tok', 1], ['link', 'icn', 'tok', 1], ['tr', 'tok', 1], ['ix', 'tok'], ['last', 'icn'], ['pop', 'hkg']];
 // ref: the reference plan; win: [earliest, latest] day it may win on; cheese: the shortcut, and `by`, the day before
 // which it must not win (null: never within the scenario's days).
 const PLAY = {
@@ -30,7 +31,7 @@ const PLAY = {
     win: [40, 120], cheese: [['bb', 'sao'], ['tr', 'sao', 1], ...['sao', 'rio', 'bsb', 'bhz', 'cwb', 'poa', 'for', 'rec', 'ssa', 'cpq', 'gyn', 'bel', 'mao', 'nat', 'vix', 'cgb'].flatMap((c) => [['pop', c], ['ix', c, 0]]), ['hire']], by: null },
   // Sender pays: Seoul transit to start (dear, but fast), one paid PNI with Kay-Tea for reach, then haul the bulk from
   // Tokyo and keep Seoul transit as the last resort. Seoul alone loses money on the sender-pays fee and never wins.
-  gangnam: { ref: GN_REF, win: [130, 190], cheese: [...home('icn'), ['loans']], by: null },
+  gangnam: { ref: GN_REF, win: [150, 202], cheese: [...home('icn'), ['loans']], by: null },
   // 2.2: a center pulls the whole flood onto its own ingress, so a terabit flood needs a center that size (10T, level 4).
   flood: { ref: [...home('ams'), ['scrub', 'ams', 2], ['tr', 'ams', 1], HIRE], win: [80, 200], cheese: [...home('ams'), ['tr', 'ams', 1], ['loans']], by: 180 },
   fttb: { ref: [...home('syd'), ['link', 'syd', 'akl', 0, 'tasman'], ['link', 'syd', 'nou', 0, 'gond'], ...['mel', 'bne', 'adl', 'per'].flatMap((c) => [['bb', c], ['tr', c, 1]]), ['link', 'syd', 'mel', 1], ['link', 'syd', 'bne', 1], ['link', 'mel', 'adl', 1], ['link', 'adl', 'per', 0], HIRE],

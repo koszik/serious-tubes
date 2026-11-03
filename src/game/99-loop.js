@@ -13,6 +13,8 @@ function frame(now){
     if(rwOn()){if(!RW.w)rwStart();if(RW.job)acc=Math.min(acc,DAY_MS);else if(acc>=DAY_MS){acc=Math.min(acc-DAY_MS,DAY_MS);try{rwDay();}catch(e){tickErr(e);}}}
     else{while(acc>=DAY_MS&&n<4&&UI.speed){acc-=DAY_MS;try{dayTick();}catch(e){tickErr(e);}n++;}
     if(n){UI.ticking=true;renderHUD();UI.ticking=false;UI.panelsDue=true;}}}
+  // The hour of the day the map and panels show: how far into the day the clock is (no clock: the peak hour).
+  {const h=S&&rule('clock')&&!pzOn()?Math.min(23,Math.max(0,Math.floor(acc/DAY_MS*24))):(R&&R.hp)||0;if(h!==UI.hour){UI.hour=h;if(S&&$('hDate'))$('hDate').textContent=hudDate();}}
   if((UI.speed||pzOn())&&!(S&&S.lost))animT+=dt; /* paused = frozen dots, waves and clouds */
   const t=animOn()?animT:0;
   if(!(UI.mapHid=mapHidden())&&!mapStill(t,now)){try{draw(t);}catch(e){tickErr(e);}UI.drawnAt=now;}
@@ -26,7 +28,7 @@ function mapHidden(){for(const id of ['dashCard','bankCard']){const c=$(id);if(c
    a second anyway, and every frame while the land picture is still catching up with a zoom. */
 const FRAME=[];
 function mapStill(t,now){const sl=UI.sel,dr=UI.drag;
-  const v=[t,cam.x,cam.y,cam.z,CW,CH,DPR,S,R,S&&S.day,S&&S.links.length,S&&S.offers.length,S&&S.inc.length,sl&&sl.type,sl&&sl.id,UI.hover,UI.snap&&UI.snap.id,dr&&dr.mode,dr&&dr.cx,dr&&dr.cy,FLOATS.length,UI.mk?UI.mk.tx:0,UI.mk?UI.mk.mood:0];
+  const v=[t,cam.x,cam.y,cam.z,CW,CH,DPR,S,R,UI.hour,S&&S.day,S&&S.links.length,S&&S.offers.length,S&&S.inc.length,sl&&sl.type,sl&&sl.id,UI.hover,UI.snap&&UI.snap.id,dr&&dr.mode,dr&&dr.cx,dr&&dr.cy,FLOATS.length,UI.mk?UI.mk.tx:0,UI.mk?UI.mk.mood:0];
   let same=v.length===FRAME.length;for(let i=0;i<v.length;i++)if(FRAME[i]!==v[i]){same=false;FRAME[i]=v[i];}
   return same&&now-(UI.drawnAt||0)<1000&&!!(WL.cv&&WL.key===(cam.z*DPR).toFixed(4)&&wlCovers(cam.z));}
 function tickErr(e){console.error('[tubes] tick failed',e);if(UI.tickErr)return;UI.tickErr=true;track('tick_error',true);
@@ -41,6 +43,7 @@ function boot(data){
     if(okSave){slotIn(UI.slot,stamp);UI.started=true;UI.speed=[0,0.5,1,2,4,8].includes(S.uiSpeed)?S.uiSpeed:1;
       if(S.cam&&isFinite(S.cam.x))Object.assign(cam,S.cam);else{const h=CITY[S.home];if(h){cam.x=h.x;cam.y=h.y;cam.z=innerWidth<760?1.1:1.4;}}
       renderAll();if(S.grace&&S.grace.until>S.day&&R.graceNets&&!S.grace.told){S.grace.told=1;toast(tr('loop.new_networks_on_the_map_this',{n:S.grace.until-S.day}),'goal',[{l:tr('common.open_noc'),act:'leftTab',args:{t:'noc'}}]);}
+      if(S.engNews){delete S.engNews;toast(tr('loop.your_network_now_runs_on_real_bgp'),'',[{l:tr('routing.routing_and_ddos'),act:'routingOpen',args:{}}]);}
       if(S.auNews){delete S.auNews;const c=Object.keys(S.pops).find(x=>CITY[x].au);toast(tr('loop.australia_got_more_australian'),'bad',[{l:tr('common.open'),act:'focusCity',args:{city:c}}],{a:'city',v:c});}
       if(!whatsNew(true))toast(tr('loop.welcome_back_name_your_network_is',{name:esc(S.name),date:dateStr(S.day)}),'good');}
     // A save that cannot be loaded stays where it is, marked damaged: it can still be exported, or deleted.

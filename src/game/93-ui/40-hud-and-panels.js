@@ -1,6 +1,8 @@
 function fitHud(){const h=$('hud');if(!h)return;h.classList.remove('fit1','fit2','fit3');if(innerWidth<=760)return;
   const row=()=>{let m=0;for(const c of h.children)if(c.offsetParent)m=Math.max(m,c.offsetHeight);return m;};
   for(const c of ['fit1','fit2','fit3']){if(h.offsetHeight<=row()*1.5)break;h.classList.add(c);}}
+// The date, and the hour of the day traffic is shown at (UTC), when the game has a clock.
+const hudDate=()=>dateStr(S.day)+(rule('clock')&&!pzOn()?' · '+String(UI.hour??0).padStart(2,'0')+':00 UTC':'');
 function renderHUD(){
   // No clock (puzzles): there is no time to speed up, so the speed buttons go.
   {const ck=!S||rule('clock');for(const v of [0,0.5,1,2,4,8]){const b=$('sp'+v);if(b){b.classList.toggle('on',UI.speed===v);b.hidden=!ck;}}}
@@ -17,7 +19,7 @@ function renderHUD(){
   $('hReach').textContent=reachPct(R.reach);$('hReach').style.color=R.reach<0.99?'var(--bad)':'var(--eye)';
   $('hTier').textContent=tierLabel()+' · '+tr('hud_and_panels.lv_n',{n:S.lvl||1});
   {const P=scnProg(),hs=$('hScn');hs.hidden=!P;if(P){const sc=S.scn;$('hScnVal').textContent=sc.done?tr('common.done'):sc.failed?tr('common.time_s_up'):`${Math.round(P.f*100)}% · ${tr('ui.n_d_left',{n:Math.max(0,sc.days-S.day)})}`;}}
-  $('hDate').textContent=dateStr(S.day);
+  $('hDate').textContent=hudDate();
   {const bo=(S.loanOffers||[]).length,hb=$('hBank');hb.hidden=!bo;hb.textContent=bo;}
   {const st=custStats(),hc=$('hCust');hc.hidden=!st.n;if(st.n){$('hCustVal').innerHTML=`${st.avg>=80?'😀':st.avg>=60?'🙂':st.avg>=30?'😟':'😡'} ${Math.round(st.avg)}%${st.unhappy?` <span class="cnt red">${st.unhappy}</span>`:''}`;hc.classList.toggle('hot',st.furious>0);}}
   const n=S.inc.length;$('hNoc').classList.toggle('hot',n>0);{const b=$('hNocNew');if(b)b.hidden=true;}$('hNocVal').textContent=n?trn('hud_and_panels.n_incident',n):tr('common.all_quiet');
@@ -56,7 +58,7 @@ function renderLeft(){checkLayer();
     h+=logSection();UI.logSeen=Date.now();
     if(S.grace&&S.grace.until>S.day&&R.graceNets)h+=`<div class="kv"><span>${tr('common.courtesy_route')}</span><b>${tr('hud_and_panels.n_networks_d_days_left',{n:R.graceNets,d:S.grace.until-S.day})}</b></div><p class="meta" style="margin:0 0 6px">${tr('hud_and_panels.reaches_networks_from_the_last')}</p>`;
     const hot=S.links.filter(l=>!linkDown(l)&&capOf(l)>0&&(R.load[l.id]||0)/capOf(l)>=0.85).sort((a,b)=>(R.load[b.id]/capOf(b))-(R.load[a.id]/capOf(a)));
-    if(hot.length){h+=`<h3 style="font-size:15px;margin:4px 0">${tr('common.congested_links')}</h3>${S.te&&S.te.on?'':'<p class="meta" style="margin:0 0 4px">'+tr('hud_and_panels.raise_a_full_link_s_metric')+'</p>'}`+hot.map(l=>`<div class="row"><div class="grow"><div class="nm">${CITY[l.a].name} ⇄ ${CITY[l.b].name}</div><div class="meta">${capName(l)} · ${tr('hud_and_panels.p_full',{p:pct((R.load[l.id]||0)/capOf(l))})}</div></div>${btn(tr('common.inspect'),'selLink',{id:l.id},'pink sm')}</div>`).join('');}
+    if(hot.length){h+=`<h3 style="font-size:15px;margin:4px 0">${tr('common.congested_links')}</h3>${S.te&&S.te.on?'':'<p class="meta" style="margin:0 0 4px">'+tr('hud_and_panels.raise_a_full_link_s_metric')+'</p>'}`+hot.map(l=>{const d=hotDir(l);return `<div class="row"><div class="grow"><div class="nm">${esc(d.from)} → ${esc(d.to)}</div><div class="meta">${capName(l)} · ${tr('hud_and_panels.p_full',{p:pct(d.g/capOf(l))})} · <span style="color:${d.loss>=0.001?'var(--bad)':'inherit'}">${lossTxt(d.loss)}</span></div></div>${btn(tr('common.inspect'),'selLink',{id:l.id},'pink sm')}</div>`;}).join('');}
     h+=hwCard();
     const slow=Object.keys(S.pops).filter(latSlow).sort((a,b)=>R.latF[a]-R.latF[b]);
     if(slow.length)h+=`<h3 style="font-size:15px;margin:4px 0">🐢 ${tr('common.slow_cities')}</h3><p class="meta" style="margin:0 0 4px">${tr('hud_and_panels.their_users_go_out_through_transit')}</p>`+slow.map(c=>{const f=R.latFar[c];return `<div class="row"><div class="grow"><div class="nm">${CITY[c].name} → ${CITY[f.to].name}</div><div class="meta">${tr('hud_and_panels.p_of_its_traffic_ms_ms',{p:pct(Math.min(1,f.share)),ms:Math.round(f.ms),sf:pct(R.latF[c])})}</div></div>${btn(tr('common.inspect'),'focusCity',{city:c},'ghost sm')}</div>`;}).join('');

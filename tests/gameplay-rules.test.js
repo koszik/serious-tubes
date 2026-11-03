@@ -449,6 +449,52 @@ test('D4: RTBH costs only the target', () => {
   assert.deepEqual(g.errors, []);
 });
 
+// The routing engine (docs/specs/network-engine.md).
+const eStart = (g) => g.ev("ACT.start({});S.cash=1e10;S.lvl=13;S.nextFail=S.nextEvent=1e9;for(const g of GOALS)S.done[g.id]=0;S.pops.fra.rgen=RG_TOP;S.pops.fra.routers=4");
+test('E1: routing never sees capacity: a full exit drops while another stands idle', () => {
+  const g = load();
+  eStart(g);
+  g.ev("ACT.launchBB({city:'fra'});S.pops.fra.bb.d=300;ACT.buildPop({city:'ams'});S.pops.ams.rgen=RG_TOP;UI.via=null;UI.lmode='wave';openLinkModal('fra','ams');ACT.buildLink({tier:3});closeModal()");
+  g.ev("ACT.buyTransit({city:'fra',net:'cog',tier:1});ACT.buyTransit({city:'ams',net:'cog',tier:3});compute()");
+  const out = JSON.parse(g.ev("JSON.stringify(S.transit.map(t=>R.useTd[t.id].tx))")), lost = g.ev("R.lossX['t:'+S.transit[0].id]");
+  assert.ok(lost > 0 && out[1] < out[0] * 0.2, `E1: Frankfurt's own port fills and drops (${lost}), Amsterdam's waits (${out})`);
+  assert.deepEqual(g.errors, []);
+});
+test('E2: every customer type has a traffic class, every class a day that peaks at 1', () => {
+  assert.equal(ev("Object.keys(BIZ_T).filter(k=>!BIZ_T[k].fiber&&!TRAFFIC[CLASS_OF[k]]).join()"), '', 'E2: a class for every type');
+  assert.equal(ev("Object.values(TRAFFIC).every(c=>SHAPE[c.shape]&&SHAPE[c.shape].length===24&&Math.max(...SHAPE[c.shape])===1)"), true, 'E2: 24 hours, peak 1');
+});
+test('E3: every live link and every port is two pipes', () => {
+  const g = load();
+  eStart(g);
+  g.ev("ACT.launchBB({city:'fra'});ACT.buildPop({city:'ams'});S.pops.ams.rgen=RG_TOP;UI.via=null;openLinkModal('fra','ams');ACT.buildLink({tier:1});closeModal();ACT.buyTransit({city:'fra',net:'cog',tier:1});ACT.buyIx({city:'fra',tier:1,signed:true});compute()");
+  assert.equal(g.ev("S.links.every(l=>linkDown(l)||(pipeOfLink(l)||[]).length===2&&(R.ldir[l.id]||[]).length===2)"), true, 'E3: links');
+  assert.equal(g.ev("S.transit.every(t=>(pipeOfExit('t',t.id)||[]).length===2)&&Object.keys(S.ixp).every(x=>(pipeOfExit('ix',x)||[]).length===2)"), true, 'E3: ports');
+  g.ev("selectLink(S.links[0].id)");
+  assert.match(g.ev("document.getElementById('panelBody').textContent"), /Frankfurt → Amsterdam.*Amsterdam → Frankfurt/s, 'E3: both directions are shown');
+  assert.deepEqual(g.errors, []);
+});
+test('E4: every network has an origin in a known region', () => {
+  assert.equal(ev("NETS.filter(n=>!(ORIG_BY_NET[n.id]||[]).length||ORIG_BY_NET[n.id].some(o=>!REGIONS.includes(o.reg)||!CITY[o.anchor])).map(n=>n.id).join()"), '', 'E4');
+});
+test('E5: a new network starts with nothing configured', () => {
+  const g = load();
+  eStart(g);
+  assert.equal(g.ev('JSON.stringify(S.pol)'), JSON.stringify({ tags: [], on: {}, rules: [], qos: [], mp: {}, sess: {} }), 'E5');
+  assert.equal(g.ev('S.engV'), 3, 'E5: and is on the current engine');
+});
+test('E6: islands do not reach each other without a link, allowas-in or a default route', () => {
+  const g = load();
+  eStart(g);
+  g.ev("ACT.buildPop({city:'lon'});ACT.launchBB({city:'lon'});ACT.buildPop({city:'nyc'});for(const c of ['lon','nyc'])S.pops[c].rgen=RG_TOP;S.transit=[];ACT.buyTransit({city:'lon',net:'cog',tier:1});ACT.buyTransit({city:'nyc',net:'cog',tier:1})");
+  g.ev("S.biz.push({id:'h',type:'host',name:'Host',city:'nyc',bw:50,rate:60,reqs:[],mood:100,since:0});compute()");
+  const toLon = () => g.ev("(()=>{let x=0;const dp=R.dp;for(let t=0;t<dp.IF.length;t++)if(dp.IO[t]===-1-CIDX.lon)x+=dp.DO[dp.IF[t]];return x;})()");
+  assert.equal(toLon(), 0, 'E6: loop prevention');
+  g.ev("ACT.polSess({ref:'t:'+S.transit[1].id,k:'dflt',on:1})");
+  assert.ok(toLon() > 0, 'E6: a default route gets it there');
+  assert.deepEqual(g.errors, []);
+});
+
 test('no page errors while checking the rules', () => {
   assert.deepEqual(errors, []);
 });

@@ -30,7 +30,7 @@ function rwDay(){const d=dayPre();if(d===false)return;const w=rwStart();
   if(!w){compute();dayPost(d);rwDayDone();return;}
   const t=performance.now(),seq=++RW.seq;
   // The worker also needs what compute() reads from yesterday's R: link loads, and the scenic circuits' paths.
-  try{w.postMessage({seq,S,load:R.load,l2route:R.l2route,efg:rwEfgOut(R.efg)});}catch(e){console.error('[tubes] route worker post',e);rwKill();compute();dayPost(d);rwDayDone();return;}
+  try{w.postMessage({seq,S,load:R.load,l2route:R.l2route});}catch(e){console.error('[tubes] route worker post',e);rwKill();compute();dayPost(d);rwDayDone();return;}
   const t1=performance.now();RW.stat.post+=t1-t;RW.job={seq,d,gen:RW.gen,t:t1};}
 function rwDone(m){const j=RW.job;if(!j||m.seq!==j.seq)return;RW.job=null;const t=performance.now();
   if(m.err){console.error('[tubes] route worker',m.err);compute();}
@@ -38,19 +38,13 @@ function rwDone(m){const j=RW.job;if(!j||m.seq!==j.seq)return;RW.job=null;const 
   const t1=performance.now(),st=RW.stat;st.n++;st.apply+=t1-t;st.wait+=t-j.t;st.work+=m.ms||0;
   try{dayPost(j.d);}catch(e){tickErr(e);}rwDayDone();}
 function rwDayDone(){UI.ticking=true;renderHUD();UI.ticking=false;UI.panelsDue=true;if(UI.saveDue){UI.saveDue=false;save();}}
-/* R as plain data. R.ef and R.fl are lazy getters, sent as the pieces they are built from (R.efp, R.flc, see efBuild()
-   and flDefine() in 30-compute.js), their typed arrays moved, not copied. Exits become their ids (all R.fl reads), and an
+/* R as plain data: the lazy views (R.ef, R.fl) are rebuilt from R.dp, whose typed arrays are moved, not copied, and an
    attack record names its attack in S by id. */
-const FL_COLS=['FREM','FCI','FNJ','FCA','FBZ','FGT','FGI','FGP','FGH','FTI','FII'];
-function rwPack(R){const o={};for(const k in R)o[k]=k==='ef'?0:k==='ddos'?R.ddos.map(m=>({...m,attack:m.attack?m.attack.id:null,ports:null})):R[k];
-  const p=R.efp,c={...R.flc,E:R.flc.E.map(e=>({id:e.id}))},tr=[p.ACN.buffer,p.ACD.buffer];for(const k of FL_COLS)tr.push(c[k].buffer);
-  return {o,p:{...p,flc:c},tr};}
-function rwUnpack(o,p){o.ef={};efBuild(o,p.L,p.ACN,p.ACD,p.NKN,p.NC,p.NN);flDefine(o,p.flc);
-  const as=ddosAll(S,false);for(const m of o.ddos){m.attack=as.find(a=>a.id===m.attack)||null;m.ports=new Map();}return o;}
-// Yesterday's egress sums for scenic routing, as plain data (EgSums is a class; a clone would lose its get()).
-const rwEfgOut=efg=>{if(!efg)return null;const o={};for(const k in efg)o[k]=efg[k].t;return o;};
-const rwEfgIn=o=>{const efg={};for(const k in o)efg[k]=new EgSums(o[k]);return efg;};
+function rwPack(R){const o={};for(const k in R)o[k]=k==='ddos'?R.ddos.map(m=>({...m,attack:m.attack?m.attack.id:null,ports:null})):R[k];
+  const dp=R.dp,tr=[];if(dp)for(const k in dp)if(ArrayBuffer.isView(dp[k])&&!tr.includes(dp[k].buffer))tr.push(dp[k].buffer);
+  return {o,p:dp||null,tr};}
+function rwUnpack(o,p){if(p)engDefine(o,p);const as=ddosAll(S,false);for(const m of o.ddos||[]){m.attack=as.find(a=>a.id===m.attack)||null;m.ports=new Map();}return o;}
 // In the worker: route the state it was sent, answer with R.
-function rwServe(m){try{S=m.S;R=emptyR();R.load=m.load||{};R.l2route=m.l2route||{};if(m.efg)Object.defineProperty(R,'efg',{value:rwEfgIn(m.efg)});
+function rwServe(m){try{S=m.S;R=emptyR();R.load=m.load||{};R.l2route=m.l2route||{};
     const t=performance.now();compute();const ms=performance.now()-t,{o,p,tr}=rwPack(R);postMessage({seq:m.seq,R:o,ef:p,ms},tr);}
   catch(e){postMessage({seq:m.seq,err:String(e&&e.stack||e)});}}

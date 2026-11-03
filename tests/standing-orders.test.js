@@ -53,7 +53,7 @@ test('the intern is hired from customer level 2 (or with gates open), costs a mo
   ev("ACT.opsHire({id:'tracy'})");
   assert.equal(ev('S.ops.intern'), 'tracy');
   assert.equal(c0 - cash(ev), ev('INTERN_MO'), 'first month up front');
-  assert.equal(ev('R.costMo') - mo, ev('INTERN_MO'), 'then a monthly salary');
+  assert.ok(Math.abs(ev('R.costMo') - mo - ev('INTERN_MO')) < 1e-6, 'then a monthly salary');
   ev("ACT.opsFire();ACT.opsFire()");
   assert.equal(ev('S.ops.intern'), null);
   assert.deepEqual(errors, []);
@@ -454,7 +454,8 @@ test('decommission keeps its spare in another trench than the big link', t => {
 test('decommission sees the traffic of a customer signed earlier in the same shift', t => {
   const { ev, errors } = game(t, "S.pops.fra.bb.d=30;ACT.buildPop({city:'ams'});S.pops.ams.rgen=1;for(const [id,tier,tr] of [['big',2,'T1'],['s1',1,'T2'],['s2',1,'T3']])S.links.push({id,a:'fra',b:'ams',kind:'wave',tier,km:400,sub:false,cut:0,mo:1000,trench:tr});compute()");
   hire(ev); on(ev, 'sales', { acc: true, min: 0 }); on(ev, 'decom', { keep: false });
-  ev("S.offers=[{id:'o1',city:'fra',city2:'ams',name:'Bulk Co',type:'l2vpn',bw:450,rate:20,reqs:[],exp:S.day+20}]");
+  // A 900G circuit runs at half its rate at its peak: 450G, which needs every wave.
+  ev("S.offers=[{id:'o1',city:'fra',city2:'ams',name:'Bulk Co',type:'l2vpn',bw:900,rate:20,reqs:[],exp:S.day+20}]");
   shift(ev);
   assert.deepEqual(JSON.parse(ev('JSON.stringify(S.biz.map(b=>b.id))')).length, 1, 'signed');
   assert.equal(ev('S.links.length'), 3, 'its 450G needs every wave, so none goes');

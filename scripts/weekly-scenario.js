@@ -207,9 +207,12 @@ function verify(g, j) {
 
 // ---------- one week ----------
 const list = (dir) => (fs.existsSync(dir) ? fs.readdirSync(dir).filter((f) => /^\d{4}-W\d{2}\.json$/.test(f)).map((f) => f.slice(0, -5)).sort() : []);
+// The weeks before (and, when a week is regenerated between published ones, after) this one: their themes, regions, cities.
 function history(W, dir, key) {
-  const files = list(dir).filter((k) => k < key).slice(-HISTORY).map((k) => JSON.parse(fs.readFileSync(path.join(dir, k + '.json'), 'utf8')));
-  return { themes: files.slice(-THEME_GAP).map((f) => f.theme), regs: files.slice(-REG_GAP).map((f) => W.C[f.city] && W.C[f.city].reg).filter(Boolean), cities: new Set(files.map((f) => f.city)) };
+  const read = (k) => JSON.parse(fs.readFileSync(path.join(dir, k + '.json'), 'utf8')), ks = list(dir);
+  const files = ks.filter((k) => k < key).slice(-HISTORY).map(read), next = ks.filter((k) => k > key).slice(0, Math.max(THEME_GAP, REG_GAP)).map(read);
+  const reg = (f) => W.C[f.city] && W.C[f.city].reg;
+  return { themes: files.slice(-THEME_GAP).map((f) => f.theme).concat(next.slice(0, THEME_GAP).map((f) => f.theme)), regs: files.slice(-REG_GAP).map(reg).concat(next.slice(0, REG_GAP).map(reg)).filter(Boolean), cities: new Set(files.concat(next).map((f) => f.city)) };
 }
 function generate(g, key, dir) {
   const { ev } = g, W = world(ev);

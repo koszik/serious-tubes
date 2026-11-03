@@ -61,18 +61,16 @@ function ddosLoad(X){const {E,okBy,R2}=X;R2.ddos=[];R2.haul=[];R2.tgtF={};R2.bbF
   for(const c in S.pops){const cap=fsCap(c);if(fsLeft[c]!==undefined)R2.fsUse[c]={used:cap-fsLeft[c],cap};}
   if(X.autoBh)R2.teBlack=recs.reduce((n,m)=>n+m.up,0);
   return recs;}
-/* After routing: a port offered more than it carries drops the same share of everyone's traffic on it. Then what the
-   attacks cost everyone else (collateral) and the target. X.lost(ci,g,bz,e) takes served traffic away again. */
-function ddosAfter(recs,X){const {E,R2}=X;if(!recs)return;const lostC={};let lost=0;
-  for(const e of E){if(!(e.J>0))continue;const L=e.used,fac=Math.min(1,e.cap/(e.J+L));
-    if(fac<1&&e.byC)for(const [ci,v] of e.byC){const x=v[0]*(1-fac),y=v[1]*(1-fac);X.lost(ci,x,y,e);lostC[ci]=(lostC[ci]||0)+x;lost+=x;}
-    if(fac<0.97){R2.ddosHot[e.city]=1;}
-    e.fac=fac;e.used=Math.min(e.cap,L+e.J);}
+/* After routing: the junk is offered at the ports with everyone's traffic, and a full port drops the same share of
+   all of it (the pipes did that). Here: which ports ran full, what the attacks cost everyone else (collateral) and
+   the target. X.fac(e) is what port e let through; X.lostC what each city lost at the peak hour. */
+function ddosAfter(recs,X){const {E,R2}=X;if(!recs)return;const lostC=X.lostC||{},lost=X.lost||0;
+  for(const e of E){if(!(e.J>0))continue;const fac=X.fac(e);if(fac<0.97)R2.ddosHot[e.city]=1;e.fac=fac;}
   const tot=recs.reduce((n,m)=>n+(m.offline?0:m.attack.gbps),0)||1;
   for(const m of recs){if(m.offline)continue;const a=m.attack,ci=CIDX[a.city],tb=ddosTb(a,R2),dem=R2.cityDem[a.city]||0;
     // The target's own traffic lost at the ports is not collateral.
     const own=dem>1e-6?(lostC[ci]||0)*Math.min(1,tb/dem):0;
-    m.col=Math.max(0,(lost-own+X.squeeze)*a.gbps/tot);
+    m.col=Math.max(0,(lost-own)*a.gbps/tot);
     m.portList=[...m.ports].map(([e,p])=>({lab:e.lab,city:e.city,k:e.k,off:p.off,cap:e.cap,fac:e.fac??1})).sort((x,y)=>x.fac-y.fac||y.off-x.off);
     m.full=m.portList.filter(p=>p.fac<0.97).length;
     // Customers who felt it: in a city that lost more than 1% to full ports, other than the target.

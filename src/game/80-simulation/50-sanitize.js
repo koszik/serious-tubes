@@ -1,4 +1,7 @@
 const own=(o,k)=>Object.prototype.hasOwnProperty.call(o,k);
+// One day of a port's history: an old save's number, or this day's busiest hours each way.
+const histOk=v=>{if(typeof v==='number')return Number.isFinite(v)?Math.max(0,v):null;if(!v||typeof v!=='object')return null;
+  const a=x=>Array.isArray(x)?x.slice(0,6).map(Number).filter(Number.isFinite).map(n=>Math.max(0,n)):[];return {d:num(v.d,0),i:a(v.i),o:a(v.o)};};
 const isCity=c=>typeof c==='string'&&own(CITY,c),isIx=x=>typeof x==='string'&&(own(CITY,x)||own(XIXM,x)),isNet=n=>typeof n==='string'&&own(NET,n);
 const num=(v,d=0)=>{v=+v;return Number.isFinite(v)?v:d;},int=(v,lo,hi,d)=>{v=Math.round(num(v,d));return Math.min(hi,Math.max(lo,v));};
 /* Saves come from localStorage or from imported files, so treat them as untrusted: fill in anything
@@ -31,7 +34,7 @@ function sanitize(s){
      if(v&&typeof v==='object'&&ks.has(k)){const mk=v.k==='w'?'w':'f';pm[k]={k:mk,v:clampM(mk,num(v.v,mk==='w'?60:1))};continue;}
      if(!ks.has(k)||typeof v!=='string'||!own(MET,v)||v==='normal')delete pm[k];}}
   const degO=v=>v&&typeof v==='object'?{until:num(v.until,0),f:Math.min(1,Math.max(0,num(v.f,1)))}:null;
-  s.transit=s.transit.filter(t=>t&&isCity(t.city)&&isNet(t.net)).map(t=>(t.lacp=degO(t.lacp),t.site=['a','b','ab'].includes(t.site)?t.site:'a',t.id=sid(t.id),t.tier=tier(t.tier),t.n=lag(t.n),t.down=num(t.down,0),t.clean=!!t.clean,t.carry===true||delete t.carry,t.premium=premOnlyAt(NET[t.net],t.city)||!!t.premium&&premCity(NET[t.net],t.city),t));
+  s.transit=s.transit.filter(t=>t&&isCity(t.city)&&isNet(t.net)).map(t=>(t.lacp=degO(t.lacp),t.site=['a','b','ab'].includes(t.site)?t.site:'a',t.id=sid(t.id),t.tier=tier(t.tier),t.n=lag(t.n),t.down=num(t.down,0),t.hist=Array.isArray(t.hist)?t.hist.slice(-30).map(histOk).filter(v=>v!==null):[],t.clean=!!t.clean,t.carry===true||delete t.carry,t.premium=premOnlyAt(NET[t.net],t.city)||!!t.premium&&premCity(NET[t.net],t.city),t));
   s.pni=s.pni.filter(x=>x&&isCity(x.city)&&isNet(x.net)).map(x=>(x.lacp=degO(x.lacp),x.site=['a','b','ab'].includes(x.site)?x.site:'a',x.id=sid(x.id),x.tier=tier(x.tier),x.n=lag(x.n),x.sacrif=!!x.sacrif,x));
   // PNIs on order (#…): delivery day, a pending augment, and 1G for the one network that sells it
   for(const x of s.pni){if(x.ready!==undefined)x.ready=num(x.ready,0);if(x.g1)x.g1=x.tier===0&&x.net==='dtk'?true:undefined;else delete x.g1;if(x.up){const u=x.up;x.up=u&&typeof u==='object'?{tier:tier(u.tier),n:lag(u.n),ready:num(u.ready,0),g1:!!u.g1&&x.net==='dtk'&&tier(u.tier)===0,...(u.site==='ab'?{site:'ab'}:{})}:undefined;if(!x.up)delete x.up;}}
@@ -106,6 +109,7 @@ function sanitize(s){
   {const r=s.rules&&typeof s.rules==='object'&&!Array.isArray(s.rules)?s.rules:{};
    const m={mods:r.mods};s.rules=s.scn&&typeof s.scn==='object'?makeRules('oncall',m):s.mode==='sandbox'?makeRules('sandbox',{...m,chaos:r.chaos}):makeRules(NORMAL_PRESETS.includes(r.preset)?r.preset:'oncall',m);}
   specSanitize(s);
+  s.pol=polSanitize(s.pol);if(s.engGrace!==undefined)s.engGrace=num(s.engGrace,0);
   if(s.te){if(typeof s.te!=='object')s.te=null;else{s.te.on=!!s.te.on;s.te.script=typeof s.te.script==='string'?s.te.script.slice(0,4000):'';}}
   return s;}
 function migrate(s){sanitize(s);
@@ -122,6 +126,11 @@ function migrate(s){sanitize(s);
   {const all=NETS.map(n=>n.id),seen=Array.isArray(s.seen)?s.seen.filter(x=>typeof x==='string'):null,fresh=seen?all.filter(id=>!seen.includes(id)):all;
     if(fresh.length&&(s.day||0)>0){const g=s.grace&&s.grace.until>s.day?s.grace:{nets:[]};s.grace={until:s.day+GRACE_DAYS,nets:[...new Set(g.nets.concat(fresh))],fresh:seen?fresh.length:0};}
     s.seen=all;}
+  /* The BGP engine (docs/specs/network-engine.md §4): an older network keeps the order it routed by (caches, then PNIs,
+     exchanges, peers' customers, transit) as explicit local-pref rules, and spreads over equal paths as it did. It is
+     told once, and gets a month before loss starts to cost it customers. */
+  if(s.engV!==3){if((s.day||0)>0){const kind=[['cone',170],['from:cache',300],['from:pni',200],['from:ix',180]].map(([m,n],i)=>({id:'r'+(9000+i),m,at:'x:*:in',act:'lp',n}));
+      s.pol.rules=kind.concat(s.pol.rules).slice(0,POL_LIM.rules);for(const c in s.pops)s.pol.mp[c]=1;s.engNews=true;s.engGrace=(s.day||0)+30;}s.engV=3;}
   // Australian pricing and peering changed in place (#148): a save that was already there gets told once.
   if(s.auV!==1){if((s.day||0)>0&&Object.keys(s.pops).some(c=>CITY[c].au))s.auNews=true;s.auV=1;}
   // Months were 30 days before #257: the intern's budget month counts calendar months now, so it does not reset early.

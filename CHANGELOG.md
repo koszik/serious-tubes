@@ -6,6 +6,11 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Your network now runs on real BGP: routes are chosen by local-pref, AS path and distance, never by free room, so a full link or port drops packets instead of quietly sending the rest elsewhere. With nothing configured, peering usually wins on AS path; traffic coming to you enters where the far network chooses, and a CDN still moves what does not fit onto its next way in.
+- Every link and port is now two pipes, one per direction: each has its own bar with its packet loss and a chart of the day, the map draws two lanes, and the congested lists name the busy direction.
+- Customers have traffic of their own, through a 24-hour day on local time: homes peak in the evening, offices in office hours, streamers and game servers at their audience's evening, AI training runs flat out, backups at night. Transit is billed on the 95th percentile of hourly samples, on the busier direction.
+- Routing policy is yours to write: tag ports, caches, POPs and customers with your own communities, then set local-pref, prepend, announce in a region only, blackhole or keep a route off a link, put traffic in a priority queue, and switch on multipath or allowas-in. All in the Routing window, and in RouteScript as before.
+- Networks started before this update keep the order they routed by as rules, and get 30 days before packet loss costs customers. Gangnam Style Peering now runs 270 days.
 - Every capital in the Americas is on the map: the eastern Caribbean islands, Central America, Haiti, Guyana, Suriname and Bolivia's constitutional capital Sucre. The islands land the real cables (ECFS and Southern Caribbean Fiber), Flow and Digicel serve all of them, and Belize, Guyana, Suriname and Haiti get their own national telcos.
 - Every US state capital and Washington, DC are on the map, with every Canadian provincial and territorial capital and Greenland. Greenland's capital Nuuk and three towns up the coast hang on the real Greenland Connect cables; Iqaluit has only satellites, so land your own cable there. New carriers sell transit in the north and the Canadian provinces, and exchanges sit only where real ones do.
 ## [2.7.0] — 2026-11-03

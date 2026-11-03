@@ -1,3 +1,8 @@
+// The two directions of a link at the hour shown (UI.hour): use, load and loss of its city pair's pipes, l.a→l.b first.
+function mapLanes(l){if(!R.dp)return null;const p=pipeOfLink(l);if(!p)return null;const h=UI.hour??R.hp??0,a=pipeAt(p[0],h),b=pipeAt(p[1],h);
+  return [{u:a.cap?a.dlv/a.cap:0,g:a.dlv,loss:a.loss},{u:b.cap?b.dlv/b.cap:0,g:b.dlv,loss:b.loss}];}
+// The current screen path (SX/SY), moved d pixels to one side of its direction of travel.
+function offPath(np,d){ctx.beginPath();for(let i=0;i<np;i++){const a=Math.max(0,i-1),b=Math.min(np-1,i+1),dx=SX[b]-SX[a],dy=SY[b]-SY[a],n=Math.hypot(dx,dy)||1,x=SX[i]-dy/n*d,y=SY[i]+dx/n*d;i?ctx.lineTo(x,y):ctx.moveTo(x,y);}}
 function draw(now){DFC=new Map();try{drawFrame(now);}finally{DFC=null;}}
 function drawFrame(now){
   if(!ctx)return;
@@ -43,7 +48,11 @@ function drawFrame(now){
       ctx.lineCap='round';ctx.lineJoin='round';
       if(sel){ctx.strokeStyle='rgba(255,79,154,.35)';ctx.lineWidth=w+14;path();ctx.stroke();}
       ctx.strokeStyle='#1E2640';ctx.lineWidth=w+4;ctx.setLineDash(cut?[8,8]:vx?[2,7]:bld?[10,8]:idle?[4,6]:[]);path();ctx.stroke();
-      ctx.strokeStyle=bld?'#C9B27C':dark?'#5D6788':cut?'#FF4D5E':idle?'#9AA3BE':vx?FAB[l.prov].col:l.sub?(u>0.001?utilCol(u):'#7FD8EE'):utilCol(u);ctx.lineWidth=w;ctx.stroke();ctx.setLineDash([]);
+      /* Two lanes, one per direction at the hour shown: a→b on one side, b→a on the other, each coloured by its own use
+         and red when it drops packets. Zoomed out or crowded, one line in the colour of the busier one. */
+      const LN=!far&&!busy&&!cut&&!bld&&!dark&&!idle&&!pz?mapLanes(l):null;
+      if(LN){ctx.setLineDash([]);for(let d=0;d<2;d++){const x=LN[d];ctx.strokeStyle=x.loss>=0.001?(Math.floor(now/400)%2?'#FF4D5E':'#C8102E'):vx?FAB[l.prov].col:l.sub&&x.u<=0.001?'#7FD8EE':utilCol(x.u);ctx.lineWidth=w*0.5;offPath(np,(d?-1:1)*w*0.25);ctx.stroke();}path();}
+      else{ctx.strokeStyle=bld?'#C9B27C':dark?'#5D6788':cut?'#FF4D5E':idle?'#9AA3BE':vx?FAB[l.prov].col:l.sub?(u>0.001?utilCol(u):'#7FD8EE'):utilCol(u);ctx.lineWidth=w;ctx.stroke();ctx.setLineDash([]);}
       // Architect runs: tubes sharing one trench are drawn as strands of one bundle (one snip takes them all).
       if(pz&&many){ctx.strokeStyle='#1E2640';ctx.lineWidth=1.3;for(let j=1;j<grp.length;j++){const d=w*(j/grp.length-0.5);ctx.beginPath();for(let i=0;i<np;i++){const a=Math.max(0,i-1),b=Math.min(np-1,i+1),dx=SX[b]-SX[a],dy=SY[b]-SY[a],n=Math.hypot(dx,dy)||1,x=SX[i]-dy/n*d,y=SY[i]+dx/n*d;i?ctx.lineTo(x,y):ctx.moveTo(x,y);}ctx.stroke();}path();}
       // Still the same path: strokes keep it, so the dotted fiber line goes on top without building it again.
@@ -51,7 +60,10 @@ function drawFrame(now){
       const at=t=>polyAtXY(SX,SY,gm.cum,t);
       if(!cut&&load>0.01){const n=clamp(Math.round(2+u*10),2,12)>>(far?1:0)||1,len=gm.len*z,spd=90;
         ctx.fillStyle='#fff';ctx.strokeStyle='#1E2640';ctx.lineWidth=far?1:1.5;
-        const rr2=far?1.6:Math.max(2.2,w*.42),base=now/1000*spd/Math.max(len,40);ctx.beginPath();for(let i=0;i<n;i++){let t=(base+i/n)%1;if(i%2)t=1-t;const [px,py]=at(t);ctx.moveTo(px+rr2,py);ctx.arc(px,py,rr2,0,7);}ctx.fill();ctx.stroke();}
+        const rr2=far?1.6:Math.max(LN?1.6:2.2,w*(LN?.24:.42)),base=now/1000*spd/Math.max(len,40);ctx.beginPath();
+        // With lanes, each direction's dots run in its own lane, as many as its own use.
+        if(LN)for(let d=0;d<2;d++){const m=clamp(Math.round(1+LN[d].u*6),1,7);if(LN[d].g<0.01)continue;for(let i=0;i<m;i++){let t=(base+i/m)%1;if(d)t=1-t;const [px,py]=at(t),[qx,qy]=at(Math.min(1,t+0.01)),[ox,oy]=at(Math.max(0,t-0.01)),dx=qx-ox,dy=qy-oy,nn=Math.hypot(dx,dy)||1,o=(d?-1:1)*w*0.25,x=px-dy/nn*o,y=py+dx/nn*o;ctx.moveTo(x+rr2,y);ctx.arc(x,y,rr2,0,7);}}
+        else for(let i=0;i<n;i++){let t=(base+i/n)%1;if(i%2)t=1-t;const [px,py]=at(t);ctx.moveTo(px+rr2,py);ctx.arc(px,py,rr2,0,7);}ctx.fill();ctx.stroke();}
       const [mx2,my]=at(.5);const mxx=mx2;
       if(bld){if(far){ctx.fillStyle='#FF8A3D';ctx.strokeStyle='#1E2640';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(mxx,my,4,0,7);ctx.fill();ctx.stroke();}else drawCone(mxx,my,now);}
       else if(cut&&!vx){if(far){ctx.fillStyle='#FF4D5E';ctx.strokeStyle='#1E2640';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(mxx,my,5,0,7);ctx.fill();ctx.stroke();ctx.fillStyle='#fff';ctx.font='900 8px Nunito, sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('!',mxx,my+0.5);}else if(!arPz)drawBackhoe(mxx,my,now,l.sub);}

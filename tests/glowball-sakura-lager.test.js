@@ -90,7 +90,11 @@ test('networks in its own regions buy their transit from it, so a PNI with it re
   assert.equal(ev("NET.pes.up.join()"), 'cog,lvl,gsl');
   // One PNI with it carries a downstream's traffic as well as its own (one port, shared by it and its downstreams).
   ev("ACT.start({});S.cash=1e8;ACT.launchBB({city:'fra'});ACT.buyTransit({city:'fra',net:'cog',tier:1});S.pops.fra.bb.d=400;ACT.pni({city:'fra',net:'gsl',tier:1});for(const p of S.pni)p.ready=0;compute()");
-  assert.ok(ev("(R.netEg.pes||{}).p") > 0, 'Pessimum is reached over the PNI with its upstream');
+  // Pessimum picks its way in: through either upstream it is two AS hops, a tie its own routers break...
+  const tie = ev("(R.netEg.pes||{}).p||0");
+  // ...until you prepend your announcement to transit, and the PNI is the shorter path for all of it.
+  ev("S.pol.rules.push({id:'r1',m:'*',at:'x:t:'+S.transit[0].id+':out',act:'prepend',n:1});compute()");
+  assert.ok(ev("(R.netEg.pes||{}).p") > 0 && ev("(R.netEg.pes||{}).t||0") < 1e-9 && ev("(R.netEg.pes||{}).p") >= tie - 1e-9, 'Pessimum is reached over the PNI with its upstream');
   assert.equal(ev("(NET.abb.up||[]).includes('gsl')"), false, 'Aussie Boyband does not buy from it');
   ev("S.pni=[];compute()");
   assert.equal(ev("(R.netEg.pes||{}).p||0"), 0, 'and not without it');

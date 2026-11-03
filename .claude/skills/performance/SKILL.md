@@ -102,3 +102,10 @@ The save loads through `migrate()` like any player's save, so new state gets its
 regenerate it (`node scripts/perf-fixture.js`, several minutes) when the save format changes in a
 way old saves cannot load, or the game grows new heavy systems the save does not exercise. Say in
 the commit that the baseline changed, because numbers before and after are no longer comparable.
+
+## When routing is meant to change
+
+A change to the model itself (docs/specs/network-engine.md) routes differently on purpose: the bench warns that routing
+results differ, and that is expected. Say so in the PR, give the timings anyway, and explain any row that is slower
+(the engine's own numbers are in the spec's "As built").
+

@@ -157,11 +157,13 @@ test('RouteScript: parses safely, reports errors helpfully, and changes routing'
   assert.match(p[0], /unknown network/);
   assert.match(ev("teParse('drain pariss').errors[0]"), /Did you mean Paris/);
   assert.equal(ev("teParse('alert(1)').n"), 0, 'nothing is ever evaluated');
-  const cog = "R.useT[S.transit.find(t=>t.net==='cog').id]||0";
+  // A cap is what you send: Auto-TE moves the rest of the outbound onto the other upstream.
+  ev("S.pops.fra.bb.d=60;compute()");
+  const cog = "(R.useTd[S.transit.find(t=>t.net==='cog').id]||{}).tx||0";
   const before = ev(cog);
   ev("ACT.teEdit();document.getElementById('teSrc').value='cap transit cogentle at 3 gbps';ACT.teDeploy()");
   assert.ok(ev(cog) <= 3.0001 && before > 3, `Cogentle capped (${before} -> ${ev(cog)})`);
-  assert.ok(ev("R.useT[S.transit.find(t=>t.net==='lvl').id]") > 0, 'overflow went to the other upstream');
+  assert.ok(ev("(R.useTd[S.transit.find(t=>t.net==='lvl').id]||{}).tx") > 0, 'overflow went to the other upstream');
   // a fat-fingered deploy earns its badge
   ev("ACT.teEdit();document.getElementById('teSrc').value='drain frankfurt\\ncap transit level tree at 0 gbps\\ncap transit cogentle at 0 gbps';ACT.teDeploy();checkGoals()");
   assert.ok(ev("S.ach.fat!==undefined"));
@@ -177,7 +179,8 @@ test('RouteScript BGP: local-pref and prepending move transit, protected custome
   const { ev, errors } = load();
   ev("ACT.start({});S.cash=1e9;S.lvl=4;for(const g of GOALS)S.done[g.id]=0;ACT.launchBB({city:'fra'})");
   ev("ACT.buyTransit({city:'fra',net:'cog',tier:1});ACT.buyTransit({city:'fra',net:'lvl',tier:1});ACT.coreUp();ACT.coreUp();ACT.buyTE();for(let i=0;i<30;i++)dayTick();compute()");
-  const use = n => ev(`R.useT[S.transit.find(t=>t.net==='${n}').id]||0`);
+  // Local-pref moves what you send (tx); prepending moves what the rest of the internet sends you (rx).
+  const use = (n, k = 'tx') => ev(`(R.useTd[S.transit.find(t=>t.net==='${n}').id]||{}).${k}||0`);
   const p = JSON.parse(ev("JSON.stringify(teParse('prefer transit level tree\\navoid transit cogentle\\nprepend transit cogentle 2\\nprotect customers\\nprepend transit cogentle 9'))"));
   assert.equal(p.n, 4);
   assert.match(p.errors[0], /prepend 1 to 3/);
@@ -185,10 +188,11 @@ test('RouteScript BGP: local-pref and prepending move transit, protected custome
   assert.equal(p.prep.cog, 2);
   ev("S.te.script='prefer transit level tree';compute()");
   assert.ok(use('cog') < 1e-6 && use('lvl') > 0, 'local-pref sends everything to the preferred upstream');
-  const tot = use('lvl');
+  ev("S.te.script='';compute()");
+  const tot = use('lvl', 'rx') + use('cog', 'rx');
   ev("S.te.script='prepend transit level tree 2';compute()");
-  assert.ok(use('lvl') < tot * 0.5 && use('cog') > 0, 'prepending moves traffic off, but not all of it');
-  assert.ok(Math.abs(use('lvl') + use('cog') - tot) < 0.5, 'nothing is lost');
+  assert.ok(use('lvl', 'rx') < tot * 0.5 && use('cog', 'rx') > 0, 'prepending moves the inbound off');
+  assert.ok(Math.abs(use('lvl', 'rx') + use('cog', 'rx') - tot) < tot * 0.02, 'nothing is lost');
   // Congest the city, then protect business customers: they keep their service, home users take the hit.
   ev("S.biz.push({id:uid(),city:'fra',city2:null,reqs:[],name:'Test DIA',type:'dia',bw:5,rate:600,mood:100,since:0});S.pops.fra.bb.d*=40;S.te.script='';compute()");
   const plain = ev("bizSf(S.biz[S.biz.length-1])");

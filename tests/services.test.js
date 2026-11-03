@@ -41,7 +41,7 @@ test('event networks pay in full when the crowd is served, nothing up front', ()
   assert.equal(ev("S.biz.length"), 1);
   const c0 = ev('S.cash');
   ev("dayTick()");
-  assert.equal(ev("R.cityDem.fra>R.cityEye.fra"), false, 'no extra demand before the event');
+  assert.equal(ev("R.cityDem.fra>R.cityEye.fra+1e-6"), false, 'no extra demand before the event');
   for (let i = 0; i < 6; i++) ev('dayTick()');
   assert.equal(ev("S.biz.some(b=>b.id==='e1')"), false, 'event is finished and removed');
   assert.ok(ev("S.log.some(e=>/is over: \\+\\$50/.test(e.t))"), 'paid the full fee');

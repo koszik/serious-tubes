@@ -51,6 +51,10 @@ next to it. `npm run page -- -o /tmp/page.html` writes the assembled page if you
   an entry in `scripts/lib/mcp-commands.js` (a game command with its argument domains, a view, a draft
   or a session action) or in the server's `DENY` list in `scripts/lib/mcp-page.js`;
   `tests/mcp-commands.test.js` fails until it has one.
+- **Routing:** the engine is `src/game/80-simulation/31-policy.js` (BGP policy), `32-engine.js` (graph, exits,
+  `compute()`), `33-engine-routes.js` (endpoints, items, routes, pipe lists), `34-engine-hours.js` (the 24 hours, loss)
+  and `35-engine-results.js` (what R holds); the model is `docs/specs/network-engine.md`. Read loads through
+  `pipeOfLink()`, `pipeOfExit()` and `pipeAt()`, or the busiest-hour fields (`R.ldir`, `R.lossD`, `R.useTd`).
 - **Panels and modals:** `93-ui/` (HUD, side panels), `94-dashboard/` (NOC dashboard, bank), `95-modals/`.
 - **Styles:** the matching `src/styles/*.css`; phone rules go in `60-phone.css`.
 - **Data tables** (cities, cables, networks): one entry per line, and keep id-keyed objects such as

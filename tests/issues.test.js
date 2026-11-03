@@ -6,18 +6,26 @@ function base(ev) {
   ev("ACT.start({});S.cash=1e8;for(const g of GOALS)S.done[g.id]=0;ACT.launchBB({city:'fra'})");
 }
 
-test('#4 several transits in one city share the load instead of filling one by one', () => {
+test('#4 several transits in one city share the load: inbound by the far side, outbound with multipath', () => {
   const { ev, errors } = load();
   base(ev);
   ev("ACT.buyTransit({city:'fra',net:'cog',tier:1});ACT.buyTransit({city:'fra',net:'lvl',tier:1});compute()");
-  const u = JSON.parse(ev("JSON.stringify(S.transit.map(t=>R.useT[t.id]||0))"));
-  assert.equal(u.length, 2);
-  assert.ok(u[0] > 0 && u[1] > 0, `both carry traffic (${u})`);
-  assert.ok(Math.abs(u[0] - u[1]) / (u[0] + u[1]) < 0.35, `roughly balanced (${u})`);
-  // local exits still win over far ones: a transit in London is not used while Frankfurt has room
+  const dir = k => JSON.parse(ev(`JSON.stringify(S.transit.map(t=>(R.useTd[t.id]||{})['${k}']||0))`));
+  // Inbound is the rest of the internet's choice; their tie-breaks spread it over both ports.
+  const rx = dir('rx');
+  assert.ok(rx[0] > 0 && rx[1] > 0, `both carry traffic in (${rx})`);
+  assert.ok(Math.abs(rx[0] - rx[1]) / (rx[0] + rx[1]) < 0.35, `roughly balanced (${rx})`);
+  // Outbound: one best path per network. Ties go to the older route, so it carries most, until the router may share them.
+  // (Level Tree's own customers are a hop closer through it either way.)
+  let tx = dir('tx');
+  assert.ok(tx[0] > tx[1] * 3, `one best path out (${tx})`);
+  ev("S.pol.mp.fra=1;compute()");
+  tx = dir('tx');
+  assert.ok(tx[1] > tx[0] * 0.8, `multipath shares equal routes (${tx})`);
+  // local exits still win over far ones outbound: a transit in London sends nothing while Frankfurt has one
   ev("ACT.buildPop({city:'lon'});UI.via=null;openLinkModal('fra','lon');ACT.buildLink({tier:3});closeModal();ACT.buyTransit({city:'lon',net:'tly',tier:1});compute()");
-  assert.equal(ev("R.useT[S.transit.find(t=>t.city==='lon').id]||0"), 0, 'remote transit stays idle');
-  // backup-only still means backup only
+  assert.equal(ev("(R.useTd[S.transit.find(t=>t.city==='lon').id]||{}).tx||0"), 0, 'remote transit sends nothing out');
+  // backup-only means backup only, both ways: lowest local-pref out, a long AS path in
   ev("S.transit[1].pref='low';compute()");
   assert.equal(ev("R.useT[S.transit[1].id]||0"), 0);
   assert.deepEqual(errors, []);
@@ -136,7 +144,7 @@ test('badges unlock with a rarity, persist across games, and secret ones stay hi
 test('Auto-TE spills overflow onto an alternate path when the shortest one is full', () => {
   const { ev, errors } = load();
   ev("ACT.start({});S.cash=1e9;S.lvl=4;for(const g of GOALS)S.done[g.id]=0;ACT.launchBB({city:'fra'})");
-  ev("for(const c of ['ams','lon','par'])ACT.buildPop({city:c});const L=(a,b,t,v)=>{UI.via=v||null;openLinkModal(a,b);ACT.buildLink({tier:t});closeModal();};L('fra','ams',0);L('ams','lon',1,'uly');L('fra','par',1);L('par','lon',1,'chn');ACT.buyTransit({city:'lon',net:'lvl',tier:1});compute()");
+  ev("for(const c of ['ams','lon','par'])ACT.buildPop({city:c});const L=(a,b,t,v)=>{UI.via=v||null;openLinkModal(a,b);ACT.buildLink({tier:t});closeModal();};L('fra','ams',0);L('ams','lon',1,'uly');L('fra','par',1);L('par','lon',1,'chn');ACT.buyTransit({city:'lon',net:'lvl',tier:1});S.pops.fra.bb.d=40;compute()");
   const dem = ev("R.demand");
   assert.ok(ev("R.served") < dem - 1, 'without TE the 10G link caps it');
   // Auto-TE needs an RSVP-TE backbone, and routers that can run it: Chonk 800s.
@@ -1336,7 +1344,7 @@ test('link redundancy trials distinguish a bridge, a full fallback and a healthy
  let t=JSON.parse(ev("JSON.stringify(linkTrial('main'))"));assert.equal(t.split,true);assert.equal(t.loss,80);
  assert.equal(ev('JSON.stringify(S)'),ev('state'));assert.equal(ev('R===live&&UI.hotMap===hot&&TE_CACHE===cache'),true);
  ev("S.links.push({id:'a',a:'fra',b:'ams',kind:'wave',tier:0,km:100,mo:100,cut:0},{id:'b',a:'ams',b:'bde',kind:'wave',tier:0,km:100,mo:100,cut:0});compute()");
- t=JSON.parse(ev("JSON.stringify(linkTrial('main'))"));assert.equal(t.split,false);assert.equal(t.loss,70);assert.equal(t.busy.length,2);
+ t=JSON.parse(ev("JSON.stringify(linkTrial('main'))"));assert.equal(t.split,false);assert.equal(t.loss,80,'a circuit squeezed onto 10G loses everything');assert.equal(t.busy.length,2);
  ev("S.links[1].tier=1;S.links[2].tier=1;compute()");t=JSON.parse(ev("JSON.stringify(linkTrial('main'))"));assert.equal(t.split,false);assert.equal(t.loss,0);
  ev("S.links[1].cut=S.day+5;compute()");assert.equal(ev("linkTrial('main').split"),true,'existing failures are respected');assert.equal(ev("linkTrial('a')"),null,'an already failed link is not tested');
  ev("S.links=S.links.slice(0,1);S.links.push({...S.links[0],id:'parallel'});compute()");assert.equal(ev("linkTrial('main').split"),false,'only the selected link fails even when a trench is shared');assert.equal(ev("linkTrial('main').loss"),0);
@@ -1388,7 +1396,7 @@ test('#210 candidate exits on saturated shortest paths are skipped to avoid fall
   const { ev, errors } = load();
   ev("ACT.start({});S.cash=1e8;UI.speed=0;for(const g of GOALS)S.done[g.id]=0;");
   ev("ACT.buyTransit({city:'fra',net:'cog',tier:1});");
-  ev("ACT.buildPop({city:'par'});ACT.launchBB({city:'par'});");
+  ev("ACT.buildPop({city:'par'});ACT.launchBB({city:'par'});S.pops.par.bb.d=40;");
   ev("S.links.push({id:'x1',a:'fra',b:'par',kind:'wave',tier:0,km:450,mult:1,mo:1000,ready:0,cut:0});");
   ev("compute();");
   assert.ok(ev("R.load['x1'] >= 10 - 1e-6"), 'intercity wave is saturated');

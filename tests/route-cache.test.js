@@ -1,4 +1,4 @@
-// What compute() keeps between calls (src/game/80-simulation/29-route-cache.js): the shortest paths and the exit lists,
+// What compute() keeps between calls (29-route-cache.js, and ENGC in 33-engine-routes.js): the shortest paths and the routes,
 // rebuilt only when their key changes. These tests make sure every kind of change that can matter changes the key (a
 // stale table would route yesterday's network), that demand alone does not (or nothing is gained), and that routing
 // with the kept tables is exactly routing without them.
@@ -19,14 +19,15 @@ function open() {
 // Applies a change, routes once with the kept tables and once without (from the same yesterday), and says which keys moved.
 function step(ev, change) {
   ev(change);
-  return JSON.parse(ev(`(()=>{const gk=RC.gk,xk=RC.xk,prior=R;compute();const a=JSON.stringify(R)+JSON.stringify(R.fl);
-    const g=RC.gk!==gk,x=RC.xk!==xk;R=prior;RC.on=false;try{compute();}finally{RC.on=true;}const b=JSON.stringify(R)+JSON.stringify(R.fl);
+  // Kept pipe lists can come in another order than fresh ones: sums then differ in their last bits, so compare 10 digits.
+  return JSON.parse(ev(`(()=>{const J=x=>JSON.stringify(x,(k,v)=>typeof v==='number'?+v.toPrecision(10):v);const gk=RC.gk,xk=ENGC.key,prior=R;compute();const a=J(R)+J(R.fl);
+    const g=RC.gk!==gk,x=ENGC.key!==xk;R=prior;RC.on=false;try{compute();}finally{RC.on=true;}const b=J(R)+J(R.fl);
     return JSON.stringify({g,x,same:a===b,len:a.length});})()`));
 }
 
 test('a change to links, POPs, ports, peering, events or RouteScript rebuilds what routing keeps; demand alone does not', () => {
   const { ev, errors } = open();
-  assert.ok(ev('RC.gk!==null&&RC.xk!==null'), 'routing keeps its tables after a compute');
+  assert.ok(ev('RC.gk!==null&&ENGC.key!==null'), 'routing keeps its tables after a compute');
   // [what changes, the graph key moves, the exits key moves]
   const changes = [
     // Demand and capacity only: nothing structural, the kept tables are used.
@@ -46,7 +47,8 @@ test('a change to links, POPs, ports, peering, events or RouteScript rebuilds wh
     // The exits: transit ports, PNIs, caches, exchanges, sessions.
     ["S.transit[2].pref='low'", false, true],
     ["S.transit[2].pref='high'", false, true],
-    ['S.transit[5].carry=true', false, true],
+    // (carry is a setting of the old engine: BGP's AS path does what it did.)
+    ['S.transit[5].carry=true', false, false],
     ['S.transit[4].down=S.day+3', false, true],
     ['S.transit.splice(1,1)', false, true],
     ["S.pni[0].pref='high'", false, true],
@@ -77,11 +79,18 @@ test('a change to links, POPs, ports, peering, events or RouteScript rebuilds wh
 
 test('days in a row reuse the kept tables and route like a fresh start every day', () => {
   const { ev, errors } = open();
+  // An event that starts or ends adds or removes the traffic it brings (a new set of far ends); take them out for this one.
+  ev('S.biz=S.biz.filter(b=>!BIZ_T[b.type].event);S.offers=[];compute()');
+  // (A customer who signs or leaves changes who your traffic goes to: then routing is rebuilt, and that is right.)
+  let kept = 0;
   for (let d = 0; d < 4; d++) {
+    const who = ev("S.biz.map(b=>b.id).join()");
     ev('dayTick()');
+    const same = ev("S.biz.map(b=>b.id).join()") === who;
     const r = step(ev, '');
     assert.ok(r.same, `day ${d}: the same routing with and without the kept tables`);
-    assert.ok(!r.g && !r.x, `day ${d}: a day of demand only keeps the tables`);
+    if (same) { assert.ok(!r.g && !r.x, `day ${d}: a day of demand only keeps the tables`); kept++; }
   }
+  assert.ok(kept > 0, 'at least one day of demand only');
   assert.deepEqual(errors, []);
 });

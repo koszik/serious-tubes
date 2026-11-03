@@ -78,6 +78,9 @@ const API_DOMAINS={
   // Entity ids (uid()) cannot be validated against a table: shape only. A wrong id is the game's
   // to answer, honestly, with no_effect — never a refusal invented on this side of the wall.
   entityId:{kind:'string'},
+  // BGP policy (S.pol): what a rule does, and the two per-session switches.
+  polAct:{kind:'enum',values:['lp','deny','nocarry','noexp','prepend','regonly','blackhole']},
+  sessKey:{kind:'enum',values:['allowas','dflt']},
   scnId:{table:'SCN',kind:'id'},
   // A traceroute target in the modal's own terms.
 };
@@ -550,7 +553,18 @@ const API_VIEW={
  offerStep:{args:[],doc:'Select the next open offer (soonest to expire first), centre its city and mark it under Offers here: the $ key.'},
  zoomStep:{args:[['d','integer']],doc:'Zoom the map out (d<0) or in (d>0) around its middle: the - and = keys.'},
  keys:{args:[],doc:'Open the list of keyboard shortcuts (the ? key).'},
- routingOpen:{args:[],doc:'Open the Routing & DDoS window: backbone, Auto-TE and DDoS settings (the button at the top of the NOC tab).'},
+ routingOpen:{args:[],doc:'Open the Routing & DDoS window: backbone, BGP policy, Auto-TE and DDoS settings (the button at the top of the NOC tab).'},
+ polTagAdd:{args:[['name','string']],watch:['pol'],doc:'Create a tag (a BGP community of your own): lower-case letters, digits and dashes, up to 20.'},
+ polTagDel:{args:[['id','string']],watch:['pol'],doc:'Delete a tag, with the rules and QoS entries that match it.'},
+ polTagOn:{args:[['id','string'],['ref','string']],watch:['pol'],doc:'Attach tag id to a thing: t:<transit id>, p:<PNI id>, ix:<exchange>, c:<cache id>, pop:<city>, b:<customer id>. Routes learned or prefixes announced there carry it.'},
+ polTagOff:{args:[['id','string'],['ref','string']],watch:['pol'],doc:'Take a tag off a thing.'},
+ polRuleAdd:{args:[['m','string'],['at','string'],['act','polAct'],['n','integer']],watch:['pol'],doc:'Add a rule at the end. m: a tag id or an automatic community (*, from:transit|pni|ix|cache, cone, biz, net:<id>, region:<r>, at:<city>, at-region:<r>, pop:<city>, pop-region:<r>, class:<c>, cust:<id>). at: x:<ref|*>:in (act lp n / deny), x:<ref|*>:out (noexp, prepend n 1-3, regonly, blackhole), l:<a|b> (nocarry), pop:<city|*> (lp n / deny). The first matching rule at a place decides.'},
+ polRuleMove:{args:[['id','string'],['by','step']],watch:['pol'],doc:'Move a rule one up (-1) or down (1).'},
+ polRuleDel:{args:[['id','string']],watch:['pol'],doc:'Delete a rule.'},
+ polQosAdd:{args:[['m','string']],watch:['pol'],doc:'Put traffic matching m (a tag, biz or class:<c>) in the priority queue, served before best effort on every pipe and router.'},
+ polQosDel:{args:[['i','integer']],watch:['pol'],doc:'Take entry i off the priority queue.'},
+ polMp:{args:[['city','string'],['on','boolean']],watch:['pol'],doc:'BGP multipath on a POP\'s routers (city "*": every POP): equal routes share traffic instead of the oldest taking it all.'},
+ polSess:{args:[['ref','string'],['k','sessKey'],['on','boolean']],watch:['pol'],doc:'A session switch on t:<id>, p:<id> or ix:<id>: allowas (accept routes carrying your own AS, so islands reach each other) or dflt (take a default route from transit).'},
  opsOpen:{args:[],doc:'Open the Ops sheet: the NOC intern\'s mood, weekly shift report and standing orders.'},
  opsCity:{args:[['v','cityId',false]],doc:'Show one POP\'s standing-order exceptions in the Ops sheet.'},
  utilities:{args:[['city','cityId',false]],doc:'Open the utilities sheet: route servers, the redundancy kit, caches and bulk peering, for one city or the whole network.'},
@@ -712,6 +726,10 @@ const API_STATE_DOC={
  krExit:{type:'map',doc:'Korea exit state.'},
  auNews:{type:'boolean',doc:'One-shot flag: the Australia news toast.'},
  richTold:{type:'boolean',doc:'One-shot flag: the cash milestone toast.'},
+ engV:{type:'integer',doc:'Routing engine version the save was migrated to (3: BGP, rx/tx pipes, hours).'},
+ pol:{type:'map',doc:'Routing policy: tags (communities) and where they are attached (on), rules {m, at, act, n} in order, qos (priority-queue matches), mp (POPs with BGP multipath) and sess (per-session allowas / default route).'},
+ engNews:{type:'boolean',doc:'One-shot flag: the new routing engine notice.'},
+ engGrace:{type:'integer',doc:'Until this day, loss does not cost an old network customers (its month to adapt to the new engine).'},
 };
 
 const API_RESULTS_DOC={
@@ -736,7 +754,18 @@ const API_RESULTS_DOC={
  p95:{type:'map',doc:'95th-percentile transit readings per port.'},
  peered:{type:'number',doc:'Share of traffic that stays on peering.'},
  peerShare:{type:'number',doc:'Fraction of traffic served by peers (mood driver).'},
- load:{type:'map',doc:'Load per link in Gbps.'},
+ load:{type:'map',doc:'Load per link in Gbps: the busier direction at the link\'s busiest hour.'},
+ ldir:{type:'map',doc:'Load per link in Gbps each way, [a→b, b→a], at its busiest hour.'},
+ lossL:{type:'map',doc:'Worst hourly packet loss per link (0..1), either way.'},
+ lossD:{type:'map',doc:'Worst hourly packet loss per link each way, [a→b, b→a].'},
+ lossX:{type:'map',doc:'Worst hourly packet loss per exit (t:/ix:/p:/c: id), either way.'},
+ tday:{type:'map',doc:'Today\'s six busiest hours per transit port, in (i) and out (o): the 95th-percentile samples.'},
+ useTd:{type:'map',doc:'Transit use per port each way at its busiest hour: rx (into your network) and tx.'},
+ p95dir:{type:'map',doc:'95th percentile per transit port each way {i, o}; the bill takes the bigger.'},
+ hp:{type:'integer',doc:'The day\'s peak hour (UTC, 0–23): served, demand and the exit split are taken there.'},
+ psf:{type:'map',doc:'Service per POP\'s eyeballs (0..1): delivered in their busy hours, times latency.'},
+ bsf:{type:'map',doc:'Service per customer id (0..1): delivered and loss against its class\'s tolerance.'},
+ svc:{type:'map',doc:'Per endpoint (pop:, grp:, l2:, fill:): D delivered share, L worst busy-hour loss, sf service.'},
  useT:{type:'map',doc:'Transit use per port id.'},
  useIx:{type:'map',doc:'IX use per exchange city.'},
  usePni:{type:'map',doc:'PNI use per port id.'},

@@ -34,10 +34,13 @@ test('Rackstar serves cacheable Crowdflare traffic locally and overflow uses tra
   const transit = ev('R.useT[S.transit[0].id]');
   const box = "ACT.cache({city:'fra',net:'cfl'});for(const c of S.caches)delete c.g;compute()"; // 100G boxes, as in this test
   ev(box);
-  assert.equal(ev('R.useCache[S.caches[0].id]'), ev('CACHE_CAP'), 'first box fills to 100G');
-  assert.ok(Math.abs(ev('R.useT[S.transit[0].id]') - (transit - 100)) < 1e-6);
+  // A CDN fills its box to 95% and sends the rest the next way in (transit here); hourly bursts shave a little off.
+  const one = ev('R.useCache[S.caches[0].id]');
+  assert.ok(one > ev('CACHE_CAP*SPILL_CDN') * 0.99 && one <= ev('CACHE_CAP*SPILL_CDN'), `first box fills to 95%: ${one}`);
+  // The box also fills itself over transit at night (a few percent of what it serves), so this is close, not exact.
+  assert.ok(Math.abs(ev('R.useT[S.transit[0].id]') - (transit - one)) < one * 0.05, 'transit carries what the box does not');
   ev(box);
-  assert.ok(Math.abs(ev('Object.values(R.useCache).reduce((a,b)=>a+b,0)') - 170) < 1e-6, '85% is cacheable, the rest still needs an external exit');
+  assert.ok(Math.abs(ev('Object.values(R.useCache).reduce((a,b)=>a+b,0)') - 170) < 0.5, '85% is cacheable, the rest still needs an external exit');
   ev("ACT.rmCache({id:S.caches[0].id});ACT.rmCache({id:S.caches[0].id})");
   assert.ok(Math.abs(ev('R.useT[S.transit[0].id]') - transit) < 1e-6, 'removal returns traffic to transit');
   assert.deepEqual(errors, []);

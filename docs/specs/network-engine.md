@@ -1,6 +1,6 @@
 # Spec: the network engine (BGP, rx/tx pipes, hourly traffic, packet loss)
 
-Status: under review. Nothing here is implemented yet. Sections marked **(tunable)** hold balance numbers; they can
+Status: implemented (phases 1–6, see §17 for what was built differently and what is still open). Sections marked **(tunable)** hold balance numbers; they can
 change during rebalancing without changing the logic.
 
 ## 0. Summary
@@ -751,3 +751,44 @@ playable.
   the big-network fixture in phase 5.
 - Should a `regonly` export also apply to a cache (that is, only map users from the cache's region)? The proposal is
   yes, which makes caches respect it.
+
+## 17. As built (2026-11-03)
+
+The engine is `src/game/80-simulation/31-35`, the UI `93-ui/15-pipes.js` and `93-ui/47-bgp-panel.js`, the actions
+`90-actions/62-policy.js`; tests `tests/network-engine.test.js`, `tests/origins.test.js` and rules E1–E6. Where the
+code differs from the text above:
+
+- **Classes.** IP events (`event`, `esport`) are a class of their own, `live` (out-heavy, evening, inelastic); `capw`,
+  `capsub` and `slice` are `dci`, `flex` is `special`, `l3vpn` is `enterprise`.
+- **Audiences** have no `rest` flow: the 40 strongest origins plus every POP of yours with broadband, renormalised. Who is
+  in an audience does not change with demand, so routing is kept from day to day.
+- **Old preferences** are not migrated into rules: an exit's own Prefer is local-pref 150, Backup only is local-pref 20
+  and three prepends on its announcements. RouteScript's compiled rules come before `S.pol`'s (a deployed controller
+  has the last word).
+- **Grace** (old saves' first 30 days) lifts service to 95% everywhere, revenue included.
+- **L2 circuits** are one endpoint per pair of sites; a customer's service is its worst pair.
+- **Inbound ties** (same relationship, AS path and distance) go by a stable hash per origin and exit: the far side's
+  own tie-breaks, which spread traffic over your ports.
+- **Loss.** Bursts cost up to 0.2% between 85% and 100%; at or above 100% a pipe drops exactly the excess and carries its
+  capacity. A two-way flow is delivered as well as its worse direction (TCP). Flood junk is served first on every pipe
+  and router (it does not back off), then the priority queue, then best effort.
+- **DDoS** keeps its model (25-ddos-flood.js: spread, RTBH, Flowspec, scrubbing); its junk is offered to the pipes.
+  Collateral counts what others lose on the pipes the junk crosses.
+- **Latency** is the detour your network adds to the trip to the far end (backbone to the exit, plus the exit's distance
+  to the origin, minus the direct distance), on every kind of exit; under sender pays, Korean users mind the haul itself.
+- **Auto-TE** gives every single-path list one second path (the shortest avoiding its links, within the reach of the
+  backbone's TE level) and moves exactly what is over the spill mark, up to three rounds a hour. `cap` moves outbound
+  onto the best route without the capped upstream, or drops it.
+- **Puzzles and Architect runs** (no clock) route steady flows: every hour alike, circuits at full rate both ways in the
+  priority queue, eyeballs download only, content from the source nearest its users, no bursts, spill on. They are
+  capacity puzzles, and their references were built for that.
+- **The hour** shown (`UI.hour`) follows the clock; the HUD shows it in UTC. The map's night shade and the networks list's
+  region chips and origins are not built yet; neither are `R.why` ("why this path?"), the MCP `origins`, `why_path` and
+  `link_day` tools, nor the ratio rule for peering (§6).
+- **Performance** on `tests/fixtures/big-network.json` (`npm run perf -- --base-ref origin/main`, headless, median of
+  15): `compute()` 48 → 244 ms, `dayTick()` 74 → 454 ms (the day runs in the route worker during play), `after()`
+  2.8 → 3.6 ms, the map at three zooms 7.3 → 10.6 ms (two lanes per link), panels and dashboard unchanged. The
+  budget of §10.3 (1.2×) is not met: a day is 24 hours, and on this network a customer signing or leaving rebuilds the
+  per-item routing (about 150 ms of the 230). Next steps: key the route memo per network and by exit identity, so a new
+  exchange member or customer only reroutes what it touches.
+

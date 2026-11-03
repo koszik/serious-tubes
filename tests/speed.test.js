@@ -20,8 +20,10 @@ test('a preferred exit far away still wins over a normal one next door', () => {
   ev("ACT.start({});S.cash=1e8;for(const g of GOALS)S.done[g.id]=0;ACT.launchBB({city:'fra'});ACT.buildPop({city:'ams'})");
   ev("UI.via=null;openLinkModal('fra','ams');ACT.buildLink({tier:1});closeModal();ACT.buyTransit({city:'fra',net:'cog',tier:1});ACT.buyTransit({city:'ams',net:'tly',tier:1});compute()");
   assert.equal(ev('S.links.length'), 1);
-  const use = () => JSON.parse(ev("JSON.stringify(S.transit.map(t=>R.useT[t.id]||0))"));
-  assert.equal(use()[1], 0, 'normal: the local transit carries it all');
+  // What you send out (tx) follows your local-pref; what comes in is the far networks' choice.
+  const use = () => JSON.parse(ev("JSON.stringify(S.transit.map(t=>(R.useTd[t.id]||{}).tx||0))"));
+  // (Tell-Ya's own customers are a hop closer through Tell-Ya, so a sliver goes the long way: BGP's AS path.)
+  assert.ok(use()[1] < use()[0] * 0.15, 'normal: the local transit carries nearly all of it');
   ev("S.transit[1].pref='high';compute()");
   const [fra, ams] = use();
   assert.ok(ams > 0 && ams > fra, `preferred: Amsterdam's transit comes first (${fra} / ${ams})`);
@@ -32,13 +34,13 @@ test('what crosses each link adds up, and is put together when it is looked at',
   const { ev, errors } = load();
   bigNet(ev);
   assert.ok(ev("Object.keys(R.ef).length") > 5, 'traffic on many links');
-  // every push adds the same amount to one egress, one network and one source city
+  // at the link's busiest hour, both ways: the same traffic by network, by way out and by the city it serves, and at
+  // least the busier direction's load
   const bad = ev(`Object.keys(R.ef).filter(k=>{const r=R.ef[k],s=o=>Object.values(o).reduce((a,b)=>a+b,0),n=s(r.net);
     const load=S.links.filter(l=>edgeKey(l)===k).reduce((a,l)=>a+(R.load[l.id]||0),0);
-    return Math.abs(n-s(r.eg))>1e-6*(1+n)||Math.abs(n-s(r.dst))>1e-6*(1+n)||Math.abs(n-load)>1e-6*(1+n);}).join()`);
+    return Math.abs(n-s(r.eg))>1e-6*(1+n)||Math.abs(n-s(r.dst))>1e-6*(1+n)||n<load*0.99-1e-6||Object.keys(r.eg).some(e=>!R.egDesc[e]);}).join()`);
   assert.equal(bad, '', 'per network, per egress, per source city and the link load agree');
   assert.equal(ev("const k=Object.keys(R.ef)[0];R.ef[k]===R.ef[k]"), true, 'the same record every time');
-  assert.equal(ev("JSON.parse(JSON.stringify(R)).ef[Object.keys(R.ef)[0]].net!==undefined"), true);
   // the link panel reads it
   ev("const k=Object.keys(R.ef)[0],l=S.links.find(x=>edgeKey(x)===k);selectLink(l.id)");
   assert.match(ev("document.getElementById('panelBody').textContent"), /Content from/);
@@ -261,88 +263,6 @@ test('the map is not drawn while the dashboard covers the whole screen', () => {
   at(-40); frame();
   ev('ACT.dashClose()');
   assert.ok(frame() > 0, 'closing the dashboard draws the map again');
-  assert.deepEqual(errors, []);
-});
-
-// #89's fast paths must route exactly like the plain path. plainCompute() builds window.__plain, a copy of compute()
-// with every shortcut turned off (the POP's-own-exits shortcut, the first-group scan with its list clean-up, the
-// per-network exit index and the full-path mark), and the group split and sort written the plain way. The tests below
-// compare the two on a busy network (Auto-TE, then a RouteScript that keeps headroom on every link) and on a small one
-// where Auto-TE has to route around a full link, so it keeps holding when the game's numbers change.
-function plainCompute(ev) {
-  const src = ev('compute.toString()');
-  let plain = src
-    .replace('if(!lst.hi&&ALONE[fci])', 'if(false)')
-    .replace('if(!GN){\n        // One scan', 'if(false){\n        // One scan')
-    .replace('const ns=e.nets||NET_IDS;', 'const ns=NET_IDS;')
-    .replace('if(P.dead)return 0;', '').replaceAll('if(r<=1e-6){P.dead=1;return 0;}', '')
-    .replace('if(!P.dead)room-=push(', 'room-=push(').replace(/const gone=e=>\{[^\n]*\};/, 'const gone=e=>false;')
-    // ...and without what routing keeps between calls (29-route-cache.js): the plain path builds everything afresh.
-    .replace('RCON=RC.on', 'RCON=false');
-  // ...and the group split and sorting written the plain way, with array copies, as before they were made allocation-free
-  const sg = plain.indexOf('const ROOM=[],sendGroup='), sd = plain.indexOf('const sortD=');
-  assert.ok(sg > 0 && sd > sg, 'found the group sender and the sort');
-  plain = plain.slice(0, sg) + `const ROOM=[],sendGroup=(g0,i0=0,i1=g0.length)=>{const g=g0.slice(i0,i1);for(const e of g)e.vis=vis;
-    if(g.length>1){const room=g.map(e=>Math.max(0,e.cap-e.used)),tot=room.reduce((a,b)=>a+b,0),want=FREM[F];if(tot>1e-6)g.forEach((e,k)=>send(e,want*room[k]/tot));}
-    for(const e of g){if(FREM[F]<=1e-6)break;send(e,FREM[F]);}};\n  ` + plain.slice(sd).replace(/^const sortD=\(a,n=a\.length\)=>\{[^\n]*\};/, 'const sortD=(a,n=a.length)=>{const t=a.slice(0,n).sort(byDist);for(let i=0;i<n;i++)a[i]=t[i];};');
-  for (const [a, b] of [[src, plain]]) assert.notEqual(a, b);
-  assert.equal((plain.match(/if\(false\)/g) || []).length, 2, 'both shortcuts were found and switched off');
-  assert.ok(!plain.includes('e.nets||NET_IDS'), 'the exit index was switched off');
-  assert.ok(!plain.includes('P.dead'), 'the full-path mark was switched off');
-  assert.ok(plain.includes('RCON=false') && !plain.includes('RC.on'), 'the kept routing tables were switched off');
-  assert.ok(plain.includes('const sortD=(a,n=a.length)=>{const t=a.slice(0,n).sort(byDist);') && plain.includes('g.forEach('), 'the plain group split and sort are in');
-  ev('window.__plain=' + plain.replace(/^function compute/, 'function'));
-}
-
-test('fast routing gives exactly the same result as the plain path it replaces', () => {
-  const { ev, errors } = load();
-  plainCompute(ev);
-  ev(`ACT.start({});S.cash=1e12;S.lvl=13;S.won=true;for(const g of GOALS)S.done[g.id]=0;ACT.launchBB({city:'fra'});
-    const cs=ALLC.filter(c=>!CITY[c].cn).slice(0,40);for(const c of cs){if(!S.pops[c])ACT.buildPop({city:c});S.pops[c].rgen=10;S.pops[c].routers=4;if(!S.pops[c].bb)ACT.launchBB({city:c});S.pops[c].bb.d=CITY[c].P*0.7;}
-    const L=(a,b,t)=>{UI.via=null;UI.lmode='wave';UI.route='diverse';try{openLinkModal(a,b);ACT.buildLink({tier:t});closeModal();}catch(e){}};
-    for(let i=1;i<cs.length;i++)L(cs[i-1],cs[i],2);for(let i=0;i<cs.length;i+=4)L(cs[i],cs[(i+9)%cs.length],1);
-    // two upstreams in some cities and route servers on every exchange: equal-cost choices at the same POP
-    for(const c of cs.slice(0,14)){const ts=NETS.filter(n=>n.price&&n.pops.includes(c)&&(n.type==='t1'||n.type==='t2')).slice(0,2);for(const t of ts)ACT.buyTransit({city:c,net:t.id,tier:1});}
-    for(const c of cs)for(const x of ixIdsIn(c)){try{ACT.buyIx({city:x,tier:1});}catch(e){}if(S.dk&&S.dk.q){S.dk.q=null;closeModal();}if(S.ixp[x]!==undefined&&!S.rs[x])ACT.rs({city:x});}
-    compute();for(const n of NETS)for(const c of cs)if(n.pops.includes(c)&&peerOk(n.id,'pni',c).ok&&S.pni.length<150)S.pni.push({id:'p'+n.id+c,net:n.id,city:c,tier:1,n:1});
-    for(const n of NETS.filter(n=>n.cache))for(const c of cs.slice(0,15))for(const k of [1,2])S.caches.push({id:'c'+k+n.id+c,city:c,net:n.id,site:'a'});
-    if(S.pni[3])S.pni[3].pref='high';if(S.transit[1])S.transit[1].pref='low';S.te={on:true,day:0};S.core={lv:2,run:2,legacy:true};S.nextFail=1e9;S.nextEvent=1e9;`);
-  const sig = () => ev(`JSON.stringify({served:R.served,demand:R.demand,reach:R.reach,peered:R.peered,teMoved:R.teMoved,egT:R.egT,
-    srv:Object.keys(R.citySrv).sort().map(c=>[c,R.citySrv[c]]),load:S.links.map(l=>R.load[l.id]||0),node:Object.keys(R.nodeLoad).sort().map(c=>[c,R.nodeLoad[c]]),
-    t:Object.keys(R.useT).sort().map(k=>[k,R.useT[k]]),p:Object.keys(R.usePni).sort().map(k=>[k,R.usePni[k]]),ix:Object.keys(R.useIx).sort().map(k=>[k,R.useIx[k]]),c:Object.keys(R.useCache).sort().map(k=>[k,R.useCache[k]])})`);
-  for (let day = 0; day < 6; day++) {
-    // the last days run a RouteScript: spill keeps headroom on every link (push with a reserve), plus preferences
-    if (day === 4) ev(`S.te.script='spill at 80%\\nprefer transit '+NET[S.transit[0].net].name+'\\nprotect customers';`);
-    if (day >= 4) assert.ok(ev('!!teRules()&&teRules().spill===0.8'), 'the RouteScript is active');
-    ev('compute()'); const fast = sig();
-    ev('__plain()'); const ref = sig();
-    assert.equal(fast, ref, `day ${day}: the fast and the plain path route the same traffic`);
-    ev('compute();dayTick()');
-  }
-  assert.ok(ev('S.pni.length') > 50 && ev('S.caches.length') > 50, 'a network big enough to exercise every path');
-  assert.ok(ev('R.served') > 1000 && ev("S.transit.length") > 14, 'traffic flows over transit, peering and caches');
-  assert.deepEqual(errors, []);
-});
-
-test('Auto-TE routes around a full link exactly like the plain path', () => {
-  const { ev, errors } = load();
-  plainCompute(ev);
-  // Frankfurt reaches its only upstream in Amsterdam over a 10G wave, or the long way through Brussels on 800G.
-  ev(`ACT.start({});S.cash=1e12;S.lvl=13;for(const g of GOALS)S.done[g.id]=0;for(const c of ['ams','bru'])ACT.buildPop({city:c});
-    for(const c of ['fra','ams','bru']){S.pops[c].rgen=RG_TOP;S.pops[c].routers=RMAX;}if(!S.pops.fra.bb)ACT.launchBB({city:'fra'});S.pops.fra.bb.d=CITY.fra.P*0.8;
-    const L=(a,b,t)=>{UI.via=null;UI.lmode='wave';UI.route='main';openLinkModal(a,b);ACT.buildLink({tier:t});closeModal();};
-    L('fra','ams',0);L('fra','bru',3);L('bru','ams',3);
-    S.transit=[];const t=NETS.find(n=>n.price&&n.pops.includes('ams')&&n.type==='t1');ACT.buyTransit({city:'ams',net:t.id,tier:3});
-    S.ixp={};S.pni=[];S.caches=[];S.te={on:true,day:0};S.core={lv:2,run:2,legacy:true};S.nextFail=1e9;S.nextEvent=1e9;`);
-  const sig = () => ev('JSON.stringify({served:R.served,teMoved:R.teMoved,egT:R.egT,load:S.links.map(l=>R.load[l.id]||0),node:R.nodeLoad,t:R.useT})');
-  for (const script of ['', 'spill at 70%']) {
-    ev(`S.te.script=${JSON.stringify(script)}`);
-    ev('compute()'); const fast = sig();
-    ev('__plain()'); const ref = sig();
-    assert.equal(fast, ref, `fast and plain route the same around the full link (${script || 'no script'})`);
-    assert.ok(ev('R.teMoved') > 100, 'Auto-TE moved traffic through Brussels');
-    assert.ok(ev("R.load[S.links.find(l=>l.a==='fra'&&l.b==='ams').id]") >= (script ? 6.9 : 9.99), 'the direct 10G link is full (up to the spill line)');
-  }
   assert.deepEqual(errors, []);
 });
 

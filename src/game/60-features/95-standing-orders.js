@@ -138,7 +138,7 @@ const OPS_RUN={
  transit(X){if(scnRule('noTransit'))return;const N=opsP('transit','x');
    for(const c of opsPops('transit')){let ts=S.transit.filter(t=>t.city===c);if(!ts.length)continue;
      // Thirty days of 95th-percentile-ish history per port; their peaks summed is a safe (high) estimate of the POP's peak.
-     const peak=ts.reduce((a,t)=>a+(t.hist||[]).reduce((m,v)=>Math.max(m,v),0),0);if(!(peak>0))continue;
+     const peak=ts.reduce((a,t)=>a+(t.hist||[]).reduce((m,v)=>Math.max(m,histPeak(v)),0),0);if(!(peak>0))continue;
      // "Already connected" (#227): only the providers you buy from here, the smallest first, never a new contract.
      const have=opsP('transit','prov')==='have',n=have?null:opsProv(c);if(!have&&!n)continue;
      const grow=t=>{const k=t.n||1,up=t.tier+1;

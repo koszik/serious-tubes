@@ -66,7 +66,8 @@ test('RTBH saves everyone else and sends only the target dark', () => {
 test('the same flood spread over eight POPs fills no port', () => {
   const { ev, errors } = load();
   fra(ev);
-  ev("const cs=['ams','lon','par','zrh','mad','mil','vie'];for(const c of cs){ACT.buildPop({city:c});ACT.buyTransit({city:c,net:'cog',tier:1});}let p='fra';for(const c of cs){UI.pending={a:p,b:c};ACT.buildLink({tier:1});p=c;}closeModal();compute()");
+  ev("const cs=['ams','lon','par','zrh','mad','mil','vie'];for(const c of cs){ACT.buildPop({city:c});ACT.buyTransit({city:c,net:'cog',tier:1});}for(const c of cs){UI.pending={a:'fra',b:c};ACT.buildLink({tier:1});}closeModal();compute()");
+  // (A star: each piece rides its own link in. On a chain they would all pile onto the last links before Frankfurt.)
   const id = flood(ev, { gbps: 200 });
   assert.equal(rep(ev, id, 'm.portList.length'), 8);
   assert.equal(rep(ev, id, 'm.full'), 0);

@@ -16,7 +16,8 @@ test('broadband backhauled to transit far away is slow, and slow is bad service'
   assert.ok(ev('R.citySrv.lon/R.cityDem.lon') > 0.95, 'delivered');
   assert.ok(ev('R.latFar.lon.ms') > 50, `${ev('R.latFar.lon.ms')} ms round trip`);
   assert.equal(ev('R.latFar.lon.to'), 'nyc');
-  assert.ok(ev("sfOf(R,'lon')") < 0.55, 'over 50 ms counts as bad service');
+  // Traffic for networks near London crosses the Atlantic twice: far over 50 ms, bad service; American ones lose nothing.
+  assert.ok(ev("sfOf(R,'lon')") < 0.6, 'over 50 ms counts as bad service');
   // Amsterdam goes out in Frankfurt, a few hundred kilometres away: fine
   assert.equal(ev('R.latF.ams'), undefined);
   assert.ok(ev("sfOf(R,'ams')") > 0.95);
@@ -37,7 +38,7 @@ test('broadband backhauled to transit far away is slow, and slow is bad service'
   assert.deepEqual(errors, []);
 });
 
-test('the penalty is on a curve, and traffic that needs no transit is never penalised', () => {
+test('the penalty is on a curve, and any far exit is slow, peering too; traffic that leaves near home is not', () => {
   const { ev, errors } = load();
   assert.equal(ev('latLoss(15)'), 0);
   assert.equal(ev('latLoss(20)'), 0);
@@ -45,11 +46,13 @@ test('the penalty is on a curve, and traffic that needs no transit is never pena
   assert.ok(Math.abs(ev('latLoss(50)') - 0.2) < 1e-9);
   assert.equal(ev('latLoss(51)'), 0.5);
   setup(ev);
-  // London reaches an open network over peering in New York: far, but no transit, so no penalty
+  // London reaches open networks over peering in New York: no transit, but just as far, so just as slow
   ev("const x=ixIdsIn('nyc')[0];ACT.buyIx({city:x,tier:1,signed:true});ACT.rs({city:x});compute()");
   assert.ok(ev("Object.keys(R.netEg).some(n=>R.netEg[n].ix>0)"), 'traffic over the IX');
-  assert.equal(ev('R.latF.lon'), undefined);
-  assert.equal(ev("sfOf(R,'lon')"), ev("clamp(R.citySrv.lon/R.cityDem.lon,0,1)"));
+  assert.ok(ev('R.latF.lon') < 0.9);
+  // Amsterdam leaves in Frankfurt, next door: no penalty at all
+  ev("ACT.buyTransit({city:'fra',net:'cog',tier:1});compute()");
+  assert.equal(ev('R.latF.ams'), undefined);
   assert.deepEqual(errors, []);
 });
 
