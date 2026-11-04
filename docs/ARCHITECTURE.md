@@ -113,7 +113,9 @@ never freezes the game.
    Then the NOC intern's standing orders (`opsDay()`), if one is hired: each order clicks the same `ACT`
    actions a player would, muted, within its monthly budget, and the shift recomputes once at the end, only if
    a job changed the network. An order that throws is paused; the day goes on. The NOC gets one notice a week.
-5. Updates customer mood, churn and new offers; IX members join; loans tick.
+5. Updates customer mood and churn, settles SLAs (`slaTick()`, `40-progress/14-sla.js`: today's minutes down per
+   customer, rebates past its level's allowance) and makes new offers (priced by `40-progress/12-customer-prices.js`);
+   IX members join; loans tick.
 6. Every 30 days: bills the month (revenue minus costs) and checks for bankruptcy.
 7. Checks goals, level, badges and scenario end conditions.
 

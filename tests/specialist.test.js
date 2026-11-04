@@ -136,7 +136,7 @@ test('#187 the Low-latency boutique: pick it on day 0, traders weigh more and pa
     const g = load();
     g.ev(start);
     g.ev(`S.lvl=2;S.charter='${k}';${pop('nyc')}${pop('chi')}compute()`);
-    return JSON.parse(g.ev("(()=>{let n=0,r=0;for(let i=0;i<300;i++){S.offers=[];spawnOffer();const o=S.offers.find(o=>o.type==='hft');if(o){n++;if(o.reqs.length===1)r=o.rate/(150+kmBetween(o.city,o.city2)*0.08)/BIZ_T.hft.km;}}return JSON.stringify({n,r});})()"));
+    return JSON.parse(g.ev("(()=>{let n=0,r=0;for(let i=0;i<300;i++){S.offers=[];spawnOffer();const o=S.offers.find(o=>o.type==='hft');if(o){n++;if(o.reqs.length===1)r=o.rate/l2Rate(BIZ_T.hft,o.city,o.city2,o.bw);}}return JSON.stringify({n,r});})()"));
   };
   const gl = count('global'), bq = count('boutique');
   assert.ok(bq.n > gl.n * 1.5, `boutique traders call more (${bq.n} vs ${gl.n})`);

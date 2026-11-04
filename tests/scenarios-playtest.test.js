@@ -16,6 +16,7 @@ const GN_REF = [['bb', 'icn'], ['ix', 'icn'], ['tr', 'icn', 1], ['pni', 'icn', '
 // ref: the reference plan; win: [earliest, latest] day it may win on; cheese: the shortcut, and `by`, the day before
 // which it must not win (null: never within the scenario's days).
 const PLAY = {
+  // 3.x: European circuits pay European wave prices, so Stuttgart starts with $450k (was $400k) to keep its pace.
   stg: { ref: [['bb', 'stg'], ['ix', 'stg'], ['link', 'stg', 'fra', 1], ['ix', 'fra'], ['bb', 'fra'], ['link', 'fra', 'ams', 1], ['ix', 'ams'], ['bb', 'ams'], ['link', 'ams', 'lon', 1], ['ix', 'lon'], ['bb', 'lon'], ['link', 'fra', 'par', 1], ['ix', 'par'], ['bb', 'par'], ['hire', ['routers', 'repair', 'caches', 'pni', 'ix', 'sales'], { pni: { paid: true } }], ['link', 'stg', 'muc', 1], ['ix', 'muc'], ['bb', 'muc'], ['wait', 120], ['pnis'], ['link', 'lon', 'nyc', 2], ['ix', 'nyc'], ['bb', 'nyc'], ['wait', 200], ['pnis']],
     win: [120, 240], cheese: [['bb', 'stg'], ['ix', 'stg'], ['link', 'stg', 'fra', 1], ['ix', 'fra'], ['bb', 'fra'], ['loans'], ['hire', ['routers', 'repair']]], by: null },
   // The other way round the planet: Paris, New York, Los Angeles, Tokyo, Hong Kong, Singapore.
@@ -32,7 +33,8 @@ const PLAY = {
     win: [40, 120], cheese: [['bb', 'sao'], ['tr', 'sao', 1], ...['sao', 'rio', 'bsb', 'bhz', 'cwb', 'poa', 'for', 'rec', 'ssa', 'cpq', 'gyn', 'bel', 'mao', 'nat', 'vix', 'cgb'].flatMap((c) => [['pop', c], ['ix', c, 0]]), ['hire']], by: null },
   // Sender pays: Seoul transit to start (dear, but fast), one paid PNI with Kay-Tea for reach, then haul the bulk from
   // Tokyo and keep Seoul transit as the last resort. Seoul alone loses money on the sender-pays fee and never wins.
-  gangnam: { ref: GN_REF, win: [190, 225], cheese: [...home('icn'), ['loans']], by: null },
+  // 3.x: circuits pay what their route's capacity costs, so the Seoul–Tokyo customer breaks even sooner.
+  gangnam: { ref: GN_REF, win: [170, 225], cheese: [...home('icn'), ['loans']], by: null },
   // 2.2: a center pulls the whole flood onto its own ingress, so a terabit flood needs a center that size (10T, level 4).
   flood: { ref: [...home('ams'), ['scrub', 'ams', 2], ['tr', 'ams', 1], HIRE], win: [80, 200], cheese: [...home('ams'), ['tr', 'ams', 1], ['loans']], by: 180 },
   fttb: { ref: [...home('syd'), ['link', 'syd', 'akl', 0, 'tasman'], ['link', 'syd', 'nou', 0, 'gond'], ...['mel', 'bne', 'adl', 'per'].flatMap((c) => [['bb', c], ['tr', c, 1]]), ['link', 'syd', 'mel', 1], ['link', 'syd', 'bne', 1], ['link', 'mel', 'adl', 1], ['link', 'adl', 'per', 0], HIRE],

@@ -42,9 +42,9 @@ const coreMeta=g=>{const G=RG[g];return tr('core.vendor_v_backbone_up_to_lv',{v:
    paying whatever the backbone runs later. Real carriers sell L3VPNs over MPLS, low-latency planes with flex-algo
    over segment routing, and slices over SRv6. */
 Object.assign(BIZ_T,{
- l3vpn:{l:tr('core.l3vpn_for_an_enterprise'),opts:[1,2,5,10],rate:0,l2:true,sdwan:true,siteRate:1100,km:0,lv:3,core:1,names:['Branch Office Bonanza','Head Office & Sons','Twelve Tills Retail','Regional Bank of Routes','Chain of Command Pharmacies','Franchise Fiesta']},
- flex:{l:tr('core.flex_algo_low_latency_link'),opts:[5,10,40],rate:0,l2:true,lat:true,km:9,lv:3,core:3,names:['Microsecond Mike Markets','Low-Ping Esports League','Latency Arbitrage Partners','Photon Finish Trading','Lag-Free Ladder Games']},
- slice:{l:tr('core.network_slice'),opts:[100,200,400],rate:0,l2:true,div:true,km:1.2,lv:3,core:4,names:['Fifth Gen Slices Ltd','Pizza-Slice Mobile','Sliced Bread Telecom','GPU Slice & Dice','Thin Crust Wireless']},
+ l3vpn:{l:tr('core.l3vpn_for_an_enterprise'),opts:[1,2,5,10],rate:0,l2:true,sdwan:true,siteRate:1100,lv:3,core:1,names:['Branch Office Bonanza','Head Office & Sons','Twelve Tills Retail','Regional Bank of Routes','Chain of Command Pharmacies','Franchise Fiesta']},
+ flex:{l:tr('core.flex_algo_low_latency_link'),opts:[5,10,40],rate:0,l2:true,lat:true,mk:5,lv:3,core:3,names:['Microsecond Mike Markets','Low-Ping Esports League','Latency Arbitrage Partners','Photon Finish Trading','Lag-Free Ladder Games']},
+ slice:{l:tr('core.network_slice'),opts:[100,200,400],rate:0,l2:true,div:true,mk:1.8,lv:3,core:4,names:['Fifth Gen Slices Ltd','Pizza-Slice Mobile','Sliced Bread Telecom','GPU Slice & Dice','Thin Crust Wireless']},
 });
 // The backbone's customer types now on offer (twice each, like the other types' weights).
 function coreProducts(mine){if(!coreOn())return [];const run=S.core.run,out=[];

@@ -41,7 +41,7 @@ function engItems(X){const {R2,PC,NN}=X,day=S.day,ev=S.ev,EP=X.EP=[],IT=X.IT=[];
     for(const [A,B] of pairs){const e=ep({k:'l2',city:A,cls:CLASS_OF[b.type]||'enterprise',members:[b.id],b,sh:shapeOf(b),key:b.id+'>'+B});
       if(!(popUp(A)&&popUp(B)&&X.SPD[A]&&X.SPD[A][CIDX[B]]<Infinity)){noPath=true;e.dead=true;continue;}
       R2.egDesc['l2:'+b.id]={lab:labOf(b.sites?N_('compute.sd_wan_for_name'):N_('compute.l2vpn_for_name'),'name',b.name),city:A,k:'l2'};
-      const routes=engL2Routes(X,A,B,b);if(routes.length>1)R2.l2split[b.id]=routes.length;
+      const routes=engL2Routes(X,A,B,b);if(routes.length>1)R2.l2split[b.id]=routes.length;const ks=R2.l2path[b.id]||(R2.l2path[b.id]=[]);for(const r of routes)for(const x of r.path)ks.push(x.id);
       for(const r of routes){maxLat=Math.max(maxLat,r.path.reduce((x,e)=>x+e.lat,0)+r.path.length*0.05);item(e,-1,-1,b.bw*e.T.pu*r.share,{site:r});}}
     R2.l2lat[b.id]=noPath?Infinity:maxLat;
     if((b.reqs||[]).includes('diverse'))R2.div[b.id]=engDisjoint(X,b.city,b.city2);}}

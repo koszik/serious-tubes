@@ -4,13 +4,14 @@ Object.assign(ACT,{
    if(!w&&!p){toast(tr('customers.nothing_spare_to_sell_on_this'),'bad');sfx('err');return;}const L=l.list||(l.list={w:0,p:0});L.w+=w;L.p+=p;
    toast(tr('broker.listed',{a:CITY[l.a].name,b:CITY[l.b].name}),'good');sfx('click');after();},
  unlistFiber:({id})=>{const l=S.links.find(x=>x.id===id);if(!l||!l.list)return;delete l.list;sfx('click');after();},
- accept:({id,auto=false})=>{const o=S.offers.find(x=>x.id===id);if(!o)return;const customer=auto?autoOffer(o):offerCustomer(o);if(!customer)return;if(!bHas(o)){toast(tr('customers.you_need_a_pop_in_every'),'bad');return;}
+ accept:({id,auto=false,sla})=>{const o=S.offers.find(x=>x.id===id);if(!o)return;const ls=slasOf(o.type),k=sla===undefined?ls[0]:sla;if(ls.length&&!ls.includes(k))return;
+   const customer=auto?autoOffer(o):offerCustomer(o);if(!customer)return;if(ls.length){customer.sla=k;customer.rate=cents(customer.rate*SLA[k].mul);}if(!bHas(o)){toast(tr('customers.you_need_a_pop_in_every'),'bad');return;}
    if(o.type==='wwave'){const l=S.links.find(x=>x.id===o.link);if(!l||chMax(l)-(l.ch||[]).length-soldSlots(l)<o.slots){toast(tr('customers.not_enough_free_channels_on_that'),'bad');return;}}
    if(BIZ_T[o.type].event&&S.day>=o.start){toast(tr('customers.too_late_the_event_has_already'),'bad');return;}
    // A carrier renting more alien waves on a fiber it already rents grows its contract, like a real order for extra waves,
    // instead of a new customer for every few waves (a big fiber business otherwise fills the save with tiny contracts).
-   const more=o.type==='wwave'&&S.biz.find(b=>b.type==='wwave'&&b.link===o.link&&b.name===o.name);
-   if(more){const l=S.links.find(x=>x.id===o.link);S.offers=S.offers.filter(x=>x!==o);more.slots=(more.slots||0)+(o.slots||0);more.rate+=o.rate;if(l)more.what=wwWhat(l,more.slots);
+   const more=o.type==='wwave'&&S.biz.find(b=>b.type==='wwave'&&b.link===o.link&&b.name===o.name&&slaOf(b)===k);
+   if(more){const l=S.links.find(x=>x.id===o.link);S.offers=S.offers.filter(x=>x!==o);more.slots=(more.slots||0)+(o.slots||0);more.rate+=customer.rate;if(l)more.what=wwWhat(l,more.slots);
      floater(CITY[o.city].x,CITY[o.city].y-30,tr('common.signed'),'#16A866');sfx('coin');after();return;}
    // Its handoff needs free router ports at every site (the intern skips an offer that does not fit, quietly).
    for(const c of bCities(customer)){const n=bizPorts(customer,c);if(auto?portsUsed(c)+n>portsMax(c)+1e-9:!portGate(c,n))return;}

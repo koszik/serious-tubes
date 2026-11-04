@@ -13,7 +13,8 @@ test('gaming offers and signed customers show their DDoS risk in Deals, city pan
   const { ev, errors, dom } = load();
   ev("ACT.start({});S.cash=1e9;ACT.buyTransit({city:'fra',net:'cog',tier:1});S.offers=['game','cgame','host'].map(type=>({id:type,city:'fra',name:type,bw:5,rate:100,reqs:[],exp:S.day+30,type}));UI.left='deals';UI.leftOpen=true;renderLeft()");
   const notes = (root, action) => {
-    const buttons = [...root.querySelectorAll(`[data-act="${action}"]`)];
+    // One button per offer and SLA level: one row per customer.
+    const buttons = [...new Map([...root.querySelectorAll(`[data-act="${action}"]`)].map((x) => [JSON.parse(x.dataset.args).id, x])).values()];
     assert.equal(buttons.length, 3);
     for (const button of buttons) {
       const id = JSON.parse(button.dataset.args).id;

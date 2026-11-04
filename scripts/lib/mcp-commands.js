@@ -33,6 +33,7 @@ const API_DOMAINS={
   metric:{kind:'enum',values:()=>[...Object.keys(MET),'custom']},
   egress:{table:'PREF',kind:'key'},
   routeMode:{table:'RT',kind:'key'},
+  slaLevel:{table:'SLA',kind:'key'},
   site:{kind:'enum',values:['a','b','ab']},
   step:{kind:'enum',values:[1,-1]},
   connKind:{kind:'enum',values:['t','p','ix','c','nni','b']},
@@ -314,8 +315,8 @@ const API_CMD={
    quote:a=>{const l=S.links.find(x=>x.id===a.id);return l?{setup:opticCountCost(l,a.o,a.n)}:{};},
    doc:'Set how many channels of one optic model a dark-fiber span carries, in one change. Added optics come from the spares shelf when you have them (regen cards still cost their share); removed ones go back to the shelf.'},
  /* ---------- customers ---------- */
- accept:{args:[['id','entityId']],
-  doc:'Sign a pending offer. Rejected without a POP in every city it needs, without free channels for a wave sale, or after an event\'s start date. Extra waves for a carrier you already serve grow that contract.'},
+ accept:{args:[['id','entityId'],['sla','slaLevel',false]],
+  doc:'Sign a pending offer at an SLA level (std, prem or strict; default the lowest it signs; high-markup customers sign only prem or strict, HFT only strict). A stricter level pays more (×1, ×1.3, ×2) and rebates more of the monthly fee for each hour down beyond its allowance (99.9%, 99.99%, 99.999%, capped at 1×, 3× and 12× a month); Strict customers leave after 3 broken months in a year. Rejected without a POP in every city it needs, without free channels for a wave sale, or after an event\'s start date. Extra waves for a carrier you already serve grow that contract.'},
  decline:{args:[['id','entityId']],
   doc:'Throw an offer away.'},
  dropBiz:{args:[['id','entityId']],confirm:'double',
@@ -678,14 +679,14 @@ const API_STATE_DOC={
  pni:{type:'array',doc:'Private interconnects: city, net, tier, ready day, augments (up), LAG, sacrificial flag.'},
  caches:{type:'array',doc:'CDN cache boxes: city, net, building.'},
  nni:{type:'array',doc:'Fabric ports: city, provider, tier.'},
- biz:{type:'array',doc:'Signed customers: type, cities, bandwidth, rate, mood, contract dates.'},
+ biz:{type:'array',doc:'Signed customers: type, cities, bandwidth, rate, mood, contract dates, SLA level (sla), this month\'s minutes down (dn, month dnM) and rebates paid (cr), months with a broken SLA (brs).'},
  offers:{type:'array',doc:'Pending customer offers, each expiring on a day.'},
  done:{type:'map',doc:'Goals landed, by goal id → day.'},
  ach:{type:'map',doc:'Badges earned this game, by badge id → day.'},
  inc:{type:'array',doc:'Open incidents: type, what they hit, until when, optional rush-repair price.'},
  ddosStarts:{type:'array',doc:'The days the attacks of the last week started; at most 14 a week.'},
  ev:{type:'map',doc:'Live world events: the running DDoS, route leaks, fabric failures, price shocks.'},
- stats:{type:'map',doc:'Counters: incidents survived, loans taken, sharks, conferences attended, peak traffic…'},
+ stats:{type:'map',doc:'Counters: incidents survived, loans taken, sharks, conferences attended, peak traffic, SLA rebates paid (slaCr total, slaMv in month slaM)…'},
  log:{type:'array',doc:'The NOC notification feed, newest first, capped at 60; identical notices within a minute fold with a count.'},
  nextFail:{type:'integer',doc:'The day the next failure fires.'},
  nextEvent:{type:'integer',doc:'The day the next world event fires.'},
@@ -693,6 +694,7 @@ const API_STATE_DOC={
  usedNames:{type:'array',doc:'Customer names already handed out.'},
  spares:{type:'map',doc:'Spare optics on the shelf, by optic id.'},
  scrubs:{type:'array',doc:'Scrubbing centres: city and tier.'},
+ slaLog:{type:'array',doc:'The last 50 SLA rebates: day, customer id and name, level, amount paid and minutes down that month.'},
  scrubMode:{type:'string',doc:'always | ondemand.'},
  cnLic:{type:'map',doc:'Mainland China licence: none | pending (with ready day) | ok.'},
  ppol:{type:'string',doc:'Your published peering policy: open | selective | closed.'},
@@ -722,7 +724,7 @@ const API_STATE_DOC={
  t1Now:{type:'boolean',doc:'Tier 1 right now, as of the last day; falling out of it is announced.'},
  lost:{type:'boolean',doc:'The bank repossessed the routers.'},
  neg:{type:'integer',doc:'Days in the red in a row.'},
- hist:{type:'array',doc:'Daily history for the graphs: demand, served, split by way in (c/p/ix/t/l2) and by way out (oc/op/oix/ot), revenue, cost, cash.'},
+ hist:{type:'array',doc:'Daily history for the graphs: demand, served, split by way in (c/p/ix/t/l2) and by way out (oc/op/oix/ot), revenue, cost, cash, SLA rebates paid that day (sla).'},
  scn:{type:'map',doc:'The running scenario: id, rules, day limit, done/failed, and the day of the next scripted attack (nextDdos).'},
  dk:{type:'map',doc:'De-Kicks state: per-exchange multipliers, add-ons, retention, the live quote (q) and the remembered one (lastQ).'},
  grace:{type:'map',doc:'Courtesy transit after a merger wave, until a day.'},
@@ -752,6 +754,7 @@ const API_RESULTS_DOC={
  ef:{type:'map',doc:'LAZY per-link exit breakdown: what crosses each link, per network, built only when a panel asks. What is in here depends on which panels have rendered.'},
  l2:{type:'map',doc:'Layer-2 traffic per customer (L2VPN, SD-WAN, waves).'},
  l2lat:{type:'map',doc:'Latency per L2 customer.'},
+ l2path:{type:'map',doc:'The city pairs (a|b) each L2 customer\'s paths cross today.'},
  l2route:{type:'map',doc:'Which path an L2 customer\'s traffic takes.'},
  l2split:{type:'map',doc:'L2 traffic split per path.'},
  nodeLoad:{type:'map',doc:'Router forwarding load per city.'},
@@ -841,7 +844,7 @@ function apiJson(v){
    carries the keys confGo/confSponsor need, which exist in no field of S; TE_RECIPES renders
    each recipe's script, because the source is a function and some read the live network. The
    recipes' relevance score is not exposed: judging which one fits is the agent's job. */
-const API_TABLES={CITIES,NETS,CABLES,XIX,PORT,LT,NNI,VXC,RG,OPT,DF_SYS,FAB,SCRUB_TIERS,BIZ_T,LEVELS,GOALS,SCN,BANKS,REQS,NSH,MET,PREF,RT,PPOL,CONFS,LAG_MAX,RMAX,REGEN_MAX,START_CASH,CONF_COST,CONF_SP,CAP_COST,CAP_LV,CONF_DAYS,SUB_UPGRADES,SEA_DESIGNS,TE_COST,TE_MO,MYIX_COST,CN_LIC,SITE2_COST,MYIX_FAB,INTERNS,OPSK,CHARTERS,SEAT_N,CORE_LV,CORE_COST,CORE_REQ,CORE_LAB,INTERN_MO,PZ_TIERS,AR_TIERS,PZ_RG};
+const API_TABLES={CITIES,NETS,CABLES,XIX,PORT,LT,NNI,VXC,RG,OPT,DF_SYS,FAB,SCRUB_TIERS,BIZ_T,SLA,LEVELS,GOALS,SCN,BANKS,REQS,NSH,MET,PREF,RT,PPOL,CONFS,LAG_MAX,RMAX,REGEN_MAX,START_CASH,CONF_COST,CONF_SP,CAP_COST,CAP_LV,CONF_DAYS,SUB_UPGRADES,SEA_DESIGNS,TE_COST,TE_MO,MYIX_COST,CN_LIC,SITE2_COST,MYIX_FAB,INTERNS,OPSK,CHARTERS,SEAT_N,CORE_LV,CORE_COST,CORE_REQ,CORE_LAB,INTERN_MO,PZ_TIERS,AR_TIERS,PZ_RG};
 const API_MADE={
   BADGES:()=>!S?[]:BADGES.map(b=>{const on=S.ach&&S.ach[b.id]!==undefined,ever=!!hof()[b.id];
     return b.secret&&!on&&!ever?{id:b.id,i:'❔',t:'???',d:tr('badges.a_secret_badge'),r:b.r,secret:true}:{...b,ever};}),

@@ -406,6 +406,25 @@ test('F5: rented capacity never outgrows the route\'s market (#203)', () => {
 // D1–D4: DDoS as networks see it (#242). tests/ddos-model.test.js plays each one in detail.
 const ddFra = (ev) => ev("ACT.start({});if(UI.pendGame)ACT.pitchSkip();S.cash=1e9;S.lvl=4;S.nextFail=1e9;S.nextEvent=1e9;ACT.launchBB({city:'fra'});S.pops.fra.bb.d=40;ACT.buyTransit({city:'fra',net:'cog',tier:1});S.pops.fra.rgen=RG.findIndex(r=>r.fsN===8);S.biz.push({id:'g',type:'game',name:'G',city:'fra',bw:10,rate:1,mood:80,since:0,reqs:[]},{id:'d',type:'dia',name:'D',city:'fra',bw:5,rate:1,mood:80,since:0,reqs:[]});compute()");
 const ddHit = (ev, g) => ev(`S.ev.ddos={id:'x',city:'fra',tgt:'g',vec:'dns',gbps:${g},start:S.day,until:S.day+2,bh:false};compute()`);
+test('F6: a circuit pays a markup on what its capacity leases for, and bigger customers pay less per Gbps', () => {
+  const g = load();
+  g.ev("ACT.start({})");
+  const routes = "[['fra','ams'],['nyc','lon'],['sin','syd'],['jnb','lag']]";
+  const under = g.ev(`Object.entries(BIZ_T).filter(([t,T])=>T.l2&&!T.sdwan).flatMap(([t,T])=>${routes}.flatMap(([a,b])=>T.opts.filter(bw=>bw*l2Rate(T,a,b,bw)<capMo(a,b,bw)*1.19).map(bw=>t+' '+bw+'G '+a+'-'+b))).join(', ')`);
+  assert.equal(under, '', 'F6: priced at least 1.2× its lease');
+  const up = g.ev(`Object.entries(BIZ_T).filter(([t,T])=>!T.fiber&&!T.event&&T.opts.length>1).filter(([t,T])=>{const a=T.opts[0],b=T.opts[T.opts.length-1],r=bw=>T.sdwan?siteMo(T,bw)/bw:T.l2?l2Rate(T,'fra','ams',bw):ipRate(T,bw);return !(r(b)<r(a));}).map(([t])=>t).join()`);
+  assert.equal(up, '', 'F6: less per Gbps at the largest size');
+});
+
+test('F7: high-markup customers sign only tight SLAs, and every SLA rebate is capped', () => {
+  const g = load();
+  g.ev("ACT.start({})");
+  const loose = g.ev("[...SLA_TOP].filter(t=>slasOf(t).includes('std')).join()");
+  assert.equal(loose, '', 'F7: no Standard SLA for a high-markup customer');
+  assert.deepEqual(JSON.parse(g.ev("JSON.stringify(Object.values(SLA).map(L=>L.cap))")), [1, 3, 12], 'F7: rebates capped at 1×, 3× and 12× a month');
+  assert.equal(g.ev("Object.keys(BIZ_T).filter(t=>!BIZ_T[t].event&&!slasOf(t).length).join()"), '', 'F7: every contract has a level');
+});
+
 test('D1: attack sizes come from the world, never from your network', () => {
   const g = load();
   ddFra(g.ev);

@@ -3,8 +3,8 @@
 // You sign first and build afterwards, like a real pre-sale: it pays nothing until it is delivered, and missing
 // the date costs a penalty and the deal.
 Object.assign(BIZ_T,{
- capw:{l:tr('capacity_deals.wholesale_waves'),opts:[8,16,32],rate:0,l2:true,cap:true,km:0.45,lv:CAP_LV,names:['Lambda Llama Carriers','Wavelength Wholesalers','Big Pipe Partners','Rainbow Lambda Ltd','Tera Firma Networks']},
- capsub:{l:tr('capacity_deals.subsea_capacity'),opts:[1600,3200,6400],rate:0,l2:true,cap:true,km:0.35,lv:CAP_LV,names:['Seven Seas Capacity Co.','Petabyte Pirates','Deep Blue Bandwidth','Cable Guy Consortium','Kraken Transit Holdings']},
+ capw:{l:tr('capacity_deals.wholesale_waves'),opts:[8,16,32],rate:0,l2:true,cap:true,mk:1.2,lv:CAP_LV,names:['Lambda Llama Carriers','Wavelength Wholesalers','Big Pipe Partners','Rainbow Lambda Ltd','Tera Firma Networks']},
+ capsub:{l:tr('capacity_deals.subsea_capacity'),opts:[1600,3200,6400],rate:0,l2:true,cap:true,mk:1.2,lv:CAP_LV,names:['Seven Seas Capacity Co.','Petabyte Pirates','Deep Blue Bandwidth','Cable Guy Consortium','Kraken Transit Holdings']},
  capfib:{l:tr('capacity_deals.fiber_pairs'),opts:[2,4,8],rate:0,fiber:true,cap:true,lv:CAP_LV,names:['Glass Half Full Fiber','Hyperscale Hydra','A Hyperscaler Who Shall Not Be Named','Strand Theft Auto','Pair-a-Dice Networks']},
 });
 // The routes each capacity conference talks about. PTC is a Pacific crowd; Capacity Europe is the Atlantic and Europe.
@@ -24,7 +24,7 @@ function capTerms(o){const price=fmt$(bizMo(o)),what=capWhat(o);
   return o.live?tr('capacity_deals.what_price_mo',{what,price}):tr('capacity_deals.what_price_mo_due_date',{what,price,date:dateStr(o.due)});}
 function capOffer(a,b,t,nm){const T=BIZ_T[t],km=kmBetween(a,b),n=pick(T.opts),o={id:uid(),city:a,city2:b,name:nm(),type:t,reqs:[],exp:S.day+30};
   if(t==='capfib'){o.bw=1;o.slots=n;o.rate=Math.round(dfLeaseMo(km)*n*1.5);o.win=dfBuildDays(km)+150;}
-  else{o.bw=t==='capw'?n*400:n;o.rate=Math.round((150+km*0.08)*T.km);o.win=t==='capsub'?300+Math.floor(Math.random()*121):180+Math.floor(Math.random()*91);}
+  else{o.bw=t==='capw'?n*400:n;o.rate=t==='capw'?perG(capMo(a,b,400)*T.mk,400):l2Rate(T,a,b,o.bw);o.win=t==='capsub'?300+Math.floor(Math.random()*121):180+Math.floor(Math.random()*91);}
   return o;}
 function capDealTick(d){const q=S.capDeal;if(!q||q.at!==d)return;S.capDeal=null;seatConf(q.c);const pool=(CAP_ROUTES[q.c]||[]).filter(r=>isCity(r[0])&&isCity(r[1])).slice(),out=[];
   while(out.length<3&&pool.length){const [a,b,t]=pool.splice(Math.floor(Math.random()*pool.length),1)[0],T=BIZ_T[t];

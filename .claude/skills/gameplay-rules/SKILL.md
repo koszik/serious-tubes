@@ -61,11 +61,13 @@ These are what the game promises, held up by `tests/gameplay-rules.test.js` (one
 
 | Id | Rule | Why |
 | --- | --- | --- |
-| F1 | A new network gets a gentle start: no outage before day 45, no event before day 40 and only good news before day 50, nothing sold out for 90 days, hardware prices hold for 180, and a new customer loses no mood for 15 days. | New players learn before they get punished. |
+| F1 | A new network gets a gentle start: no outage before day 45, no event before day 40 and only good news before day 50, nothing sold out for 90 days, hardware prices hold for 180, and a new customer loses no mood and counts no SLA downtime for 15 days (`PROV_D`). | New players learn before they get punished. |
 | F2 | On On-call, a simple build in a start city (broadband, the cheapest 100G transit, an exchange port with the route server) makes money within 3 months, in Frankfurt, New York, Singapore and Johannesburg. | Seeded today it turns a profit in month 1 or 2; a balance change that breaks this makes the start too hard. |
 | F3 | A specialist path (#187) only brings a customer type in below its level when the network can already serve it, or nearly: the spotted cities have POPs, the latency is met, the fiber carries at least three quarters of the smallest order. | Capability, not luck: an offer you cannot fulfil with a reasonable build is a trap. |
 | F4 | The chaos monkey visits only On-call and BGP at 3 a.m. (never Change Freeze, Sandbox, puzzles or scenarios), not before day 180, for 120 to 240 days; while it is here its snips replace the ordinary failures, each snip heals within a week, and it goes after tubes with no other way round first. | A test of resilience you can prepare for, not a pile-on: the reward goes to networks built with a second path. |
 | F5 | Capacity you rent to other carriers never outgrows the route's market: a broker listing sells over time as carriers between the two cities want it, and neither it nor a random offer sells past what both cities' eyeballs support (a landing town counts the big city it serves). | Rent that scales with your own glass and not with demand is a money machine (#203). |
+| F6 | A circuit customer pays a markup (at least 1.2×) on what its capacity leases for on its route and size, and every customer pays less per Gbps at its largest size than at its smallest. | Linear prices made a hyperscaler's 6.4T pay 30× a 6.4T wave; real big buyers pay close to cost, and the premium goes to small, fast or picky circuits. |
+| F7 | Every contract has an SLA level chosen when signing; trading, hyperscaler, AI WAN, AGI, sovereign cloud, Mars and flex-algo customers only sign Premium or Strict, and rebates are capped at 1×, 3× and 12× the monthly fee. | A big price comes with a big promise; the cap keeps one bad cut painful but survivable. |
 
 ## Routing engine
 

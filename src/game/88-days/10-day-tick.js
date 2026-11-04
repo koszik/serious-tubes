@@ -50,13 +50,14 @@ function dayPost(d){
   // businesses mood
   const ids=linkIds(),frr=(coreFrr()&&S.links.some(l=>l.cut)?.5:1)*(rule('moods')==='patient'?.5:1);const bhT=new Set(ddosAll().filter(a=>a.bh).map(a=>a.tgt));for(const b of S.biz.slice()){if(eventTick(b,d)||capPendTick(b,d))continue;b.pm=b.mood;if(bhT.has(b.id))continue;const sf=bizSf(b,ids),reachOk=BIZ_T[b.type].l2||BIZ_T[b.type].fiber||R.reach>0.99||scnRule('local'),scrubOk=b.type!=='scrub'||(hasScrub()&&!scrubFar(b.city)),divOk=reqOk(b);
     if(sf>=0.95&&reachOk&&scrubOk&&divOk)b.mood=Math.min(100,b.mood+2);
-    else if(S.day-(b.since||0)<15){}
+    else if(inGrace(b)){}
     else{b.mood-=frr*(Math.max(0,0.95-sf)*45+(!reachOk?3:0)+(!scrubOk?4:0)+(!divOk?3:0));
       if(b.mood<=0){S.biz=S.biz.filter(x=>x!==b);toast(tr('day_tick.name_cancelled_too_many_outages_and',{name:esc(b.name),city:CITY[b.city].name}),'bad');sfx('err');}
       else if(b.mood<30&&!b.warned){b.warned=b.warn60=true;const why=bizWhy(b)[0],paused=pref('pauseFurious')&&autoPause();
         toast(tr('day_tick.name_is_furious_fix_service_in',{name:esc(b.name),city:CITY[b.city].name})+(why?`<br><i>${esc(why)}</i>`:'')+(paused?`<br><b>${tr('common.game_paused')}</b>`:''),'bad',[{l:tr('common.show_me'),act:'custGo',args:{id:b.id}}].concat(paused?[resumeAct()]:[]));sfx('err');}
       else if(b.mood<60&&!b.warn60&&pref('warnUnhappy')){b.warn60=true;const why=bizWhy(b)[0];toast(tr('day_tick.name_is_getting_unhappy_happiness_p',{name:esc(b.name),p:Math.round(b.mood),city:CITY[b.city].name})+(why?`<br><i>${esc(why)}</i>`:''),'',[{l:tr('common.show_me'),act:'custGo',args:{id:b.id}}]);}}
     if(b.mood>60)b.warned=false;if(b.mood>75)b.warn60=false;}
+  slaTick(d);
   // own IX members join
   for(const c in S.myIx){const m=S.myIx[c];if(d>=m.next&&m.members.length<myFab(c).max){
     const cands=NETS.filter(n=>n.type!=='t1'&&!m.members.includes(n.id)&&(n.pops.includes(c)||n.pops.some(p=>CITY[p].reg===CITY[c].reg)));
@@ -111,7 +112,7 @@ function spawnOffer(){
   if(T.event||T.sdwan||T.fiber||T.mega){spawnSpecial(t);return;}
   if(T.nni){const city=pick(fabC),prov=pick(FABS.filter(f=>f.cities.includes(city))).id,bw=pick(T.opts),others=mine.filter(c=>c!==city),city2=T.l2&&others.length?pick(others):null;if(T.l2&&!city2)return;
     const base=pick(BIZ_N.filter(n=>!S.usedNames.includes(n)).concat(BIZ_N)).replace(/ (Inc\.|Co\.|Ltd)$/,'');const name=tr('day_tick.name_via_fab',{name:base,fab:FAB[prov].name});useName(base);
-    const rate=T.l2?Math.round((150+kmBetween(city,city2)*0.08)*T.km):T.rate;
+    const rate=T.l2?l2Rate(T,city,city2,bw):ipRate(T,bw);
     S.offers.push({id:uid(),city,city2,prov,name,type:t,bw,rate,reqs:['nni'],exp:S.day+40});return;}
   let city=(Math.random()<0.65&&mine.length)?pick(mine):pick(OFFC.concat(cnOk()?['pek','sha']:[])),city2=null;
   if(T.l2){city=pick(mine);const pool=(Math.random()<(T.lv>=3?0.8:0.6)?mine:OFFC).filter(c=>c!==city);city2=pick(pool.length?pool:OFFC.filter(c=>c!==city));}
@@ -122,12 +123,12 @@ function spawnOffer(){
   if(t==='provedor')city=pick(br);
   if(t==='isp'&&dense.length&&Math.random()<0.5)city=pick(dense);
   if(t==='hft'){const fin=['nyc','chi','lon','fra','tok','sin','hkg','ams','ash'],mf=mine.filter(c=>fin.includes(c));city=mf.length?pick(mf):pick(mine);city2=pick(fin.filter(c=>c!==city));}
-  let rate=T.l2?Math.round((150+kmBetween(city,city2)*0.08)*T.km*(T.lat?latPay():1)):T.rate;
-  if(CITY[city].au&&!T.l2&&!T.fiber&&!T.event){rate=Math.round(rate*AU_ARPU);bw=Math.min(bw,pick(T.opts.slice(0,2)));}
+  let rate=T.l2?cents(l2Rate(T,city,city2,bw)*(T.lat?latPay():1)):ipRate(T,bw);
+  if(CITY[city].au&&!T.l2&&!T.fiber&&!T.event){bw=Math.min(bw,pick(T.opts.slice(0,2)));rate=Math.round(ipRate(T,bw)*AU_ARPU);}
   if(T.div&&!reqCan('diverse',{city,city2}))return;
   const reqs=T.div?['diverse']:T.lat?['lat']:[];if((t==='hyper'||t==='ai'||t==='gpu')&&Math.random()<0.4)reqs.push('metro');const pool=Object.keys(REQS).filter(k=>!reqs.includes(k)&&!REQS[k].only&&(!REQS[k].l2||T.l2)&&(!REQS[k].ip||!T.l2)&&reqCan(k,{city,city2}));
   if(Math.random()<(T.lv>=3?0.65:0.3))reqs.push(pick(pool));
   if(T.lv>=3&&Math.random()<0.35){const more=pool.filter(k=>!reqs.includes(k));if(more.length)reqs.push(pick(more));}
-  const r2=Math.round(rate*(1+reqs.reduce((a,k)=>a+REQS[k].bonus,0)));
+  const r2=cents(rate*(1+reqs.reduce((a,k)=>a+REQS[k].bonus,0)));
   S.offers.push({id:uid(),city,city2,name,type:t,bw,rate:r2,reqs,latMax:T.lat?+(kmBetween(city,city2)/200*1.35).toFixed(1):null,exp:S.day+40});
 }

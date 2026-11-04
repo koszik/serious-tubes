@@ -119,15 +119,17 @@ function custItems(dp,b){const {byB,byE}=custIdx(dp),live=x=>!BIZ_T[x.type].even
   const bz=dp._bz||Object.defineProperty(dp,'_bz',{value:new Map(S.biz.map(x=>[x.id,x])),enumerable:false})._bz;
   for(const i of eps){if(dp.epK[i]==='l2')sh=1;else{let t=0;for(const id of dp.epM[i]){const x=bz.get(id);if(x&&live(x))t+=x.bw;}sh=live(b)&&t>0?b.bw/t:0;}for(const t of byE.get(i)||[])its.push(t);}
   return {its,sh,eps};}
-// An endpoint's day, delivered (rx: what it sends, tx: what it gets) and its worst hour's loss, once per routed day.
+// An endpoint's day, delivered (rx: what it sends, tx: what it gets), its worst hour's loss and its hours under
+// SLA_BAD (what an SLA counts as down), once per routed day.
 function epDay(dp,ep){const m=dp._ed||Object.defineProperty(dp,'_ed',{value:new Map(),enumerable:false})._ed;let D=m.get(ep);if(D)return D;
   const NEP=dp.epK.length,rx=new Float64Array(24),tx=new Float64Array(24);let loss=0;
   for(const t of custIdx(dp).byE.get(ep)||[]){const f=dp.IF[t];for(let h=0;h<24;h++){const s=dp.CV[dp.FCV[f]+h],o=dp.EPO[h*NEP+ep],d=o>0?dp.EPD[h*NEP+ep]/o:1,v=dp.IV[t]*s*d;tx[h]+=v*dp.FI[f];rx[h]+=v*dp.FO[f];if(o>0&&s>0&&1-d>loss)loss=1-d;}}
-  m.set(ep,D={rx,tx,loss:Math.max(0,loss)});return D;}
+  let bad=0;for(let h=0;h<24;h++){const o=dp.EPO[h*NEP+ep];if(o>0&&dp.EPD[h*NEP+ep]/o<SLA_BAD)bad++;}
+  m.set(ep,D={rx,tx,loss:Math.max(0,loss),bad});return D;}
 // Its loss: the worst hour of what it asked for and did not get, end to end (its port itself is never the bottleneck).
-function custDay(b,r=R){const dp=r.dp;if(!dp||!dp.EPO)return null;const {its,sh,eps}=custItems(dp,b),rx=new Float64Array(24),tx=new Float64Array(24);let loss=0;
-  for(const ep of eps){const D=epDay(dp,ep);for(let h=0;h<24;h++){rx[h]+=D.rx[h]*sh;tx[h]+=D.tx[h]*sh;}if(D.loss>loss)loss=D.loss;}
-  return {rx,tx,its,sh,loss};}
+function custDay(b,r=R){const dp=r.dp;if(!dp||!dp.EPO)return null;const {its,sh,eps}=custItems(dp,b),rx=new Float64Array(24),tx=new Float64Array(24);let loss=0,bad=0;
+  for(const ep of eps){const D=epDay(dp,ep);for(let h=0;h<24;h++){rx[h]+=D.rx[h]*sh;tx[h]+=D.tx[h]*sh;}if(D.loss>loss)loss=D.loss;if(D.bad>bad)bad=D.bad;}
+  return {rx,tx,its,sh,loss,bad};}
 // Its flows at hour h (its busiest when none): rows as engFlowRows gives them, p 0 = rx (from it), 1 = tx (to it).
 function custFlowRows(b,h){const dp=R.dp,D=custDay(b);if(!D)return {h:0,rows:[]};
   if(h===undefined||h===null){h=0;for(let k=1;k<24;k++)if(D.rx[k]+D.tx[k]>D.rx[h]+D.tx[h])h=k;}const NEP=dp.epK.length,rows=new Map();
