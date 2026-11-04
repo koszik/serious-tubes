@@ -128,7 +128,7 @@ test('loss: a full pipe drops the excess, bursts cost a little near the top, a C
   ev("ACT.polQosAdd({m:'class:gaming'})");
   assert.ok(ev("R.svc['grp:fra|gaming|'].L") < 0.003 && ev("R.bsf.g") > 0.95, 'in the priority queue it does not');
   // A CDN fills a PNI to 95% and sends the rest the next way in; a plain network would drop it.
-  ev("S.biz=[];S.pol.qos=[];S.pops.fra.bb.d=40/NSH.nfx;ACT.buyTransit({city:'fra',net:'lvl',tier:2});S.pni.push({id:'pn',net:'nfx',city:'fra',tier:0,ready:0});compute()");
+  ev("S.biz=[];S.pol.qos=[];S.pops.fra.bb.d=40/cityNetSh('fra','nfx');ACT.buyTransit({city:'fra',net:'lvl',tier:2});S.pni.push({id:'pn',net:'nfx',city:'fra',tier:0,ready:0});compute()");
   const pni = JSON.parse(ev("JSON.stringify(pipeAt(pipeOfExit('p',S.pni[0].id)[0],R.hp))"));
   assert.ok(pni.loss < 0.01 && pni.dlv <= 10 * 0.95 + 1e-6 && pni.dlv > 9, `the NetChill PNI runs at 95%, no loss (${JSON.stringify(pni)})`);
   assert.deepEqual(errors, []);

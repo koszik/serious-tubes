@@ -1,0 +1,28 @@
+/* Hosters: rented servers and VPSes, where most of the web that is not on a CDN lives. Users browse them, offices run
+   their tools on them and training jobs pull datasets from them; they serve, nobody lives there (no eyeballs, no cc).
+   Global ones follow the real companies' data center cities on our map, and every region has a local one. They peer
+   openly and buy transit from the big carriers, so they sit in Tier 1 cones. Sits before 40-traffic-shares.js. */
+const hostIx=pops=>pops.filter(c=>CITY[c].ix);
+NETS.push(
+ // global
+ {id:'htz',name:'Hetznot',asn:24940,type:'host',pol:'open',share:.01,up:['cog','tat'],col:'#D50C2D',pops:['fra','muc','hel','ash','sea','sin'],ix:hostIx(['fra','muc','hel','ash','sea','sin']),blurb:tr('hosters.cheap_german_servers_and_a')},
+ {id:'ovh',name:'OVHeaven',asn:16276,type:'host',pol:'open',share:.01,up:['cog','lvl'],col:'#123F6D',pops:['par','lon','fra','waw','mtl','ash','sin','syd','bom'],ix:hostIx(['par','lon','fra','waw','mtl','ash','sin','syd','bom']),blurb:tr('hosters.builds_its_own_servers_cools')},
+ {id:'dgo',name:'DigitalOshun',asn:14061,type:'host',pol:'open',share:.008,up:['tly','ntt'],col:'#0080FF',pops:['nyc','sjc','tor','lon','ams','fra','blr','sin','syd'],ix:hostIx(['nyc','sjc','tor','lon','ams','fra','blr','sin','syd']),blurb:tr('hosters.droplets_for_developers_an_ocean')},
+ {id:'lnd',name:'Linoad',asn:63949,type:'host',pol:'open',share:.006,up:['ntt','cog'],col:'#00A95C',pops:['nyc','ash','atn','dal','chi','lax','sea','sjc','tor','lon','fra','par','ams','sto','mil','mad','sin','tok','osa','bom','syd','sao','jkt'],ix:hostIx(['nyc','ash','atn','dal','chi','lax','sea','sjc','tor','lon','fra','par','ams','sto','mil','mad','sin','tok','osa','bom','syd','sao','jkt']),blurb:tr('hosters.linux_boxes_by_the_hour')},
+ {id:'vlt',name:'Vulture',asn:20473,type:'host',pol:'open',share:.006,up:['tat','lvl'],col:'#007BFC',pops:['nyc','ash','atn','mia','dal','chi','lax','sea','sjc','tor','mex','sao','scl','lon','ams','fra','par','mad','sto','waw','jnb','bom','del','blr','sin','tok','osa','icn','syd','mel'],ix:hostIx(['nyc','ash','atn','mia','dal','chi','lax','sea','sjc','tor','mex','sao','scl','lon','ams','fra','par','mad','sto','waw','jnb','bom','del','blr','sin','tok','osa','icn','syd','mel']),blurb:tr('hosters.circles_every_continent_looking_for')},
+ {id:'lsw',name:'LeaseWebb',asn:60781,type:'host',pol:'open',share:.005,up:['tly','tat'],col:'#E3000F',pops:['ams','fra','lon','was','sjc','dal','mtl','sin','hkg','tok','syd'],ix:hostIx(['ams','fra','lon','was','sjc','dal','mtl','sin','hkg','tok','syd']),blurb:tr('hosters.dedicated_servers_on_long_tangled')},
+ // one or two in every region
+ {id:'scw',name:'Scaleawayway',asn:12876,type:'host',pol:'open',share:.003,up:['tly','cog'],col:'#4F0599',pops:['par','ams','waw'],ix:hostIx(['par','ams','waw']),blurb:tr('hosters.french_cloud_that_scales_away')},
+ {id:'ctb',name:'Contab-oh',asn:51167,type:'host',pol:'open',share:.002,up:['cog','lvl'],col:'#1E73BE',pops:['muc','dus'],ix:hostIx(['muc','dus']),blurb:tr('hosters.so_much_ram_for_so')},
+ {id:'sel',name:'Select-tell',asn:49505,type:'host',pol:'open',share:.0015,up:['rtc'],col:'#E2231A',pops:['mos'],ix:hostIx(['mos']),blurb:tr('hosters.moscow_servers_pick_one_and')},
+ {id:'lcw',name:'Locoweb',asn:27715,type:'host',pol:'open',share:.002,up:['cog','lvl'],col:'#E4032E',pops:['sao','rio'],ix:hostIx(['sao','rio']),blurb:tr('hosters.brazil_s_crazy_busy_web')},
+ {id:'mxh',name:'Taco Stack Hosting',asn:28512,type:'host',pol:'open',share:.0015,up:['lvl','cog'],col:'#2E7D32',pops:['qro','mex','gdl'],ix:hostIx(['qro','mex','gdl']),blurb:tr('hosters.servers_layered_like_a_good')},
+ {id:'pyr',name:'Pyramid Scheme Hosting',asn:37069,type:'host',pol:'open',share:.001,up:['tat','tly'],col:'#C9A227',pops:['cai','cas'],ix:hostIx(['cai','cas']),blurb:tr('hosters.every_customer_brings_two_more')},
+ {id:'afh',name:'Afrihoast',asn:37611,type:'host',pol:'open',share:.0015,up:['tat','cog'],col:'#F7941D',pops:['jnb','cpt','nbo','lag'],ix:hostIx(['jnb','cpt','nbo','lag']),blurb:tr('hosters.south_african_hosting_served_warm')},
+ {id:'mrg',name:'Mirage Hosting',asn:48695,type:'host',pol:'open',share:.0015,up:['tat','tly'],col:'#B8860B',pops:['ruh','dxb','doh'],ix:hostIx(['ruh','dxb','doh']),blurb:tr('hosters.desert_data_centers_cooler_than')},
+ {id:'e2e',name:'E2Eek Networks',asn:132420,type:'host',pol:'open',share:.002,up:['tat','ntt'],col:'#2A6EBB',pops:['bom','del','blr','hyd'],ix:hostIx(['bom','del','blr','hyd']),blurb:tr('hosters.indian_gpus_and_vps_end')},
+ {id:'exb',name:'Exabites',asn:46015,type:'host',pol:'open',share:.0015,up:['ntt','tat'],col:'#F15A22',pops:['kul','sin','jkt','bkk','mnl'],ix:hostIx(['kul','sin','jkt','bkk','mnl']),blurb:tr('hosters.southeast_asian_hosting_one_byte')},
+ {id:'chb',name:'Cherry Blossom Hosting',asn:9370,type:'host',pol:'open',share:.002,up:['ntt'],col:'#F19EC2',pops:['tok','osa'],ix:hostIx(['tok','osa']),blurb:tr('hosters.japanese_racks_that_bloom_every')},
+ {id:'kcl',name:'Kimchi Colo',asn:38661,type:'host',pol:'open',share:.0015,up:['ntt','tly'],col:'#C62828',pops:['icn','tpe'],ix:hostIx(['icn','tpe']),blurb:tr('hosters.korean_servers_fermented_to_perfection')},
+ {id:'vip',name:'VentraIPA',asn:38880,type:'host',pol:'open',share:.0015,up:['tly','ntt'],col:'#00B2A9',pops:['syd','mel','bne','per'],ix:hostIx(['syd','mel','bne','per']),blurb:tr('hosters.australian_hosting_best_served_cold')},
+ {id:'slk',name:'Slackspace',asn:33070,type:'host',pol:'open',share:.002,up:['lvl','cog'],col:'#C40022',pops:['dal','chi','hou','ash','lon'],ix:hostIx(['dal','chi','hou','ash','lon']),blurb:tr('hosters.managed_hosting_with_fanatical_naps')});

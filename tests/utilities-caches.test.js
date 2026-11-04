@@ -122,13 +122,13 @@ test('balanced caches keep serving when either site fails', t => {
 
 test('more boxes while demand outgrows them, balanced across sites (#248)', t => {
   const { ev, errors } = setup(t);
-  ev("Object.assign(S.pops.fra,{site2:true,routers:2});S.caches=[{id:'a1',city:'fra',net:'cfl',site:'a'},{id:'b1',city:'fra',net:'cfl',site:'b'}];compute();R.demTo={cfl:NET.cfl.cache.min};R.cityDem.fra=450/NSH.cfl");
+  ev("Object.assign(S.pops.fra,{site2:true,routers:2});S.caches=[{id:'a1',city:'fra',net:'cfl',site:'a'},{id:'b1',city:'fra',net:'cfl',site:'b'}];compute();R.demTo={cfl:NET.cfl.cache.min};R.cityDem.fra=450/cityNetSh('fra','cfl')");
   const add = JSON.parse(ev("JSON.stringify(utilityCaches('fra').add)"));
   assert.deepEqual(add.map(x => x.net + '@' + x.site), ['cfl@a', 'cfl@b', 'cfl@a'], '450G needs five 100G boxes: three more, spread over both sites');
-  ev("R.cityDem.fra=150/NSH.cfl");
+  ev("R.cityDem.fra=150/cityNetSh('fra','cfl')");
   assert.equal(ev("utilityCaches('fra').add.length"), 0, 'two boxes already carry 150G');
   // Requesting them adds just what is missing.
-  ev("R.cityDem.fra=350/NSH.cfl");
+  ev("R.cityDem.fra=350/cityNetSh('fra','cfl')");
   ev("ACT.utilityCaches({city:'fra',quote:utilityCaches('fra').key})");
   assert.equal(ev("S.caches.filter(c=>c.net==='cfl').length"), 4);
   assert.deepEqual(errors, []);
@@ -150,6 +150,6 @@ test('boxes follow the traffic each city really sends: Russia and China have the
   // In China only the networks on its own list get boxes.
   for (const id of nets('sha')) assert.ok(ev(`NSH_CN[${JSON.stringify(id)}]>0`), `${id} reaches Shanghai`);
   // Elsewhere nothing changes: the world share.
-  assert.ok(Math.abs(ev("cacheDem('fra','nfx')") - ev('(R.cityDem.fra||0)*NSH.nfx')) < 1e-6);
+  assert.ok(Math.abs(ev("cacheDem('fra','nfx')") - ev("(R.cityDem.fra||0)*cityNetSh('fra','nfx')")) < 1e-6);
   assert.deepEqual(errors, []);
 });

@@ -57,7 +57,7 @@ function engHours(X){const {E,NX,NE,R2,EP,F,L,FLAT}=X,NP=2*NE+2*NX,NF=F.v.length
     for(let p=0;p<NP;p++){const O=OF[p],p2=2*p;if(O<=0){L1[p2]=0;L1[p2+1]=0;LJ[p]=0;continue;}const C=CAP[p];if(!(C>0)){L1[p2]=1;L1[p2+1]=1;LJ[p]=1;lossy=true;continue;}
       // Bursts cost a little before a pipe is full; once it is, it drops the excess and still carries all it holds.
       const u=O/C;if(u<=0.85){L1[p2]=0;L1[p2+1]=0;LJ[p]=0;continue;}const Oj=OJ[p],lj=Oj>C?1-C/Oj:0,Cr=C-Oj*(1-lj),Q=OQ[p],b=u<1&&!FLAT?0.002*(u-0.85)**2/0.0225:0;
-      const lq=Q>Cr?1-(Cr>0?Cr:0)/Q:0,cb=Cr-Q*(1-lq),ob=O-Oj-Q,lb=ob>cb?1-(cb>0?cb:0)/ob:0;
+      const lq=Q>0&&Q>Cr?1-(Cr>0?Cr:0)/Q:0,cb=Cr-Q*(1-lq),ob=O-Oj-Q,lb=ob>cb?1-(cb>0?cb:0)/ob:0;
       L1[p2]=lb>b?lb:b;L1[p2+1]=lq>b?lq:b;LJ[p]=lj>b?lj:b;lossy=true;}
     // Routers too serve the junk, then the priority queue, first.
     for(let k=0;k<NPOP;k++){const Oj=NOJ[k],O=NO[k]+Oj,Q=NOQ[k],C=NCAP[k];if(!(O>C&&C>0)){NL[k]=0;NLQ[k]=0;continue;}const Cr=Math.max(0,C-Math.min(Oj,C)),lq=Q>Cr?1-Cr/Q:0,cb=Cr-Q*(1-lq),ob=O-Oj-Q;NLQ[k]=lq;NL[k]=ob>cb?1-(cb>0?cb:0)/ob:0;lossy=true;}return lossy;};

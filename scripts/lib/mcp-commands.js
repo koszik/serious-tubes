@@ -81,6 +81,7 @@ const API_DOMAINS={
   // BGP policy (S.pol): what a rule does, and the two per-session switches.
   polAct:{kind:'enum',values:['lp','deny','nocarry','noexp','prepend','regonly','blackhole']},
   sessKey:{kind:'enum',values:['allowas','dflt']},
+  flowsKind:{kind:'enum',values:['link','t','p','ix','c']},
   scnId:{table:'SCN',kind:'id'},
   // A traceroute target in the modal's own terms.
 };
@@ -339,6 +340,11 @@ const API_CMD={
  traceRun:{args:[['from','cityId'],['to','traceTo']],open:'trace',dom:['trFrom','trTo'],reads:'modal',
   bind:a=>{$('trFrom').value=a.from;$('trTo').value=(NET[a.to]?'net:':'city:')+a.to;},
   doc:'Run a traceroute to a network or one of your own POPs. The hops come back as report text; they are not stored in the game state.'},
+ lgRun:{args:[['from','cityId'],['net','netId']],open:'lg',dom:['lgFrom','lgTo'],reads:'modal',
+  bind:a=>{$('lgFrom').value=a.from;$('lgTo').value=a.net;},
+  doc:'Looking glass: every route a POP has to a network, best first, with local-pref, AS path, IGP cost, communities and what decided each; then how that network sends traffic back (its ways in, in its order). Report text.'},
+ flowsOpen:{args:[['k','flowsKind'],['id','entityId']],reads:'modal',
+  doc:'Every flow on a link (k "link", a link id) or a port (k t, p, ix or c and its id): far end, the port it enters or leaves by, the endpoint it serves, direction and Gbps, at the busiest hour. Report text.'},
 /* ---------- money ---------- */
  takeLoan:{args:[['id','entityId']],
   doc:'Accept a loan offer. Terms vary wildly by bank; the crypto one pays out 55-135% of face value. Equity banks take a share of the company.'},
@@ -518,6 +524,7 @@ const API_VIEW={
  dashTab:{args:[['k','dashTab']],doc:'Switch the NOC dashboard tab.'},
  dashSort:{args:[['k','dashSortKey']],doc:'Flip a dashboard column\'s sort.'},
  dashLink:{args:[['id','entityId']],doc:'Jump from the dashboard to a link\'s panel.'},
+ flowsSet:{args:[['p','integer'],['now','boolean'],['more','boolean']],doc:'In the flows window: one direction (p 0 or 1, -1 both), the hour shown instead of the busiest (now), or 50 more rows.'},
  bank:{args:[],doc:'Open the bank.'},
  bankClose:{args:[],doc:'Close the bank.'},
  closePanel:{args:[],doc:'Close the selection panel.'},
@@ -597,6 +604,7 @@ const API_BOUND={
  teExample:{command:'teDeploy',arg:'script',note:'the worked example'},
  teRecipe:{command:'teDeploy',arg:'script',note:'a recipe from catalog(\'TE_RECIPES\')'},
  trace:{command:'traceRun',arg:'from'},
+ lg:{command:'lgRun',arg:'from'},
  decomToggle:{command:'decomGo',arg:'cities'},
  openVxc:{command:'buyVxc',note:'opens the circuit picker from a fabric port ({from, prov}); buyVxc takes a, b, prov and t itself'},
  connCancel:{command:'cancelTransit',note:'the connections list\'s cancel button: it arms, then dispatches cancelTransit, cancelPni, cancelIx, rmCache or rmNni'},

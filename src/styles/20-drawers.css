@@ -53,7 +53,7 @@ section h3{font-size:17px;margin-bottom:6px;display:flex;align-items:center;gap:
 
 .logo{width:30px;height:30px;border-radius:50%;background:var(--c);border:2.5px solid var(--ink);display:grid;place-items:center;color:#fff;font-family:var(--display);font-weight:800;font-size:11px;flex:none;letter-spacing:-.02em}
 .tag{display:inline-block;border:1.8px solid var(--ink);border-radius:7px;padding:0 5px;font-size:10px;font-weight:900;letter-spacing:.03em;text-transform:uppercase;vertical-align:1px;color:#fff;background:var(--ink2)}
-.tag.t1{background:var(--t1)} .tag.t2{background:var(--t2)} .tag.cdn{background:var(--cdn)} .tag.eye{background:var(--eye)}
+.tag.t1{background:var(--t1)} .tag.t2{background:var(--t2)} .tag.cdn{background:var(--cdn)} .tag.host{background:var(--host)} .tag.eye{background:var(--eye)}
 .tag.open{background:var(--ok)} .tag.selective{background:var(--warn);color:var(--ink)} .tag.restrictive{background:var(--bad)} .tag.paid{background:var(--me)}
 .tag.st{background:var(--paper);color:var(--ink)}
 /* PNI list (#175): one status chip per network, a one-line value, folded groups. Chips wrap on narrow screens. */
@@ -97,3 +97,6 @@ section h3{font-size:17px;margin-bottom:6px;display:flex;align-items:center;gap:
 .polnew{display:grid;gap:6px;margin:6px 0}
 .polnew label{display:grid;gap:2px;font-size:13px;font-weight:700}
 .polnew select,.polnew input,.btns select,.btns input{max-width:100%;min-width:0;font:inherit;padding:4px 6px;border:2px solid var(--ink);border-radius:8px;background:#fff}
+/* Looking glass (95-modals/62-looking-glass.js): the route in use stands out; communities stay small. */
+.lgr.on{background:#EAF7EE;border-radius:10px}
+.lgc .tag{font-size:11px;padding:0 5px}

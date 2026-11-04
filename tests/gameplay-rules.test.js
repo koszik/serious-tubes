@@ -62,6 +62,7 @@ const EXCEPTIONS = {
     opt: 'Australian, buys from SingTell (#148)',
     pnt: 'Australian (#148)',
     rtc: 'Russia (#70)',
+    sel: 'Russia: a Moscow hoster behind Rostelecomedy (#70)',
     sgt: 'a transit-free Tier 2',
     skb: 'Korea: sender pays',
     spc: 'transit-free incumbent',
@@ -95,6 +96,8 @@ const REAL_NAMES = [
   'AT&T', 'Bell Aliant', 'BICS', 'Cogent', 'GTT', 'Hurricane Electric', 'Level 3', 'Level3', 'Liquid', 'Liquid Intelligent Technologies', 'Lumen', 'Northwestel', 'NTT', 'Orange', 'PCCW', 'SaskTel', 'Seacom', 'Singtel', 'Sparkle', 'Tata', 'Tata Communications', 'Telia', 'Telxius', 'Tusass', 'Vodafone', 'Zayo',
   // content and clouds
   'Akamai', 'Alibaba Cloud', 'Amazon', 'Amazon Web Services', 'AWS', 'Baidu', 'ByteDance', 'Cloudflare', 'Facebook', 'Fastly', 'Google', 'Mercado Libre', 'Meta', 'Microsoft', 'Netflix', 'Tencent', 'TikTok', 'VK', 'VKontakte', 'Yandex',
+  // hosters
+  'Afrihost', 'Contabo', 'DigitalOcean', 'E2E Networks', 'Exabytes', 'Hetzner', 'Leaseweb', 'Linode', 'Locaweb', 'OVH', 'OVHcloud', 'Rackspace', 'Sakura Internet', 'Scaleway', 'Selectel', 'VentraIP', 'Vultr',
   // eyeballs and incumbents
   ', ', 'A1', 'A1 Telekom Austria', 'Airtel', 'AIS', 'Algérie Télécom', 'Altibox', 'Altice', 'America Movil', 'Angola Cables', 'Antel', 'ASTCA', 'Aussie Broadband', 'Belize Telemedia', 'Bell', 'Bell Canada', 'Belong', 'Bemobile', 'Brisanet', 'BT', 'BTC', 'Cable & Wireless', 'Cable Bahamas', 'Guyana Telephone & Telegraph', 'L", ', 'Natcom', 'SMART', 'Speednet', 'Telesur',
   // exchanges and data centers
@@ -177,7 +180,7 @@ test('N3: every network sits in a founding Tier 1’s customer cone, or is a doc
   const out = J(`NETS.filter(n=>n.type!=='t1'&&n.type!=='cdn'&&!['lvl','ntt','tly','cog','tat'].some(t=>CONE_S[t].has(n.id))).map(n=>n.id)`);
   fail('N3', out.filter((id) => !ex('N3', id)).map((id) => `${id} (${ev(`NET.${id}.name`)})`), 'give it a realistic upstream (up) in a founding Tier 1’s cone, or list it in EXCEPTIONS with a reason');
   fail('N3', Object.keys(EXCEPTIONS.N3).filter((id) => !out.includes(id)), 'these exceptions are no longer needed; remove them');
-  fail('N3', J("NETS.filter(n=>(n.up||[]).some(u=>!NET[u]||NET[u].type==='cdn'||u===n.id)).map(n=>n.id)"), 'an upstream is another network that exists and sells transit, never content');
+  fail('N3', J("NETS.filter(n=>(n.up||[]).some(u=>!NET[u]||NET[u].type==='cdn'||NET[u].type==='host'||u===n.id)).map(n=>n.id)"), 'an upstream is another network that exists and sells transit, never content');
 });
 
 test('N4: no upstream cycles', () => {
@@ -196,7 +199,7 @@ test('N5: traffic shares are sane', () => {
 });
 
 test('N6: every network has a type, a peering policy and a translated blurb', () => {
-  fail('N6', J(`NETS.filter(n=>!['t1','t2','cdn','eye'].includes(n.type)||!['open','selective','restrictive','paid'].includes(n.pol)||!n.blurb||!n.col).map(n=>n.id)`), 'set type, pol, col and blurb:tr(...)');
+  fail('N6', J(`NETS.filter(n=>!['t1','t2','cdn','host','eye'].includes(n.type)||!['open','selective','restrictive','paid'].includes(n.pol)||!n.blurb||!n.col).map(n=>n.id)`), 'set type, pol, col and blurb:tr(...)');
   fail('N6', J("NETS.filter(n=>n.pol==='selective'&&!(n.minIx>=1&&n.minPni>=1)).map(n=>n.id)"), 'selective networks state minIx and minPni');
   fail('N6', J("NETS.filter(n=>n.type==='t1'||n.type==='t2'?!(n.price>0):false).map(n=>n.id)"), 'carriers have a transit price');
 });
@@ -493,6 +496,23 @@ test('E6: islands do not reach each other without a link, allowas-in or a defaul
   g.ev("ACT.polSess({ref:'t:'+S.transit[1].id,k:'dflt',on:1})");
   assert.ok(toLon() > 0, 'E6: a default route gets it there');
   assert.deepEqual(g.errors, []);
+});
+
+test('E7: users fetch from CDNs, clouds and hosters, not from other ISPs; every region hosts', () => {
+  const m = J("(()=>{const A=dstShares('home',NSH),t={};NETS.forEach((n,j)=>{const r=netRole(n);t[r]=(t[r]||0)+A[j];});return t;})()");
+  assert.ok(m.cdn + m.cloud >= 0.6, `E7: CDNs and clouds carry most of it (${(m.cdn + m.cloud).toFixed(3)})`);
+  assert.ok(m.host >= 0.06 && m.host <= 0.18, `E7: hosters a slice (${m.host.toFixed(3)})`);
+  assert.ok(m.eye <= 0.06, `E7: other ISPs' users a sliver (${m.eye.toFixed(3)})`);
+  assert.ok(m.t1 + m.t2 <= 0.1, `E7: carriers serve little (${(m.t1 + m.t2).toFixed(3)})`);
+  const tr = J("(()=>{const A=dstShares('training',NSH);return NETS.filter((n,j)=>A[j]>0&&!['cloud','host'].includes(netRole(n))).map(n=>n.id);})()");
+  fail('E7', tr, 'training pulls from clouds and hosters only');
+  fail('E7', J("REGIONS.filter(r=>r!=='cn'&&!ORIGINS.some(o=>NET[o.net].type==='host'&&o.content>0&&o.reg===r))"), 'every region (China aside) has a hoster with servers there');
+  fail('E7', J("NETS.filter(n=>n.type==='host'&&(!(n.up||[]).length||!Array.isArray(n.ix)||n.cc)).map(n=>n.id)"), 'a hoster buys transit, lists its exchanges and has no home market');
+});
+test('E8: content is served from the network’s server nearest the user', () => {
+  fail('E8', J("ORIGINS.filter(o=>!o.sv.length||o.sv.some(c=>!CITIES[c])).map(o=>o.net+'/'+o.reg)"), 'every origin has servers in real cities');
+  const s = J("CITIES[srvOf(nearO(NETS.findIndex(n=>n.id==='nfx'),CIDX.par),CIDX.par)].id");
+  assert.equal(s, 'par', 'E8: NetChill serves Paris from Paris');
 });
 
 test('no page errors while checking the rules', () => {

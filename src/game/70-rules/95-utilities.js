@@ -13,9 +13,11 @@ function utilityCacheMoves(city){if(!S||!S.pops[city])return [];const groups=new
 // A city's traffic to one network, split as routing splits it (#260): China, Russia and Korea's exit rule have their own
 // list of networks, and Goggle is throttled to half in Russia. The world shares (NSH) would size boxes for networks the
 // city cannot even reach, and too few for the ones it uses most.
-const cityShTab=c=>cnCity(c)?NSH_CN:ruCity(c)?NSH_RU:CITY[c].kr&&S.krExit?NSH_KRX:NSH;
-const cityNetSh=(c,id)=>(cityShTab(c)[id]||0)*(id==='ggl'&&ruCity(c)?0.5:1);
-function cacheDem(c,id){const T=cityShTab(c);let t=0;for(const k in T)t+=cityNetSh(c,k);return t>0?((R.cityDem&&R.cityDem[c])||0)*cityNetSh(c,id)/t:0;}
+const cityShTab=c=>cnCity(c)?NSH_CN:ruCity(c)?NSH_RU:CITY[c].kr?S.krExit?NSH_KRX:NSH_KR:NSH;
+// Eyeballs' share of each network is the home class's (DST_W): the world table weighted by where content lives.
+const cityNetSh=(c,id)=>(dstShares('home',cityShTab(c))[NETS.indexOf(NET[id])]||0)*(id==='ggl'&&ruCity(c)?0.5:1);
+
+function cacheDem(c,id){let t=0;for(const n of NETS)t+=cityNetSh(c,n.id);return t>0?((R.cityDem&&R.cityDem[c])||0)*cityNetSh(c,id)/t:0;}
 // One box per site first, if the city sends the network anything at all; then more boxes while that demand outgrows them
 // (100G each, #248).
 function utilityCaches(city){const p=S&&S.pops[city];if(!p)return null;const sites=p.site2?['a','b']:['a'],add=[],have={};

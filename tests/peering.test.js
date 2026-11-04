@@ -9,9 +9,9 @@ function setup(ev) {
 test('Rackstar requests require enough Crowdflare traffic and a free router port', () => {
   const { ev, errors } = load();
   setup(ev);
-  ev("S.pops.fra.bb={d:9.9/NSH.cfl};compute();ACT.cache({city:'fra',net:'cfl'})");
+  ev("S.pops.fra.bb={d:9.9/cityNetSh('fra','cfl')};compute();ACT.cache({city:'fra',net:'cfl'})");
   assert.equal(ev('S.caches.length'), 0, 'below the traffic threshold');
-  ev("S.pops.fra.bb.d=10/NSH.cfl;compute();selectCity('fra');ACT.tab({t:'peer'})");
+  ev("S.pops.fra.bb.d=10/cityNetSh('fra','cfl');compute();selectCity('fra');ACT.tab({t:'peer'})");
   assert.match(ev("document.getElementById('panelBody').textContent"), /Rackstar/);
   const cash = ev('S.cash');
   const ports = ev("portsUsed('fra')");
@@ -30,7 +30,7 @@ test('Rackstar requests require enough Crowdflare traffic and a free router port
 test('Rackstar serves cacheable Crowdflare traffic locally and overflow uses transit', () => {
   const { ev, errors } = load();
   setup(ev);
-  ev("S.pops.fra.rgen=RG_TOP;S.pops.fra.bb={d:200/NSH.cfl};ACT.buyTransit({city:'fra',net:'cog',tier:PORT.length-1});ACT.lagT({id:S.transit[0].id,d:1});ACT.lagT({id:S.transit[0].id,d:1});compute()");
+  ev("S.pops.fra.rgen=RG_TOP;S.pops.fra.bb={d:200/cityNetSh('fra','cfl')};ACT.buyTransit({city:'fra',net:'cog',tier:PORT.length-1});ACT.lagT({id:S.transit[0].id,d:1});ACT.lagT({id:S.transit[0].id,d:1});compute()");
   const transit = ev('R.useT[S.transit[0].id]');
   const box = "ACT.cache({city:'fra',net:'cfl'});for(const c of S.caches)delete c.g;compute()"; // 100G boxes, as in this test
   ev(box);
@@ -51,7 +51,7 @@ test('Rackstar boxes survive save migration and appear on phone peering panels i
     const { dom, ev, errors } = load(lang === 'en' ? {} : { lang });
     setup(ev);
     ev('window.matchMedia=()=>({matches:true})');
-    ev("S.pops.fra.bb={d:10/NSH.cfl};compute();ACT.cache({city:'fra',net:'cfl'});save();S=migrate(JSON.parse(slotRaw(UI.slot)));compute()");
+    ev("S.pops.fra.bb={d:10/cityNetSh('fra','cfl')};compute();ACT.cache({city:'fra',net:'cfl'});save();S=migrate(JSON.parse(slotRaw(UI.slot)));compute()");
     assert.equal(ev("S.caches.filter(x=>x.net==='cfl').length"), 1, lang);
     assert.ok(ev('R.useCache[S.caches[0].id]') > 0, lang);
     for (const [width, height] of [[360, 800], [800, 360]]) {

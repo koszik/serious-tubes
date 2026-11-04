@@ -2,7 +2,7 @@
    Every network here answers three questions: how you reach it today (one chip), whether a PNI here is worth it
    (a value line from live routing) and whether you can get one (the order buttons, policy and lead time). Sorted by
    monthly value, filtered, grouped by type; groups with nothing to do (no PNI there, nothing you could order that moves 1 Gbps) stay folded. */
-const PNI_GRP=['t1','t2','eye','cdn','paid'],pniGrpOf=n=>n.pol==='paid'?'paid':n.type;
+const PNI_GRP=['t1','t2','eye','cdn','host','paid'],pniGrpOf=n=>n.pol==='paid'?'paid':n.type;
 const pniGrpL=k=>k==='paid'?tr('ops.p_paid'):TYPE_L[k];
 function pniValLine(n,c,v){
   if(v.g<1)return `<div class="meta pval">${tr('pni_list.little_to_gain_here',{g:fmtG(v.want)})}</div>`;

@@ -100,17 +100,17 @@ Origins are built once at load from `NETS`, `CITIES` and `NSH`. They are never s
 
 **Content weight** (what the network serves), by `type`:
 
-| `type` | cdn | t1 | t2 | eye |
-| --- | --- | --- | --- | --- |
-| content weight | `share` | 0.5 × `share` | 0.5 × `share` | 0.1 × `share` |
+| `type` | cdn | host | t1 | t2 | eye |
+| --- | --- | --- | --- | --- | --- |
+| content weight | `share` | `share` | 0.5 × `share` | 0.5 × `share` | 0.1 × `share` |
 
 It is spread across the regions of the network's `pops`, in proportion to Σ `CITY.P` of its pops in each region.
 
 **Users weight** (how many eyeballs the network has), by `type`:
 
-| `type` | eye | t2 | t1 | cdn |
-| --- | --- | --- | --- | --- |
-| users weight | `share` | 0.3 × `share` | 0.1 × `share` | 0 |
+| `type` | eye | t2 | t1 | cdn | host |
+| --- | --- | --- | --- | --- | --- |
+| users weight | `share` | 0.3 × `share` | 0.1 × `share` | 0 | 0 |
 
 It is spread across the regions of the network's **home countries** (`cc`; a string or an array), in proportion to Σ `CITY.P` of
 the cities in those countries. A network with no `cc` uses its pops' countries. Long-tail networks are listed by `pops`
@@ -124,7 +124,9 @@ only, so they use their pops.
 - **Merge small origins:** any origin under 3% of its network's total weight is merged into that network's largest origin.
   - Expected size: about 400–700 origins.
   - Origins are ordered by net, then region, so their indices are stable.
-- **Fields:** `{i, net, nj (index in NETS), reg, anchor, ci (CIDX of anchor), tz, content, users}`.
+- **Fields:** `{i, net, nj (index in NETS), reg, anchor, ci (CIDX of anchor), tz, content, users, sv}`. `sv` lists the
+  city indices of the network's PoPs in the regions the origin stands for (its own and any merged into it); content is
+  served from the one nearest the user (`srvOf(o, ci)`, §5.2), and `nearO()` picks the origin with that nearest server.
 - **Regional share tables:** `NSH_CN`, `NSH_RU` and `NSH_KRX` stay. They say *which networks* an endpoint talks to; the
   origin choice comes after (§5.2).
 
@@ -147,17 +149,29 @@ fill    = [.6,.8,1,1,1,1,.8,.5,.3,.2,.2,.2,.2,.2,.2,.2,.2,.2,.2,.2,.2,.3,.4,.5]
 
 | class | in | out | shape | whose hour | peakUtil | elastic | tol (loss) | destinations (§5.2) |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `home` | 1 | .10 | home | endpoint | — (`bb.d` is the peak) | yes | .02 | `nets:NSH`, `pick:server` |
-| `office` | 1 | .33 | office | endpoint | .6 | yes | .01 | `nets:nonEye`, `pick:server` |
+| `home` | 1 | .10 | home | endpoint | — (`bb.d` is the peak) | yes | .02 | `DST_W.home`, `pick:server` |
+| `office` | 1 | .33 | office | endpoint | .6 | yes | .01 | `DST_W.office`, `pick:server` |
 | `content` | .12 | 1 | evening | origin | .7 | yes | .02 | `audience` |
 | `stream` | .05 | 1 | evening | origin | .7 | yes | .02 | `audience` |
 | `gaming` | .67 | 1 | evening | origin | .6 | no | .003 | `audience` |
-| `training` | 1 | .20 | flat | endpoint | .9 | yes | .03 | `nets:cdn`, `pick:server` |
+| `training` | 1 | .20 | flat | endpoint | .9 | yes | .03 | `DST_W.training`, `pick:server` |
 | `fill` | 1 | .02 | fill | endpoint | — | yes | .05 | the cache's own network, `pick:server` |
 | `dci` | 1 | 1 | flat (`hyper`: dci) | endpoint | .9 | no | .001 | `site` |
 | `backup` | 0 | 1 | night | endpoint | .95 | yes | volume (§8.1) | `site` |
 | `enterprise` | .5 | 1 | office | endpoint | .5 | no | .005 | `site` (toward the hub) |
 | `special` | 1 | 1 | per type | endpoint | .5 | no | .005 | `site` |
+
+**Destinations (`DST_W`).** A server class spreads its traffic over networks by `share × DST_W[class][role]`, renormalised,
+where the role is `cloud` for networks flagged `cloud:true` and the `type` otherwise:
+
+| class | cdn | cloud | host | t1 | t2 | eye |
+| --- | --- | --- | --- | --- | --- | --- |
+| `home` | 1 | 1 | 1 | .08 | .08 | .05 |
+| `office` | .4 | 1 | .8 | .2 | .2 | 0 |
+| `training` | 0 | 1 | .6 | 0 | 0 | 0 |
+
+`home` under China's, Russia's and Korea's own tables keeps those tables as they are (their content lives in their
+incumbents' data centers). Peering thresholds of selective eyeball networks are scaled by `EYE_PEER` (0.12) to match.
 
 **`CLASS_OF` (`BIZ_T` type → class).** A test checks every key of `BIZ_T`.
 
@@ -755,7 +769,8 @@ playable.
 ## 17. As built (2026-11-03)
 
 The engine is `src/game/80-simulation/31-35`, the UI `93-ui/15-pipes.js` and `93-ui/47-bgp-panel.js`, the actions
-`90-actions/62-policy.js`; tests `tests/network-engine.test.js`, `tests/origins.test.js` and rules E1–E6. Where the
+`90-actions/62-policy.js`; tests `tests/network-engine.test.js`, `tests/origins.test.js`, `tests/traffic-mix.test.js`
+and rules E1–E8. Where the
 code differs from the text above:
 
 - **Classes.** IP events (`event`, `esport`) are a class of their own, `live` (out-heavy, evening, inelastic); `capw`,
@@ -785,6 +800,10 @@ code differs from the text above:
 - **The hour** shown (`UI.hour`) follows the clock; the HUD shows it in UTC. The map's night shade and the networks list's
   region chips and origins are not built yet; neither are `R.why` ("why this path?"), the MCP `origins`, `why_path` and
   `link_day` tools, nor the ratio rule for peering (§6).
+- **Hosters** (`30-networks/34-hosters.js`, `type:'host'`): six global ones and one or two per region, open peering,
+  upstreams in Tier 1 cones; the long tail's own hosting entries are `host` too. Content is served from the origin's
+  server nearest the user (`srvOf`), and that city is where the far side's hot potato starts; under sender pays it is
+  never inside Korea (`srvNoKr`). Flows and the looking glass name it.
 - **Performance** on `tests/fixtures/big-network.json` (`npm run perf -- --base-ref origin/main`, headless, median of
   15): `compute()` 48 → 244 ms, `dayTick()` 74 → 454 ms (the day runs in the route worker during play), `after()`
   2.8 → 3.6 ms, the map at three zooms 7.3 → 10.6 ms (two lanes per link), panels and dashboard unchanged. The

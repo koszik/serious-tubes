@@ -5,7 +5,7 @@ const { load } = require('./harness');
 test('traceroute shows an embedded cache hop only when a cache is the exit', () => {
   const { ev, errors } = load();
   ev("ACT.start({});S.cash=1e8;for(const g of GOALS)S.done[g.id]=0");
-  ev("S.pops.fra.bb={d:20/NSH.cfl};ACT.buyTransit({city:'fra',net:'cog',tier:1});compute()");
+  ev("S.pops.fra.bb={d:20/cityNetSh('fra','cfl')};ACT.buyTransit({city:'fra',net:'cog',tier:1});compute()");
   // The hops, without the "traceroute to …" header line.
   const trace = () => { const r = ev("traceroute('fra',{net:'cfl'})"); return { ...r, hops: r.text.split('\n').slice(1).join('\n') }; };
   const before = trace();

@@ -96,7 +96,7 @@ test('routers: swap generation only where a second router carries the traffic', 
 test('caches: free boxes only once the network sends enough traffic locally', t => {
   const { ev, errors } = game(t);
   hire(ev);
-  const best = ev("NETS.filter(n=>n.cache&&(R.demTo[n.id]||0)>=n.cache.min).map(n=>(R.cityDem.fra||0)*NSH[n.id]).sort((a,b)=>b-a)[0]||0");
+  const best = ev("NETS.filter(n=>n.cache&&(R.demTo[n.id]||0)>=n.cache.min).map(n=>(R.cityDem.fra||0)*cityNetSh('fra',n.id)).sort((a,b)=>b-a)[0]||0");
   assert.ok(best > 0, 'some network qualifies for a cache in this game');
   on(ev, 'caches', { g: 50 });
   if (best < 50) { shift(ev); assert.equal(ev('S.caches.length'), 0, 'below the threshold: nothing'); }
@@ -105,7 +105,7 @@ test('caches: free boxes only once the network sends enough traffic locally', t 
   shift(ev);
   const want = JSON.parse(ev("JSON.stringify(utilityCaches('fra'))"));
   assert.ok(ev('S.caches.length') > 0);
-  assert.equal(want.add.filter(x => ev(`(R.cityDem.fra||0)*NSH['${x.net}']`) >= 1).length, 0, 'every eligible box is in');
+  assert.equal(want.add.filter(x => ev(`(R.cityDem.fra||0)*cityNetSh('fra','${x.net}')`) >= 1).length, 0, 'every eligible box is in');
   assert.equal(cash(ev), c0, 'caches are free to rack');
   assert.deepEqual(errors, []);
 });
@@ -527,7 +527,7 @@ test('caches: the cash floor and a running-cost budget hold; the panel and the l
   const { ev, errors } = game(t);
   hire(ev); on(ev, 'caches', { g: 1 });
   ev('S.pops.fra.rgen=0;compute()'); // 100G ports: 100G boxes at $400/mo
-  const add = () => ev("utilityCaches('fra').add.filter(x=>(R.cityDem.fra||0)*NSH[x.net]>=1).length");
+  const add = () => ev("utilityCaches('fra').add.filter(x=>(R.cityDem.fra||0)*cityNetSh('fra',x.net)>=1).length");
   assert.ok(add() >= 2, 'several boxes on offer');
   ev('S.ops.floor=50000;S.cash=1000');
   shift(ev);
@@ -625,7 +625,7 @@ test('#227 transit "Already connected" grows the providers you have, the smalles
 test('#244 the PNI order counts the traffic the PNI list shows at that POP, not what cache boxes there already serve', t => {
   const { ev, errors } = game(t, "ACT.buildPop({city:'ham'});for(const c of ['fra','ham']){S.pops[c].rgen=mainRG(4);S.pops[c].routers=6;if(!S.pops[c].bb)ACT.launchBB({city:c});S.pops[c].bb.d=CITY[c].P*0.9;}UI.pending={a:'fra',b:'ham'};ACT.buildLink({tier:3});closeModal();ACT.buyTransit({city:'fra',net:'cog',tier:3});ACT.buyTransit({city:'ham',net:'cog',tier:3});for(let i=0;i<6;i++)S.caches.push({id:'nfx'+i,city:'ham',net:'nfx'});compute()");
   // Hamburg's users want a lot from NetChill, but its cache boxes there serve most of it: little is left for a PNI
-  const whole = ev("(R.cityDem.ham||0)*NSH.nfx"), here = ev("pniVal('nfx','ham').want");
+  const whole = ev("(R.cityDem.ham||0)*cityNetSh('ham','nfx')"), here = ev("pniVal('nfx','ham').want");
   assert.ok(whole >= 10 && here < 10, `whole demand ${whole}, left for a PNI ${here}`);
   hire(ev); on(ev, 'pni', { g: 10, tier: 0 }, 0);
   ev('S.day=Math.ceil((S.day+1)/7)*7+3'); shift(ev);

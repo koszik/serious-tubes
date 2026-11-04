@@ -4,8 +4,8 @@
 const EXK_I={t:0,ix:1,p:2,c:3};// the same order as EXK (30-compute.js)
 function engResults(X){const {R2,E,NX,NE,NP,EP,IT,F,L,hp,OFFH,LOSSH,CAP,NOH,EPO,EPR,EPD,EPN,TD,TS,TL2,VI,VO,DI,DO,WC,FIN,FOUT,FV}=X,NEP=EP.length,NPOP=X.POPC.length,day=S.day;
   // Items as columns: their flow, network, far end, peak volume, endpoint, cache part, detour and the exit it uses.
-  const NI=IT.length,IF=new Int32Array(NI),IJ=new Int32Array(NI),IO=new Int32Array(NI),IV=new Float64Array(NI),IE=new Int32Array(NI),IC=new Uint8Array(NI),ILAT=new Float64Array(NI),ILX=new Int32Array(NI);
-  for(let t=0;t<NI;t++){const it=IT[t];IF[t]=it.f;IJ[t]=it.j;IO[t]=it.o;IV[t]=it.v;IE[t]=it.ep;IC[t]=it.ce;ILAT[t]=it.lat||0;ILX[t]=it.lx===undefined?-1:it.lx;}
+  const NI=IT.length,IF=new Int32Array(NI),IJ=new Int32Array(NI),IO=new Int32Array(NI),IV=new Float64Array(NI),IE=new Int32Array(NI),IC=new Uint8Array(NI),ILAT=new Float64Array(NI),ILX=new Int32Array(NI),IS=new Int32Array(NI);
+  for(let t=0;t<NI;t++){const it=IT[t];IF[t]=it.f;IJ[t]=it.j;IO[t]=it.o;IS[t]=it.sv>=0?it.sv:it.o>=0?ORIGINS[it.o].ci:-1;IV[t]=it.v;IE[t]=it.ep;IC[t]=it.ce;ILAT[t]=it.lat||0;ILX[t]=it.lx===undefined?-1:it.lx;}
   const EPIP=new Uint8Array(NEP),EPPOP=new Uint8Array(NEP),EPCI=new Int32Array(NEP);for(let i=0;i<NEP;i++){const k=EP[i].k;EPIP[i]=k==='pop'||k==='grp'?1:0;EPPOP[i]=k==='pop'?1:0;EPCI[i]=EP[i].ci;}
   const FVi=new Float64Array(F.v.length),FGa=Float64Array.from(F.g);for(let f=0;f<FVi.length;f++)FVi[f]=F.v[f]>0?1/F.v[f]:0;
   R2.hp=hp;R2.served=TS[hp];R2.demand=TD[hp];R2.egT.l2=TL2[hp];R2.teMoved=X.teMoved||0;
@@ -69,8 +69,8 @@ function engResults(X){const {R2,E,NX,NE,NP,EP,IT,F,L,hp,OFFH,LOSSH,CAP,NOH,EPO,
   // Kept for the panels, the map and the worker: plain arrays only.
   const dp={NE,NX,NP,hp,OFFH,LOSSH,CAP,LP:Int32Array.from(L.LP),LS:Float32Array.from(L.LS),LB:Uint8Array.from(L.LB),LOFF:Int32Array.from(L.LOFF),LX:Int32Array.from(L.LX),
     FIN,FOUT,FV:Float64Array.from(F.v),FEP:Int32Array.from(F.ep),VI,VO,DI,DO,WC,CV:X.CV,FCV:X.FCV,FI:X.FI,FO:X.FO,
-    IF,IJ,IV,IE,IC,IO,IOX:Int32Array.from(IT.map(i=>i.outX===undefined?-1:i.outX)),
-    epCity:EP.map(e=>e.city),epK:EP.map(e=>e.k),epB:EP.map(e=>e.b?e.b.id:null),ex:E.map(e=>({k:e.k,id:e.id,city:e.city,net:e.net||null,ek:e.ek,rank:e.rank})),
+    IF,IJ,IV,IE,IC,IO,IS,IOX:Int32Array.from(IT.map(i=>i.outX===undefined?-1:i.outX)),
+    epCity:EP.map(e=>e.city),epK:EP.map(e=>e.k),epCls:EP.map(e=>e.cls),epB:EP.map(e=>e.b?e.b.id:null),ex:E.map(e=>({k:e.k,id:e.id,city:e.city,net:e.net||null,ek:e.ek,rank:e.rank})),
     edges:X.EA.map(e=>[e.id,e.a,e.i]),hauls:X.hauls||[]};
   engDefine(R2,dp);}
 // R.dp and the lazy views built from it (also how a route worker's answer is put back together).
@@ -92,6 +92,20 @@ function engEdgeRec(dp,i){const rec={eg:{},net:{},dst:{}},{LP,LS,LB,LOFF,LX,FIN,
     if(FOUT[f]>=0){const s=on(FOUT[f]);if(s>0)add(f,VO[f]*s,LX[FOUT[f]]>=0?dp.ex[LX[FOUT[f]]].ek:l2);}}
   for(const [id,g,j,egk] of dp.hauls){const s=on(id);if(s>0){rec.eg[egk]=(rec.eg[egk]||0)+g*s;rec.net.junk=(rec.net.junk||0)+g*s;}}
   return rec;}
+/* Every flow on some pipes at hour h (default: their busiest), one row per far end, way in or out and endpoint:
+   {p: which of the pipes, dir 'in' (towards your endpoint) or 'out', x: the exit it crosses (-1: none, on-net or a
+   circuit), o: origin index (-1-ci: one of your POPs; null: a circuit's other site or a flood), ep: endpoint, g: Gbps}. */
+function engFlowRows(dp,pipes,h){const {LP,LS,LOFF,LX,FIN,FOUT,WC,FV}=dp,NF=FV.length,at=new Map(pipes.map((p,i)=>[p,i]));
+  if(h===undefined||h===null){let bv=-1;h=dp.hp;for(let k=0;k<24;k++){let v=0;for(const p of pipes)v+=dp.OFFH[k*dp.NP+p];if(v>bv){bv=v;h=k;}}}
+  const byF=new Map();for(let t=0;t<dp.IF.length;t++){const f=dp.IF[t];let l=byF.get(f);if(!l)byF.set(f,l=[]);l.push(t);}
+  const rows=new Map(),add=(f,i,dir,x,g)=>{if(!(g>1e-9))return;const its=byF.get(f)||[],tot=FV[f]||1;
+    for(const t of its){const o=dp.IO[t],sv=dp.IS?dp.IS[t]:-1,k=i+'|'+dir+'|'+x+'|'+o+'|'+sv+'|'+dp.IE[t];let r=rows.get(k);if(!r)rows.set(k,r={p:i,dir,x,o:dp.epK[dp.IE[t]]==='l2'?null:o,sv,ep:dp.IE[t],g:0});r.g+=g*dp.IV[t]/tot;}};
+  const on=id=>{const o=[];for(let k=LOFF[id],e=LOFF[id+1];k<e;k++){const i=at.get(LP[k]);if(i!==undefined)o.push([i,LS[k]]);}return o;};
+  for(let f=0;f<NF;f++){const s=dp.CV[dp.FCV[f]+h],vi=FV[f]*dp.FI[f]*s,vo=FV[f]*dp.FO[f]*s;
+    for(let k=0;k<3;k++){const id=FIN[f*3+k];if(id<0||!(WC[f*3+k]>0)||!(vi>0))continue;for(const [i,sh] of on(id))add(f,i,'in',LX[id],vi*WC[f*3+k]*sh);}
+    if(FOUT[f]>=0&&vo>0)for(const [i,sh] of on(FOUT[f]))add(f,i,'out',LX[FOUT[f]],vo*sh);}
+  const out=[...rows.values()];for(const [id,g,j,egk] of dp.hauls)for(const [i,sh] of on(id))out.push({p:i,dir:'in',x:-1,o:null,ep:-1,g:g*sh,junk:egk});
+  return {h,rows:out.sort((a,b)=>b.g-a.g)};}
 // The flows as the PNI estimate reads them (38-pni-value.js): per item, at the peak hour, by the way it came in.
 function engFlows(dp){const out=[],{FIN,VI,DI,WC,LX,FV}=dp;
   for(let t=0;t<dp.IF.length;t++){const j=dp.IJ[t],ep=dp.IE[t],k0=dp.epK[ep];if(j<0||dp.IO[t]<0||(k0!=='pop'&&k0!=='grp'))continue;const f=dp.IF[t],s=dp.IV[t]/(FV[f]||1),c=dp.epCity[ep],n=NETS[j].id;

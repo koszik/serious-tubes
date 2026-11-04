@@ -29,7 +29,7 @@ hoisted across files, and top-level statements run in path order. Find code by n
 | `00-core/` | `tr()`/`trn()`/`N_()` and the dictionary; version, release notes and the analytics counter |
 | `10-catalog/` | Prices and gear: POP and port costs, routers (`RG`), supply chain, port slots, dark fiber systems and optics (`OPT`), reach and subsea upgrades |
 | `20-world/` | Map projection, landmasses, coastline, city coordinates (`CITY_LL`), `CITIES`, `CABLES` |
-| `30-networks/` | Other ASes (`NETS`), rival exchanges (`XIX`), the long tail, traffic shares (`NSH`) |
+| `30-networks/` | Other ASes (`NETS`), rival exchanges (`XIX`), the long tail, hosters, traffic shares (`NSH`), origins |
 | `40-progress/` | Customer types (`BIZ_T`), `LEVELS` and their requirements, `GOALS`; the per-save ruleset (`S.rules`, `rule()`, `PRESETS`, `chaosMul()`, `leadDays()`) |
 | `50-state.js` | The globals `S`, `R`, `UI`; `emptyR()` |
 | `60-features/` | Banks and loans, scenarios and the weekly challenge, puzzles and the published weekly puzzle, conferences, the tutorial, traceroute, the share card, `newGame()`, the offer trial (`autoOffer()`), standing orders (`S.ops`, `opsDay()`, run from `dayTick()`) |

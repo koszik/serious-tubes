@@ -3,7 +3,7 @@
    one far end (an origin, one of your POPs, the other site of a circuit) with its peak volume. */
 function engItems(X){const {R2,PC,NN}=X,day=S.day,ev=S.ev,EP=X.EP=[],IT=X.IT=[];
   const viral=(ev.viral>day?1.25:1)*(ev.php&&ev.php>day?0.7:1),loc=scnRule('local'),mt=ev.pmtud&&ev.pmtud.until>day?ev.pmtud:null;
-  const shTab=c=>cnCity(c)?NSH_CN:ruCity(c)?NSH_RU:CITY[c].kr&&S.krExit?NSH_KRX:NSH;
+  const shTab=c=>cnCity(c)?NSH_CN:ruCity(c)?NSH_RU:CITY[c].kr?S.krExit?NSH_KRX:NSH_KR:NSH;
   const cacheNets=new Set(S.caches.filter(c=>popUp(c.city)).map(c=>c.net));
   // Goggle video is throttled in Russia (#70); PMTUD and Korean route events thin one network out; under `local`, what you
   // cannot reach is not asked for.
@@ -17,24 +17,24 @@ function engItems(X){const {R2,PC,NN}=X,day=S.day,ev=S.ev,EP=X.EP=[],IT=X.IT=[];
   const FLAT=X.FLAT=pzOn()||!!S.ar;
   const ep=o=>{o.i=EP.length;o.ci=CIDX[o.city];o.T=TRAFFIC[o.cls];if(FLAT&&o.k==='l2')o.T={...o.T,in:1,out:1,pu:1};else if(FLAT)o.T={...o.T,out:0};o.has=prefixHas(PC,o);o.q=polQos(PC,o.has)||FLAT&&o.k==='l2'?1:0;o.sh=FLAT?SHAPE.flat:o.sh||SHAPE[o.T.shape];EP.push(o);return o;};
   const item=(e,o,j,v,x)=>{if(v>0||e.keep&&v>=0)IT.push(Object.assign({ep:e.i,o,j,v,ce:0},x));};
-  // A share table already adds up to one; a class that talks to only some networks spreads its traffic over them.
-  const serve=(e,sel,peak)=>{const SH=shTab(e.city);let t=1;if(sel!=='all'){t=0;for(const n of NETS)if(!(sel==='nonEye'&&n.type==='eye'||sel==='cdn'&&n.type!=='cdn'))t+=SH[n.id]||0;}if(t<=0)return;
-    for(let j=0;j<NN;j++){const n=NETS[j],s=SH[n.id]||0;if(s<=0||sel==='nonEye'&&n.type==='eye'||sel==='cdn'&&n.type!=='cdn')continue;DEMTO[j]+=peak*s/t*mods0(e.city,n);const v=peak*s/t*mods(e.city,n);if(!(v>0)&&!(e.keep&&v===0))continue;const o=nearO(j,e.ci);
-      if(e.cls==='home'&&cacheNets.has(n.id)){item(e,o,j,v*CACHE_HIT,{ce:1});item(e,o,j,v*(1-CACHE_HIT),{ce:2});}else item(e,o,j,v);}};
+  // Whose servers the class fetches from (DST_W), as shares of the city's table that add up to one.
+  const noKr=scnRule('sender'),serve=(e,peak)=>{const A=dstShares(e.cls,shTab(e.city));
+    for(let j=0;j<NN;j++){const s=A[j];if(!(s>0))continue;const n=NETS[j];DEMTO[j]+=peak*s*mods0(e.city,n);const v=peak*s*mods(e.city,n);if(!(v>0)&&!(e.keep&&v===0))continue;const o=nearO(j,e.ci),sv=noKr&&CITY[e.city].kr?srvNoKr(o,e.ci):srvOf(o,e.ci);
+      if(e.cls==='home'&&cacheNets.has(n.id)){item(e,o,j,v*CACHE_HIT,{ce:1,sv});item(e,o,j,v*(1-CACHE_HIT),{ce:2,sv});}else item(e,o,j,v,{sv});}};
   // An audience: the eyeballs nearest and biggest, and every POP of yours with broadband (on-net traffic). Who is in it
   // does not change with demand, only how much each gets, so routing is kept from day to day.
   const aud=(e,peak)=>{const a=audStatic(e.ci).slice();for(const q of X.pops){const p=S.pops[q];if(q!==e.city&&p.bb)a.push([-1-CIDX[q],Math.max(0,p.bb.d)*EYE_W/(1+kmI(e.ci,CIDX[q])/AUD_KM)]);}
     const t=a.reduce((s,x)=>s+x[1],0);if(t<=0)return;for(const [o,w] of a)if(w>0){if(o>=0)DEMTO[ORIGINS[o].nj]+=peak*w/t;item(e,o,o>=0?ORIGINS[o].nj:-1,peak*w/t);}};
   for(const c of Object.keys(S.pops)){const p=S.pops[c],eye=(p.bb?p.bb.d:0)*viral*(cnCity(c)&&ev.golden>day?1.4:1);R2.cityEye[c]=eye;R2.cityDem[c]=0;R2.citySrv[c]=0;
-    if(popUp(c)&&eye>0)serve(ep({k:'pop',city:c,cls:'home'}),'all',eye);}
+    if(popUp(c)&&eye>0)serve(ep({k:'pop',city:c,cls:'home'}),eye);}
   // Customers of one class in one city share their traffic and their service; tags (or a rule naming one) split them.
   // A booked event keeps its place (at zero) until it is over, so routing is not rebuilt the day it starts.
   const G=new Map();for(const b of S.biz){const T=BIZ_T[b.type],cls=CLASS_OF[b.type];if(!cls||T.fiber||T.l2||!popUp(b.city))continue;
     const tg=(polTags(PC,'b:'+b.id)||[]).join(','),key=b.city+'|'+cls+'|'+tg;let g=G.get(key);if(!g)G.set(key,g={k:'grp',city:b.city,cls,members:[],peak:0,key});g.members.push(b.id);
     if(T.event)g.keep=true;if(!T.event||eventLive(b))g.peak+=b.bw*TRAFFIC[cls].pu;}
-  for(const g of G.values()){const e=ep(g),d=e.T.dst;if(d==='server')serve(e,e.T.nets,g.peak);else aud(e,g.peak);}
+  for(const g of G.values()){const e=ep(g),d=e.T.dst;if(d==='server')serve(e,g.peak);else aud(e,g.peak);}
   // An embedded cache fills overnight from its own network, never from itself.
-  for(const c of S.caches){if(!popUp(c.city))continue;const e=ep({k:'fill',city:c.city,cls:'fill',cache:c.id}),j=NETS.findIndex(n=>n.id===c.net);item(e,nearO(j,e.ci),j,cacheG(c)*FILL_F,{ce:3});}
+  for(const c of S.caches){if(!popUp(c.city))continue;const e=ep({k:'fill',city:c.city,cls:'fill',cache:c.id}),j=NETS.findIndex(n=>n.id===c.net),o=nearO(j,e.ci);item(e,o,j,cacheG(c)*FILL_F,{ce:3,sv:srvOf(o,e.ci)});}
   // L2 circuits: one item per pair of sites and per path (scenic circuits may split over two).
   // Each pair of sites is an endpoint of its own: a circuit is only as good as its worst pair (an SD-WAN needs every spoke).
   for(const b of S.biz){const T=BIZ_T[b.type];if(!T.l2)continue;const pairs=b.sites?b.sites.slice(1).map(x=>[b.sites[0],x]):[[b.city,b.city2]];let maxLat=0,noPath=false;
@@ -127,13 +127,13 @@ function engRouteBuild(X){const {E,okBy,PC,COMP,SDi,SPi,adj,wW,NE,R2,EP,IT,NC}=X
   const expM=e=>{if(!PC.expAny)return '';const m=[];let i=0;for(const rs of PC.exp.values())for(const r of rs){if(polHit(r,e.has))m.push(i);i++;}return m.join(',');};
   for(const e of EP)e.xm=expM(e);
   const XA=M.XA,XA0={no:false,prep:0,reg:false,bh:false},XA3={no:false,prep:3,reg:false,bh:false},xattr=(x,e)=>{if(!PC.expAny)return x.pref==='low'?XA3:XA0;const k=x.xi+'|'+e.xm;let a=XA.get(k);if(!a)XA.set(k,a=PC.expAny?polExport(PC,x,e.has):{no:false,prep:x.pref==='low'?3:0,reg:false,bh:false});return a;};
-  const INM=M.INM,inCands=(o,e,ce)=>{const O=ORIGINS[o],pi=e.ci,isl=COMP[pi],key=o+'|'+isl+'|'+e.xm+'|'+(ce===1?pi:ce===0?'':'n');let c=INM.get(key);if(c)return c;
+  const INM=M.INM,inCands=(o,e,ce,sv)=>{const O=ORIGINS[o],pi=e.ci,isl=COMP[pi],key=o+'|'+sv+'|'+isl+'|'+e.xm+'|'+(ce===1?pi:ce===0?'':'n');let c=INM.get(key);if(c)return c;
     const sc=[];for(const x of okBy[O.net]){if(COMP[x.ci]!==isl)continue;if(x.k==='c'&&ce!==1)continue;const a=xattr(x,e);if(a.no||a.reg&&CITY[x.city].rg!==O.reg)continue;
       // A cache maps users only across the links its routes may cross (a `nocarry` rule keeps it to its side).
       if(x.k==='c'&&PC.linkAny){const v=viewOf(polNoCarry(PC,routeHas(PC,x,O,false)));CVW.set(x.xi+'|'+pi,v);if(!(spOf(v,pi).D[x.ci]<Infinity))continue;}
       const al=asLen(x,O.net),rel=x.k==='c'?0:(x.k==='p'&&x.net===O.net)||(x.k==='ix'&&al===1&&x.id!=='~grace')?1:2;
       // Ties between equally near ways in go by the far side's own tie-breaks: stable, and spread over your ports.
-      const s={x,rel,as:al+a.prep,d:x.k==='c'||X.FLAT?SDi[pi][x.ci]:Math.round(kmI(O.ci,x.ci)),t:-1,o:O};
+      const s={x,rel,as:al+a.prep,d:x.k==='c'||X.FLAT?SDi[pi][x.ci]:Math.round(kmI(sv,x.ci)),t:-1,o:O};
       // Only the three best are kept: the way in, and two to spill onto.
       if(sc.length<3||cmpIn(s,sc[sc.length-1])<0){sc.push(s);sc.sort(cmpIn);if(sc.length>3)sc.pop();}}
     c=sc.map(s=>s.x.xi);INM.set(key,c);return c;},tieH=s=>s.t>=0?s.t:(s.t=hstr(s.o.net+'|'+s.o.reg+'|'+s.x.k+'|'+s.x.city+'|'+(s.x.net||'')+'|'+s.x.xi)),
@@ -182,8 +182,8 @@ function engRouteBuild(X){const {E,okBy,PC,COMP,SDi,SPi,adj,wW,NE,R2,EP,IT,NC}=X
       else{// Between islands your own prefixes come back with your AS in the path: dropped, unless a session accepts them.
         const fx=E.find(x=>x.k!=='c'&&COMP[x.ci]===COMP[pi]&&PC.sess[exRef(x)]),qx=fx&&E.find(x=>x.k!=='c'&&COMP[x.ci]===COMP[qi]);
         if(fx&&qx){const mk='j'+pi+'|'+qi+'|'+fx.xi+'|'+qx.xi;let j=LMEM.get(mk);if(!j){j=[engJoin(X,[[SPi[pi],pi,fx.ci,true],['tx',fx.xi],['rx',qx.xi],[SPi[qi],qi,qx.ci,false]]),engJoin(X,[[SPi[qi],qi,qx.ci,true],['tx',qx.xi],['rx',fx.xi],[SPi[pi],pi,fx.ci,false]])];LMEM.set(mk,j);}out=j[0];ins[0]=j[1];}}}
-    else{const O=ORIGINS[it.o];if(T.who==='o')tz=O.tz;
-      const cs=inCands(it.o,e,it.ce);for(let k=0;k<cs.length&&k<(NET[O.net].type==='cdn'?3:1);k++)ins[k]=inList(cs[k],pi);if(cs.length)inX=cs[0];
+    else{const O=ORIGINS[it.o],sv=it.sv>=0?it.sv:O.ci;if(T.who==='o')tz=O.tz;
+      const cs=inCands(it.o,e,it.ce,sv);for(let k=0;k<cs.length&&k<(NET[O.net].type==='cdn'?3:1);k++)ins[k]=inList(cs[k],pi);if(cs.length)inX=cs[0];
       if(it.ce===1&&cs.length&&E[cs[0]].k==='c'){const id=X.walkList(cview(cs[0],pi),pi,E[cs[0]].ci,true),mk='c'+id+'|'+cs[0];out=LMEM.get(mk);if(out===undefined){out=engCat(X,id,engJoin(X,[['tx',cs[0]]]),cs[0]);LMEM.set(mk,out);}}
       else{const t=tiersOf(it.o),c=choose(t,pi);if(c>=0){out=outList(c,pi);outX=CH[c][0][0];
         // Auto-TE caps an upstream: what is over the cap takes the best route that avoids it.
@@ -194,7 +194,7 @@ function engRouteBuild(X){const {E,okBy,PC,COMP,SDi,SPi,adj,wW,NE,R2,EP,IT,NC}=X
       // Detour: the part of the trip to the far end that is yours to shorten.
       const lx=outX>=0?outX:inX;if(lx>=0&&e.k!=='fill'){const x=E[lx],ms=bbMs(pi,x.ci);
         // Under sender pays Korean users mind the haul itself, however direct (Gangnam Style Peering).
-        lat=CITY[e.city].kr&&scnRule('sender')?ms:Math.max(0,ms+(kmI(x.ci,O.ci)-kmI(pi,O.ci))*KM_MS);it.lx=lx;}}
+        lat=CITY[e.city].kr&&scnRule('sender')?ms:Math.max(0,ms+(kmI(x.ci,sv)-kmI(pi,sv))*KM_MS);it.lx=lx;}}
     it.lat=lat;it.inX=inX;it.outX=outX;it.tz=tz;
     const sh=shapeId(e.sh),key=it.site||it.o<0?null:e.i+'|'+tz+'|'+ins.join(',')+'|'+out+'|'+oalt+'|'+g+'|'+(cdn?it.j:'');let f=key===null?undefined:FM.get(key);
     if(f===undefined){f=F.v.length;if(key!==null)FM.set(key,f);F.v.push(0);F.fi.push(T.in);F.fo.push(T.out);F.sh.push(sh);F.tz.push(tz);F.q.push(e.q);F.g.push(g);F.in.push(ins);F.out.push(out);F.cdn.push(cdn);F.ep.push(e.i);F.kind.push(0);F.oalt.push(oalt);F.cap.push(capK);}

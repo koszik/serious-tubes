@@ -9,10 +9,15 @@ const EYE_W=1e-5,CACHE_HIT=0.85,SPILL_CDN=0.95,AUD_KM=3000,AUD_N=40,FILL_F=0.08,
 let KMM=null;
 function kmI(a,b){const n=CITIES.length;if(!KMM)KMM=new Float64Array(n*n).fill(-1);const k=a*n+b;let v=KMM[k];
   if(v<0){const A=CITIES[a],B=CITIES[b];v=KMM[k]=KMM[b*n+a]=a===b?0:hav(A.lon,A.lat,B.lon,B.lat);}return v;}
-// The nearest origin of network j to city ci that serves content (CDN mapping), and a city's biggest audiences.
-let NEARO=null;
+// The origin of network j that serves city ci (CDN mapping: the one with the server nearest it), the city of that
+// server, and a city's biggest audiences. A content network serves Paris from Paris when it is there, not from London.
+let NEARO=null,SRVO=null;
+function srvOf(o,ci){const n=CITIES.length;if(!SRVO)SRVO=new Int32Array(ORIGINS.length*n).fill(-1);const k=o*n+ci;let v=SRVO[k];
+  if(v<0){const sv=ORIGINS[o].sv;v=sv[0];for(const s of sv)if(kmI(ci,s)<kmI(ci,v))v=s;SRVO[k]=v;}return v;}
+// Under sender pays, content networks keep their servers out of Korea and serve it from next door (Gangnam Style Peering).
+function srvNoKr(o,ci){const sv=ORIGINS[o].sv;let v=-1;for(const s of sv)if(!CITIES[s].kr&&(v<0||kmI(ci,s)<kmI(ci,v)))v=s;return v<0?srvOf(o,ci):v;}
 function nearO(j,ci){const n=CITIES.length;if(!NEARO)NEARO=new Int32Array(NETS.length*n).fill(-1);const k=j*n+ci;let v=NEARO[k];
-  if(v<0){const L=ORIG_BY_NET[NETS[j].id],C=L.some(o=>o.content>0)?L.filter(o=>o.content>0):L;let b=C[0];for(const o of C)if(kmI(ci,o.ci)<kmI(ci,b.ci))b=o;v=NEARO[k]=b.i;}return v;}
+  if(v<0){const L=ORIG_BY_NET[NETS[j].id],C=L.some(o=>o.content>0)?L.filter(o=>o.content>0):L,d=o=>kmI(ci,srvOf(o.i,ci));let b=C[0];for(const o of C)if(d(o)<d(b))b=o;v=NEARO[k]=b.i;}return v;}
 const AUDM=new Map();
 function audStatic(ci){let a=AUDM.get(ci);if(a)return a;a=[];for(const o of ORIGINS)if(o.users>0)a.push([o.i,o.users/(1+kmI(ci,o.ci)/AUD_KM)]);
   a.sort((x,y)=>y[1]-x[1]||x[0]-y[0]);a=a.slice(0,AUD_N);AUDM.set(ci,a);return a;}
@@ -36,7 +41,11 @@ function engExits(R2,day,remote,depeer,leak,snd){const E=[];
 const asLen=(e,n)=>e.k==='c'?1:e.k==='p'?(e.net===n?1:2):e.k==='ix'?(e.id==='~grace'?2:e.dir&&!e.dir.has(n)?2:1):e.net===n?1:CONE_S[e.net].has(n)?2:3;
 
 function compute(){RW.gen++;
-  const day=S.day,R2=emptyR();R2.l2route={};R2.l2split={};R2.bizDem={};R2.bizSrv={};const pops=Object.keys(S.pops).filter(popUp),NC=CITIES.length,NN=NETS.length,ev=S.ev,PC=polCompile();
+  const R2=emptyR();R2.l2route={};R2.l2split={};R2.bizDem={};R2.bizSrv={};const X=engBase(R2);
+  engItems(X);engRoute(X);engHours(X);engResults(X);
+  computeMoney(R2);R=R2;UI.hotMap=hotByCity();}
+// The graph, today's exits and who reaches whom: what every routing question starts from (the looking glass too).
+function engBase(R2){const day=S.day,pops=Object.keys(S.pops).filter(popUp),NC=CITIES.length,NN=NETS.length,ev=S.ev,PC=polCompile();
   // The graph: parallel links between two cities are one edge (they balance); adj[i] lists [neighbour, edge].
   const remote=remoteCities(),adj=new Array(NC);pops.concat(remote).forEach(p=>adj[CIDX[p]]=[]);
   const edges={},EA=[],TRX=teRules(),live=[];let NE=0;
@@ -55,6 +64,4 @@ function compute(){RW.gen++;
   const coneOf=(e,n)=>e.k==='p'?e.net!==n:!!e.dir&&!e.dir.has(n);
   for(const n of NETS){let any=false,nt=false;for(const e of okBy[n.id])if(e.rank>0){any=true;if(e.k!=='t'){nt=true;break;}}R2.reachable[n.id]=any;if(any)R2.reach+=NSH[n.id];
     if(nt){R2.nt[n.id]=1;R2.reachNT+=NSH[n.id];if(!okBy[n.id].some(e=>(e.k==='p'||e.k==='ix')&&!coneOf(e,n.id)))R2.cone[n.id]=coneBy(okBy[n.id],n.id);}}
-  const X={R2,E,NX,okBy,edges,EA,NE,adj,SPD,SPP,SDi,SPi,COMP,PC,pops,NC,NN,day,wW,coneOf,TRX,GK};
-  engItems(X);engRoute(X);engHours(X);engResults(X);
-  computeMoney(R2);R=R2;UI.hotMap=hotByCity();}
+  return {R2,E,NX,okBy,edges,EA,NE,adj,SPD,SPP,SDi,SPi,COMP,PC,pops,NC,NN,day,wW,coneOf,TRX,GK};}

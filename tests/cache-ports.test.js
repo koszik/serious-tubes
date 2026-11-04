@@ -33,7 +33,7 @@ test('the share follows the router: 16 on 1.6T, one each on 100G, and a downgrad
 test('requesting caches only needs the ports the boxes really take', () => {
   const { ev, errors } = load();
   setup(ev, 'Absolute Unit 3.2T');
-  ev("R.demTo={cfl:NET.cfl.cache.min};R.cityDem.fra=900/NSH.cfl");
+  ev("R.demTo={cfl:NET.cfl.cache.min};R.cityDem.fra=900/cityNetSh('fra','cfl')");
   const q = JSON.parse(ev("JSON.stringify(utilityCaches('fra'))"));
   assert.equal(q.add.length, 3, 'three 400G boxes');
   assert.equal(q.ports, 1, 'all on one port');
@@ -45,7 +45,7 @@ test('requesting caches only needs the ports the boxes really take', () => {
 test('400G cache boxes behind 400G or faster ports: fewer boxes, cheaper per Gbps, packed by speed', () => {
   const { ev, errors } = load();
   setup(ev, 'Absolute Unit 3.2T');
-  ev("R.demTo={cfl:NET.cfl.cache.min};R.cityDem.fra=1000/NSH.cfl");
+  ev("R.demTo={cfl:NET.cfl.cache.min};R.cityDem.fra=1000/cityNetSh('fra','cfl')");
   const q = JSON.parse(ev("JSON.stringify(utilityCaches('fra'))"));
   assert.deepEqual(q.add.map(x => x.g), [400, 400, 400], '1T of demand: three 400G boxes');
   assert.equal(q.mo, 3 * ev('CACHE_BIG_MO'));
