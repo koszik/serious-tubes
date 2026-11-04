@@ -1,9 +1,9 @@
 /* Routing policy (docs/specs/network-engine.md §4, §6.2–6.4, §6.8): the player's tags, rules, QoS and router switches
    (S.pol), plus what a live RouteScript compiles to. All of it is plain data: matching never runs player code.
    A rule is {m: a tag id, an automatic community or a list of them (all must hold), at: a place, act, n}. */
-const POL_LIM={tags:32,refs:64,rules:64,qos:8};
+const POL_LIM={tags:32,refs:64,rules:512,qos:8};
 const POL_ACT={in:['lp','deny'],out:['noexp','prepend','regonly','blackhole'],l:['nocarry'],pop:['lp','deny']};
-const polEmpty=()=>({tags:[],on:{},rules:[],qos:[],mp:{},sess:{}});
+const polEmpty=()=>({tags:[],on:{},rules:[],qos:[],mp:{}});
 // An exit's ref, as tags and places name it.
 const exRef=e=>(e.k==='t'?'t:':e.k==='p'?'p:':e.k==='ix'?'ix:':'c:')+e.id;
 // A place: x:<ref>:in|out (ref may be *), l:<a|b>, pop:<city>, pop:*.
@@ -28,7 +28,7 @@ function polCompile(){const k=polKey();if(POL_C.key===k)return POL_C.c;
       for(const r of refs){L.push({m:'*',at:'x:'+r+':in',act:'lp',n:1});L.push({m:'*',at:'x:'+r+':out',act:'noexp'});}}}
   for(const r of pol.rules)L.push(r);
   const c={imp:new Map(),exp:new Map(),link:new Map(),pop:new Map(),any:L.length>0,reg:false,expAny:false,popAny:false,linkAny:false,
-    tagOn:new Map(),qos:(pol.qos||[]).map(q=>q.m).concat(TR&&TR.protect?['biz']:[]),mp:pol.mp||{},sess:pol.sess||{}};
+    tagOn:new Map(),qos:(pol.qos||[]).map(q=>q.m).concat(TR&&TR.protect?['biz']:[]),mp:pol.mp||{}};
   const add=(M,k,r)=>{const a=M.get(k);if(a)a.push(r);else M.set(k,[r]);};
   for(const r of L){const P=polPlace(r.at);if(!P||!POL_ACT[P.k].includes(r.act))continue;const x={m:[].concat(r.m),act:r.act,n:+r.n||0};
     if(x.m.some(m=>m.startsWith('region:')))c.reg=true;
@@ -56,6 +56,22 @@ function polExport(c,e,has){const o={no:false,prep:e.pref==='low'?3:0,reg:false,
 const polQos=(c,has)=>c.qos.some(m=>polHit({m:[].concat(m)},has));
 // The links a route may not cross (sorted edge keys), from `nocarry` rules.
 function polNoCarry(c,has){if(!c.linkAny)return '';const out=[];for(const [k,rs] of c.link)for(const r of rs)if(r.act==='nocarry'&&polHit(r,has)){out.push(k);break;}return out.sort().join(',');}
+/* A port's own preference is a rule like any other (docs/specs/network-engine.md §6.2): local-pref for everything at
+   x:<ref>:in, and for Backup also three prepends at x:<ref>:out. The panels' Prefer / Normal / Backup buttons write
+   those rules and read them back, so they and the Routing window are one setting: above 100 is preferred, below is
+   backup, and the panels show the number. */
+const portRule=(pol,ref,dir,act)=>(pol.rules||[]).find(r=>r.m==='*'&&r.at==='x:'+ref+':'+dir&&r.act===act);
+function portPref(ref,pol=S.pol){const r=pol?portRule(pol,ref,'in','lp'):null,lp=r?r.n:100,prep=pol?portRule(pol,ref,'out','prepend'):null;
+  return {lp,v:lp>100?'high':lp<100?'low':'normal',prep:prep?prep.n:0,set:!!r};}
+const exPref=(k,id)=>portPref((k==='t'?'t:':k==='p'?'p:':k==='ix'?'ix:':'c:')+id).v;
+// Prefer lands above, Backup below, what the network's own rules for every port give, so it wins whatever they say.
+function portPrefN(pol,v){let hi=100,lo=100;for(const r of pol.rules||[])if(r.act==='lp'&&r.at==='x:*:in'){if(r.n>hi)hi=r.n;if(r.n<lo)lo=r.n;}
+  return v==='high'?Math.min(1000,Math.max(150,hi+50)):Math.max(0,Math.min(20,lo-10));}
+function polSetPort(pol,ref,v,n){const rid=()=>{let i=1;while(pol.rules.some(r=>r.id==='r'+i))i++;return 'r'+i;};
+  const put=(dir,act,val)=>{let r=portRule(pol,ref,dir,act);if(val===null){if(r)pol.rules=pol.rules.filter(x=>x!==r);return;}
+    if(r)r.n=val;else pol.rules.push({id:rid(),m:'*',at:'x:'+ref+':'+dir,act,n:val});};
+  if(v==='normal'){put('in','lp',null);put('out','prepend',null);return;}
+  put('in','lp',Number.isFinite(n)?Math.max(0,Math.min(1000,Math.round(n))):portPrefN(pol,v));put('out','prepend',v==='low'?3:null);}
 // Untrusted: keep only what the engine understands, within its limits.
 function polSanitize(p){const o=polEmpty();if(!p||typeof p!=='object')return o;
   const nm=s=>typeof s==='string'&&/^[a-z0-9-]{1,20}$/.test(s);
@@ -67,5 +83,4 @@ function polSanitize(p){const o=polEmpty();if(!p||typeof p!=='object')return o;
     o.rules.push({id:typeof r.id==='string'&&/^r\d{1,5}$/.test(r.id)?r.id:'r'+(o.rules.length+1),m:r.m,at:r.at,act:r.act,n:r.act==='lp'?int(r.n,0,1000,100):r.act==='prepend'?int(r.n,1,3,1):0});}
   if(Array.isArray(p.qos))for(const q of p.qos)if(o.qos.length<POL_LIM.qos&&q&&mOk(q.m))o.qos.push({m:q.m});
   if(p.mp&&typeof p.mp==='object')for(const c of Object.keys(p.mp))if(isCity(c)&&p.mp[c])o.mp[c]=1;
-  if(p.sess&&typeof p.sess==='object')for(const r of Object.keys(p.sess)){const s=p.sess[r];if(refOk(r)&&s&&typeof s==='object'){const x={};if(s.allowas)x.allowas=1;if(s.dflt)x.dflt=1;if(x.allowas||x.dflt)o.sess[r]=x;}}
   return o;}

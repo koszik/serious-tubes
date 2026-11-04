@@ -179,8 +179,8 @@ function engRouteBuild(X){const {E,okBy,PC,COMP,SDi,SPi,adj,wW,NE,R2,EP,IT,NC}=X
     if(it.site){out=pathList(it.site,true);ins[0]=pathList(it.site,false);}
     else if(it.o<0){const qi=-1-it.o;tz=CITIES[qi].tz;
       if(COMP[qi]===COMP[pi]&&SDi[pi][qi]<Infinity){out=X.walkList(0,pi,qi,true);ins[0]=X.walkList(0,pi,qi,false);}
-      else{// Between islands your own prefixes come back with your AS in the path: dropped, unless a session accepts them.
-        const fx=E.find(x=>x.k!=='c'&&COMP[x.ci]===COMP[pi]&&PC.sess[exRef(x)]),qx=fx&&E.find(x=>x.k!=='c'&&COMP[x.ci]===COMP[qi]);
+      else{// Between islands the traffic goes over the internet: out at this island's exit (transit first), in at the other's.
+        const isx=c=>x=>x.k!=='c'&&COMP[x.ci]===c,pick=c=>E.find(x=>x.k==='t'&&isx(c)(x))||E.find(isx(c)),fx=pick(COMP[pi]),qx=fx&&pick(COMP[qi]);
         if(fx&&qx){const mk='j'+pi+'|'+qi+'|'+fx.xi+'|'+qx.xi;let j=LMEM.get(mk);if(!j){j=[engJoin(X,[[SPi[pi],pi,fx.ci,true],['tx',fx.xi],['rx',qx.xi],[SPi[qi],qi,qx.ci,false]]),engJoin(X,[[SPi[qi],qi,qx.ci,true],['tx',qx.xi],['rx',fx.xi],[SPi[pi],pi,fx.ci,false]])];LMEM.set(mk,j);}out=j[0];ins[0]=j[1];}}}
     else{const O=ORIGINS[it.o],sv=it.sv>=0?it.sv:O.ci;if(T.who==='o')tz=O.tz;
       const cs=inCands(it.o,e,it.ce,sv);for(let k=0;k<cs.length&&k<(NET[O.net].type==='cdn'?3:1);k++)ins[k]=inList(cs[k],pi);if(cs.length)inX=cs[0];

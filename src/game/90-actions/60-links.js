@@ -32,7 +32,9 @@ Object.assign(ACT,{
    toast(tr('links.circuit_up_in_59_seconds_vxc',{vxc:VXC[t].n,fab:esc(FAB[prov].name),a:CITY[a].name,b:CITY[b].name})+(S.pops[b]?'':' '+tr('links.now_grab_an_ix_port_there')),'good');if(!S.pops[b])selectCity(b);after();},
  upVxc:({id,t})=>{t=+t;const l=S.links.find(x=>x.id===id);if(!l||l.kind!=='vxc'||!VXC[t]||t<=l.vt)return;const extra=VXC[t].g-VXC[l.vt].g;for(const c of [l.a,l.b]){const pt=nniPort(c,l.prov);if(pt&&nniUsed(c,l.prov)+extra>NNI[pt.tier].g){toast(tr('links.fabric_port_in_city_is_full',{city:CITY[c].name}),'bad');sfx('err');return;}}const mo=vxcMo(l.km,l.sub,t);if(!spend(mo))return;l.vt=t;l.mo=mo;after();},
  cancelVxc:({id})=>{if(UI.confirm!==id){UI.confirm=id;renderPanel();return;}S.links=S.links.filter(l=>l.id!==id);prunePairMet();const rem=remoteCities();for(const c in S.ixp){if(!S.pops[ixCity(c)]&&!rem.includes(ixCity(c))){delete S.ixp[c];delete S.rs[c];for(const k in S.peers)if(k.endsWith('@'+c))delete S.peers[k];}}UI.sel=null;UI.confirm=null;after();},
- setPref:({kind,id,v})=>{if(!own(PREF,v))return;if(kind!=='t'&&kind!=='p'&&!(isIx(id)&&S.ixp[id]!==undefined))return;if(kind==='t'){const t=S.transit.find(x=>x.id===id);if(t)t.pref=v;}else if(kind==='p'){const x=S.pni.find(y=>y.id===id);if(x)x.pref=v;}else{S.ixPref=S.ixPref||{};S.ixPref[id]=v;}sfx('click');after();},
+ // A port's preference is its rules in S.pol (31-policy.js): the Routing window shows and edits the same ones.
+ setPref:({kind,id,v,n})=>{if(!own(PREF,v))return;if(kind==='t'?!S.transit.some(x=>x.id===id):kind==='p'?!S.pni.some(x=>x.id===id):!(kind==='ix'&&isIx(id)&&S.ixp[id]!==undefined))return;
+   polSetPort(S.pol,kind+':'+id,v,n===undefined||n===null?undefined:+n);sfx('click');after();},
  setMetric:({id,v})=>{if(v!=='custom'&&!own(MET,v))return;const l=S.links.find(x=>x.id===id);if(!l)return;const m=S.pairMet||(S.pairMet={}),k=edgeKey(l);
    // Switching to custom starts from the current preset's factor, so nothing moves until the player edits it.
    if(v==='custom'){if(!pairCm(k))m[k]={k:'f',v:MET[pairMet(k)].f};}else if(v==='normal')delete m[k];else m[k]=v;metBlur();sfx('click');after();},
@@ -43,5 +45,5 @@ Object.assign(ACT,{
    t.blur();S.pairMet[key]={k:c.k,v:clampM(c.k,v)};sfx('click');after();},
  setCarry:({id,on})=>{const t=S.transit.find(x=>x.id===id);if(!t)return;if(on)t.carry=true;else delete t.carry;sfx('click');after();},
  setStandby:({id,on})=>{const l=S.links.find(x=>x.id===id);if(!l)return;if(on)l.standby=true;else delete l.standby;sfx('click');after();},
- goEgress:({city,k})=>{ACT.focusCity({city});UI.tab=k==='t'?'up':k==='l2'?'cust':k==='nni'?'links':'peer';renderPanel();},
+ goEgress:({city,k})=>{ACT.focusCity({city});UI.tab=k==='t'?'up':k==='l2'||k==='b'?'cust':k==='nni'?'links':'peer';renderPanel();},
 });

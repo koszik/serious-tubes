@@ -59,9 +59,5 @@ function bgpPanel(){const P=S.pol||polEmpty(),pops=Object.keys(S.pops),mp=pops.f
   P.qos.forEach((q,i)=>{h+=`<div class="row"><div class="grow"><div class="nm">${polMatchTxt(q.m)}</div></div>${btn('×','polQosDel',{i},'ghost sm')}</div>`;});
   h+=`<div class="btns"><select id="polQ" aria-label="${tr('bgp.priority_queue')}">${P.tags.map(t=>t.id).concat(['biz',...POL_CLS.map(k=>'class:'+k)]).map(m=>polOpt(m,polMatchTxt(m))).join('')}</select>${btn(tr('bgp.add'),'polQosAdd',{},'sm',P.qos.length>=POL_LIM.qos)}</div>`;
   return h;}
-/* Per-session switches on a transit, exchange or PNI row: accept routes that carry your own AS (allowas-in, for islands
-   that reach each other over the internet) and, on transit, a default route. Off unless you turn them on. */
-function sessCtl(ref,transit){if(!S.pol)return '';const s=S.pol.sess[ref]||{};
-  return `<div class="btns"><span class="meta" style="align-self:center">${tr('bgp.session')}</span>${btn(s.allowas?tr('bgp.allowas_in_on'):tr('bgp.allowas_in'),'polSess',{ref,k:'allowas',on:s.allowas?0:1},s.allowas?'pink sm':'ghost sm',false,tr('bgp.allowas_in_tip'))}${transit?btn(s.dflt?tr('bgp.default_route_on'):tr('bgp.default_route'),'polSess',{ref,k:'dflt',on:s.dflt?0:1},s.dflt?'pink sm':'ghost sm',false,tr('bgp.default_route_tip')):''}</div>`;}
 // The multipath switch on a POP's routers.
 function mpCtl(c){if(!S.pol)return '';const on=!!S.pol.mp[c];return `<div class="btns"><span class="meta" style="align-self:center">${tr('bgp.multipath')}</span>${btn(on?tr('common.on'):tr('common.off'),'polMp',{city:c,on:on?0:1},on?'pink sm':'ghost sm',false,tr('bgp.multipath_shares_equal_routes'))}</div>`;}

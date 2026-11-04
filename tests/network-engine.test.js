@@ -15,7 +15,7 @@ const td = (ev, i) => JSON.parse(ev(`JSON.stringify(R.useTd[S.transit[${i}].id]|
 test('with nothing configured BGP takes the shortest AS path, then the nearest exit; local-pref and multipath change that', () => {
   const { ev, errors } = load();
   start(ev);
-  assert.equal(ev('JSON.stringify(S.pol)'), JSON.stringify({ tags: [], on: {}, rules: [], qos: [], mp: {}, sess: {} }), 'a new network has no policy');
+  assert.equal(ev('JSON.stringify(S.pol)'), JSON.stringify({ tags: [], on: {}, rules: [], qos: [], mp: {} }), 'a new network has no policy');
   ev("ACT.launchBB({city:'fra'});S.pops.fra.bb.d=200;ACT.buildPop({city:'ams'})");
   link(ev, 'fra', 'ams', 2);
   ev("ACT.buyTransit({city:'fra',net:'cog',tier:2});S.pni.push({id:'pg',net:'ggl',city:'ams',tier:1,ready:0});compute()");
@@ -79,15 +79,15 @@ test('inbound is the far side\'s choice: prepending and region-only announcement
   assert.deepEqual(errors, []);
 });
 
-test('islands: your own prefixes cannot come back over the internet until a session accepts them', () => {
+test('islands: your own POPs on another island are reached over the internet, through a port on each side', () => {
   const { ev, errors } = load();
   start(ev);
   ev("ACT.buildPop({city:'lon'});ACT.launchBB({city:'lon'});S.pops.lon.bb.d=300;ACT.buildPop({city:'nyc'});S.transit=[];ACT.buyTransit({city:'lon',net:'cog',tier:2});ACT.buyTransit({city:'nyc',net:'cog',tier:2})");
   ev("S.biz.push({id:'h',type:'host',name:'Host',city:'nyc',bw:200,rate:60,reqs:[],mood:100,since:0});compute()");
   const toLon = () => ev("(()=>{let g=0;const dp=R.dp;for(let t=0;t<dp.IF.length;t++)if(dp.IO[t]===-1-CIDX.lon)g+=dp.DO[dp.IF[t]];return g;})()");
-  assert.equal(toLon(), 0, 'London, another island, is unreachable from New York (loop prevention)');
-  ev("ACT.polSess({ref:'t:'+S.transit[1].id,k:'allowas',on:1})");
-  assert.ok(toLon() > 0, 'allowas-in on the New York session lets it through the internet');
+  assert.ok(toLon() > 0, 'London, another island, gets its traffic from New York through the internet');
+  const lists = ev("(()=>{const dp=R.dp;let n=0;for(let t=0;t<dp.IF.length;t++)if(dp.IO[t]===-1-CIDX.lon){const id=dp.FOUT[dp.IF[t]];for(let k=dp.LOFF[id];k<dp.LOFF[id+1];k++)if(dp.LP[k]>=2*dp.NE)n++;}return n;})()");
+  assert.ok(lists >= 2, 'it crosses a port on each island');
   link(ev, 'lon', 'nyc', 2, 'hibx');
   ev('compute()');
   assert.ok(ev("(R.ef['lon|nyc']&&R.ef['lon|nyc'].dst.nyc)||0") > 0, 'with a link it stays on your backbone');
@@ -187,17 +187,17 @@ test('a hostile policy in a save comes out clean and within its limits', () => {
   const { ev, errors } = load();
   start(ev);
   ev(`S.pol={tags:[{id:'t1',name:'ok'},{id:'x',name:'bad'},{id:'t2',name:'NOT OK'},...Array.from({length:99},(_,i)=>({id:'t'+(i+3),name:'n'+i}))],
-    on:{t1:['c:abc','pop:fra','evil:1',{}],__proto__:{x:1}},rules:[{m:'t1',at:'l:fra|par',act:'nocarry'},{m:'t1',at:'l:fra|par',act:'lp',n:5},{m:'zz',at:'x:*:in',act:'lp'},{m:'*',at:'x:*:in',act:'lp',n:1e9},...Array.from({length:200},()=>({m:'*',at:'pop:*',act:'deny'}))],
-    qos:[{m:'biz'},{m:'nope'},...Array.from({length:30},()=>({m:'biz'}))],mp:{fra:1,zzz:1},sess:{'t:x':{allowas:1,evil:1},'bad ref':{dflt:1}}};S=migrate(JSON.parse(JSON.stringify(S)));compute()`);
+    on:{t1:['c:abc','pop:fra','evil:1',{}],__proto__:{x:1}},rules:[{m:'t1',at:'l:fra|par',act:'nocarry'},{m:'t1',at:'l:fra|par',act:'lp',n:5},{m:'zz',at:'x:*:in',act:'lp'},{m:'*',at:'x:*:in',act:'lp',n:1e9},...Array.from({length:600},()=>({m:'*',at:'pop:*',act:'deny'}))],
+    qos:[{m:'biz'},{m:'nope'},...Array.from({length:30},()=>({m:'biz'}))],mp:{fra:1,zzz:1},sess:{'t:x':{allowas:1}}};S=migrate(JSON.parse(JSON.stringify(S)));compute()`);
   const p = JSON.parse(ev('JSON.stringify(S.pol)'));
   assert.equal(p.tags.length, 32);
   assert.ok(p.tags.every((t) => /^t\d+$/.test(t.id) && /^[a-z0-9-]{1,20}$/.test(t.name)));
   assert.deepEqual(p.on.t1, ['c:abc', 'pop:fra']);
-  assert.equal(p.rules.length, 64);
+  assert.equal(p.rules.length, ev('POL_LIM.rules'));
   assert.deepEqual(p.rules.slice(0, 2).map((r) => r.at + ' ' + r.act), ['l:fra|par nocarry', 'x:*:in lp'], 'a link takes nocarry only, and an unknown tag matches nothing');
   assert.equal(p.rules.find((r) => r.m === '*' && r.at === 'x:*:in').n, 1000);
   assert.equal(p.qos.length, 8);
   assert.deepEqual(p.mp, { fra: 1 });
-  assert.deepEqual(p.sess, { 't:x': { allowas: 1 } });
+  assert.equal(p.sess, undefined, 'session switches are gone');
   assert.deepEqual(errors, []);
 });

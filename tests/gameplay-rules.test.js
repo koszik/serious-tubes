@@ -483,18 +483,16 @@ test('E4: every network has an origin in a known region', () => {
 test('E5: a new network starts with nothing configured', () => {
   const g = load();
   eStart(g);
-  assert.equal(g.ev('JSON.stringify(S.pol)'), JSON.stringify({ tags: [], on: {}, rules: [], qos: [], mp: {}, sess: {} }), 'E5');
+  assert.equal(g.ev('JSON.stringify(S.pol)'), JSON.stringify({ tags: [], on: {}, rules: [], qos: [], mp: {} }), 'E5');
   assert.equal(g.ev('S.engV'), 3, 'E5: and is on the current engine');
 });
-test('E6: islands do not reach each other without a link, allowas-in or a default route', () => {
+test('E6: islands reach each other over the internet, with nothing to switch on', () => {
   const g = load();
   eStart(g);
   g.ev("ACT.buildPop({city:'lon'});ACT.launchBB({city:'lon'});ACT.buildPop({city:'nyc'});for(const c of ['lon','nyc'])S.pops[c].rgen=RG_TOP;S.transit=[];ACT.buyTransit({city:'lon',net:'cog',tier:1});ACT.buyTransit({city:'nyc',net:'cog',tier:1})");
   g.ev("S.biz.push({id:'h',type:'host',name:'Host',city:'nyc',bw:50,rate:60,reqs:[],mood:100,since:0});compute()");
   const toLon = () => g.ev("(()=>{let x=0;const dp=R.dp;for(let t=0;t<dp.IF.length;t++)if(dp.IO[t]===-1-CIDX.lon)x+=dp.DO[dp.IF[t]];return x;})()");
-  assert.equal(toLon(), 0, 'E6: loop prevention');
-  g.ev("ACT.polSess({ref:'t:'+S.transit[1].id,k:'dflt',on:1})");
-  assert.ok(toLon() > 0, 'E6: a default route gets it there');
+  assert.ok(toLon() > 0, 'E6: over the internet');
   assert.deepEqual(g.errors, []);
 });
 

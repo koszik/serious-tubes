@@ -1,4 +1,4 @@
-/* Ports are finite. Every transit, IX, PNI and cache port, every wave and every fibre channel
+/* Ports are finite. Every transit, IX, PNI and cache port, every customer, every wave and every fibre channel
    takes a router port. 10G ports ride a breakout cable, four to a port. */
 const PORT_SLOT=i=>i===0?0.25:1;
 // Cache boxes sit behind an aggregation switch: one router port carries as many 100G boxes as its speed holds
@@ -14,6 +14,11 @@ const cachePortsAdd=(c,adds)=>cachePorts(c,adds)-cachePorts(c);
 /* A dark fiber channel takes as many router ports at each end as the optic's speed needs (#256): a pluggable sits
    in one port, but a 1.6T transponder shelf hands off to an 800G router as two 800G clients. */
 const chPorts=(o,c,g)=>{const p=S.pops[c];return p&&OPT[o]?Math.max(1,Math.ceil(OPT[o].g/portG(g===undefined?(p.rgen||0):g)-1e-9)):1;};
+/* A customer hands off on router ports of its own at each of its sites: 10G and below on a breakout (a quarter of a
+   port), above that as many ports as its port size needs at this router's speed. Fiber leases are patched and wholesale
+   capacity hands off on the line system, not a router; scripted events and puzzles' circuits bring their own. */
+function bizPorts(b,c,g){const T=BIZ_T[b.type];if(!T||T.fiber||T.cap||b.scripted||pzOn()||S.ar||!bCities(b).includes(c))return 0;if(!(b.bw>10))return 0.25;
+  const p=S.pops[c];return Math.max(1,Math.ceil(b.bw/portG(g===undefined?(p?p.rgen||0:0):g)-1e-9));}
 function portsUsed(c,g){let u=0;
   for(const l of S.links){if(l.a!==c&&l.b!==c||l.kind==='vxc')continue;if(l.kind!=='df'){u++;continue;}for(const o of l.ch||[])u+=chPorts(o,c,g);}
   // A puzzle's content origin (t.pz) hands off on a port of its own: it takes none of yours.
@@ -22,6 +27,7 @@ function portsUsed(c,g){let u=0;
   for(const x of ixIdsIn(c))if(S.ixp[x]!==undefined&&!S.myIx[x])u+=PORT_SLOT(S.ixp[x])*((S.ixn||{})[x]||1);
   if(S.myIx[c])u+=1;
   u+=cachePorts(c,[],g)+(S.nni||[]).filter(x=>x.city===c).length;
+  for(const b of S.biz)u+=bizPorts(b,c,g);
   return u;}
 function portsMax(c,g,rt){const p=S.pops[c];if(!p)return 0;return RG[g===undefined?(p.rgen||0):g].ports*(rt||p.routers||1);}
 function portGate(c,add){if(!S.pops[c]||add<=0)return true;const u=portsUsed(c),m=portsMax(c);if(u+add<=m+1e-9)return true;

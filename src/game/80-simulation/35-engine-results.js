@@ -38,10 +38,12 @@ function engResults(X){const {R2,E,NX,NE,NP,EP,IT,F,L,hp,OFFH,LOSSH,CAP,NOH,EPO,
   for(let f=0;f<X.NF;f++){const e=EP[F.ep[f]];if(e.k!=='pop'&&e.k!=='grp')continue;cityO[e.city]=(cityO[e.city]||0)+Math.max(VI[f],VO[f]);cityD[e.city]=(cityD[e.city]||0)+Math.max(DI[f],DO[f]);}
   for(const c in cityO){R2.cityDem[c]=cityO[c];R2.citySrv[c]=cityD[c];}
   // By network index and kind of exit (t, ix, p, c), and per transit port and network, in typed sums.
-  const NN=X.NN,NEA=new Float64Array(NN*4),EGK=new Float64Array(4),TNA=new Map(),snd=scnRule('sender'),LX=L.LX;let peered=0;
+  // egT: what comes in, by the kind of exit it enters at; egO: what goes out, by the exit it leaves by.
+  const NN=X.NN,NEA=new Float64Array(NN*4),EGK=new Float64Array(4),EGO=new Float64Array(4),TNA=new Map(),snd=scnRule('sender'),LX=L.LX;let peered=0;
   let gC=0,gL=0;
   for(let t=0;t<NI;t++){const j=IJ[t],ei=IE[t];if(IO[t]<0||j<0||!EPIP[ei])continue;const f=IF[t],v=IV[t],din=DI[f]*v*FVi[f],gf=FGa[f];
     if(gf>0){gC+=din/(1-gf);gL+=din/(1-gf)*gf;}
+    if(FOUT[f]>=0){const xo=LX[FOUT[f]];if(xo>=0)EGO[EXK_I[E[xo].k]]+=DO[f]*v*FVi[f];}
     const w0=WC[f*3],w1=WC[f*3+1],w2=WC[f*3+2],tw=(FIN[f*3]>=0?w0:0)+(FIN[f*3+1]>=0?w1:0)+(FIN[f*3+2]>=0?w2:0)||1;
     for(let k=0;k<3;k++){const id=FIN[f*3+k],w=WC[f*3+k];if(id<0||!(w>0))continue;const xi=LX[id],x=E[xi],g=din*w/tw,kx=EXK_I[x.k];
       EGK[kx]+=g;NEA[j*4+kx]+=g;if(x.rank<=2)peered+=g;if(kx===0){const q=xi*NN+j;TNA.set(q,(TNA.get(q)||0)+g);}}
@@ -49,7 +51,7 @@ function engResults(X){const {R2,E,NX,NE,NP,EP,IT,F,L,hp,OFFH,LOSSH,CAP,NOH,EPO,
     if(EPPOP[ei]&&ILX[t]>=0){const ci=EPCI[ei],lt=ILAT[t];LATW[ci]+=v;if(lt>0){const ls=(snd&&CITIES[ci].kr?krLatLoss:latLoss)(2*lt);
       if(ls>0){LATL[ci]+=v*ls;const x=E[ILX[t]],k=ci*NC+x.ci;let o=FAR.get(k);if(!o)FAR.set(k,o={c:CITIES[ci].id,to:x.city,g:0,ms:0});o.g+=v;if(2*lt>o.ms)o.ms=2*lt;}}}}
   R2.gfwCross+=gC;R2.gfwLost+=gL;
-  R2.peered=peered;for(let k=0;k<4;k++)if(EGK[k]>0)R2.egT[EXK[k]]=EGK[k];
+  R2.peered=peered;for(let k=0;k<4;k++){if(EGK[k]>0)R2.egT[EXK[k]]=EGK[k];if(EGO[k]>0)R2.egO[EXK[k]]=EGO[k];}R2.egO.l2=R2.egT.l2||0;
   for(let j=0;j<NN;j++){const b=j*4;if(NEA[b]||NEA[b+1]||NEA[b+2]||NEA[b+3])R2.netEg[NETS[j].id]={t:NEA[b],ix:NEA[b+1],p:NEA[b+2],c:NEA[b+3]};}
   for(const [q,g] of TNA){const x=E[Math.floor(q/NN)],n=NETS[q%NN].id,m=R2.tNet[x.id]||(R2.tNet[x.id]={});m[n]=(m[n]||0)+g;}
   for(let j=0;j<NN;j++)if(DEMTO[j]>0)R2.demTo[NETS[j].id]=DEMTO[j];
@@ -70,7 +72,7 @@ function engResults(X){const {R2,E,NX,NE,NP,EP,IT,F,L,hp,OFFH,LOSSH,CAP,NOH,EPO,
   const dp={NE,NX,NP,hp,OFFH,LOSSH,CAP,LP:Int32Array.from(L.LP),LS:Float32Array.from(L.LS),LB:Uint8Array.from(L.LB),LOFF:Int32Array.from(L.LOFF),LX:Int32Array.from(L.LX),
     FIN,FOUT,FV:Float64Array.from(F.v),FEP:Int32Array.from(F.ep),VI,VO,DI,DO,WC,CV:X.CV,FCV:X.FCV,FI:X.FI,FO:X.FO,
     IF,IJ,IV,IE,IC,IO,IS,IOX:Int32Array.from(IT.map(i=>i.outX===undefined?-1:i.outX)),
-    epCity:EP.map(e=>e.city),epK:EP.map(e=>e.k),epCls:EP.map(e=>e.cls),epB:EP.map(e=>e.b?e.b.id:null),ex:E.map(e=>({k:e.k,id:e.id,city:e.city,net:e.net||null,ek:e.ek,rank:e.rank})),
+    EPO,EPD,epCity:EP.map(e=>e.city),epK:EP.map(e=>e.k),epCls:EP.map(e=>e.cls),epB:EP.map(e=>e.b?e.b.id:null),epM:EP.map(e=>e.members||null),ex:E.map(e=>({k:e.k,id:e.id,city:e.city,net:e.net||null,ek:e.ek,rank:e.rank})),
     edges:X.EA.map(e=>[e.id,e.a,e.i]),hauls:X.hauls||[]};
   engDefine(R2,dp);}
 // R.dp and the lazy views built from it (also how a route worker's answer is put back together).
@@ -106,6 +108,37 @@ function engFlowRows(dp,pipes,h){const {LP,LS,LOFF,LX,FIN,FOUT,WC,FV}=dp,NF=FV.l
     if(FOUT[f]>=0&&vo>0)for(const [i,sh] of on(FOUT[f]))add(f,i,'out',LX[FOUT[f]],vo*sh);}
   const out=[...rows.values()];for(const [id,g,j,egk] of dp.hauls)for(const [i,sh] of on(id))out.push({p:i,dir:'in',x:-1,o:null,ep:-1,g:g*sh,junk:egk});
   return {h,rows:out.sort((a,b)=>b.g-a.g)};}
+/* A customer's own port, seen from your router: rx is what it sends you, tx what you deliver to it, hour by hour. Its
+   share of the endpoint it is merged into (customers of one class in one city) goes by its port, as its traffic does. */
+// Which endpoints each customer is in and which items each endpoint has, indexed once per routed day.
+function custIdx(dp){if(dp._ci)return dp._ci;const byB=new Map(),byE=new Map();
+  for(let i=0;i<dp.epK.length;i++){const k=dp.epK[i],ids=k==='l2'?[dp.epB[i]]:k==='grp'&&dp.epM[i]?dp.epM[i]:[];for(const id of ids){let a=byB.get(id);if(!a)byB.set(id,a=[]);a.push(i);}}
+  for(let t=0;t<dp.IE.length;t++){const e=dp.IE[t];let a=byE.get(e);if(!a)byE.set(e,a=[]);a.push(t);}
+  Object.defineProperty(dp,'_ci',{value:{byB,byE},enumerable:false});return dp._ci;}
+function custItems(dp,b){const {byB,byE}=custIdx(dp),live=x=>!BIZ_T[x.type].event||eventLive(x),eps=byB.get(b.id)||[],its=[];let sh=0;
+  const bz=dp._bz||Object.defineProperty(dp,'_bz',{value:new Map(S.biz.map(x=>[x.id,x])),enumerable:false})._bz;
+  for(const i of eps){if(dp.epK[i]==='l2')sh=1;else{let t=0;for(const id of dp.epM[i]){const x=bz.get(id);if(x&&live(x))t+=x.bw;}sh=live(b)&&t>0?b.bw/t:0;}for(const t of byE.get(i)||[])its.push(t);}
+  return {its,sh,eps};}
+// An endpoint's day, delivered (rx: what it sends, tx: what it gets) and its worst hour's loss, once per routed day.
+function epDay(dp,ep){const m=dp._ed||Object.defineProperty(dp,'_ed',{value:new Map(),enumerable:false})._ed;let D=m.get(ep);if(D)return D;
+  const NEP=dp.epK.length,rx=new Float64Array(24),tx=new Float64Array(24);let loss=0;
+  for(const t of custIdx(dp).byE.get(ep)||[]){const f=dp.IF[t];for(let h=0;h<24;h++){const s=dp.CV[dp.FCV[f]+h],o=dp.EPO[h*NEP+ep],d=o>0?dp.EPD[h*NEP+ep]/o:1,v=dp.IV[t]*s*d;tx[h]+=v*dp.FI[f];rx[h]+=v*dp.FO[f];if(o>0&&s>0&&1-d>loss)loss=1-d;}}
+  m.set(ep,D={rx,tx,loss:Math.max(0,loss)});return D;}
+// Its loss: the worst hour of what it asked for and did not get, end to end (its port itself is never the bottleneck).
+function custDay(b,r=R){const dp=r.dp;if(!dp||!dp.EPO)return null;const {its,sh,eps}=custItems(dp,b),rx=new Float64Array(24),tx=new Float64Array(24);let loss=0;
+  for(const ep of eps){const D=epDay(dp,ep);for(let h=0;h<24;h++){rx[h]+=D.rx[h]*sh;tx[h]+=D.tx[h]*sh;}if(D.loss>loss)loss=D.loss;}
+  return {rx,tx,its,sh,loss};}
+// Its flows at hour h (its busiest when none): rows as engFlowRows gives them, p 0 = rx (from it), 1 = tx (to it).
+function custFlowRows(b,h){const dp=R.dp,D=custDay(b);if(!D)return {h:0,rows:[]};
+  if(h===undefined||h===null){h=0;for(let k=1;k<24;k++)if(D.rx[k]+D.tx[k]>D.rx[h]+D.tx[h])h=k;}const NEP=dp.epK.length,rows=new Map();
+  const add=(p,dir,x,t,g)=>{if(!(g>1e-9))return;const o=dp.epK[dp.IE[t]]==='l2'?null:dp.IO[t],sv=dp.IS?dp.IS[t]:-1,k=p+'|'+x+'|'+o+'|'+sv+'|'+dp.IE[t];let r=rows.get(k);if(!r)rows.set(k,r={p,dir,x,o,sv,ep:dp.IE[t],g:0});r.g+=g;};
+  for(const t of D.its){const f=dp.IF[t],ep=dp.IE[t],o=dp.EPO[h*NEP+ep],v=dp.IV[t]*dp.CV[dp.FCV[f]+h]*D.sh*(o>0?dp.EPD[h*NEP+ep]/o:1),fi=dp.FIN[f*3];
+    add(1,'in',fi>=0?dp.LX[fi]:-1,t,v*dp.FI[f]);add(0,'out',dp.IOX[t]>=0?dp.IOX[t]:dp.FOUT[f]>=0?dp.LX[dp.FOUT[f]]:-1,t,v*dp.FO[f]);}
+  return {h,rows:[...rows.values()].sort((a,b)=>b.g-a.g)};}
+// What each network sends you (in) and you send it (out) at the peak hour, delivered: per item, its share of its flow.
+function engNetIO(dp){if(dp._nio)return dp._nio;const NN=NETS.length,I=new Float64Array(NN),O=new Float64Array(NN);
+  for(let t=0;t<dp.IJ.length;t++){const j=dp.IJ[t];if(j<0)continue;const f=dp.IF[t],s=dp.FV[f]>0?dp.IV[t]/dp.FV[f]:0;I[j]+=dp.DI[f]*s;O[j]+=dp.DO[f]*s;}
+  Object.defineProperty(dp,'_nio',{value:{I,O},enumerable:false});return dp._nio;}
 // The flows as the PNI estimate reads them (38-pni-value.js): per item, at the peak hour, by the way it came in.
 function engFlows(dp){const out=[],{FIN,VI,DI,WC,LX,FV}=dp;
   for(let t=0;t<dp.IF.length;t++){const j=dp.IJ[t],ep=dp.IE[t],k0=dp.epK[ep];if(j<0||dp.IO[t]<0||(k0!=='pop'&&k0!=='grp'))continue;const f=dp.IF[t],s=dp.IV[t]/(FV[f]||1),c=dp.epCity[ep],n=NETS[j].id;
@@ -121,5 +154,7 @@ function engOutOf(city,id,r=R){const dp=r.dp;if(!dp||!dp.IOX)return null;const j
   return best<0?null:dp.ex[best];}
 // A link's two pipes, oriented l.a→l.b, and an exit's (rx, tx); then one pipe at an hour.
 function pipeOfLink(l,r=R){const i=r.ek&&r.ek[edgeKey(l)];if(i===undefined)return null;const a=l.a<l.b;return a?[2*i,2*i+1]:[2*i+1,2*i];}
-function pipeOfExit(k,id,r=R){const dp=r.dp;if(!dp)return null;for(let x=0;x<dp.ex.length;x++){const e=dp.ex[x];if(e.k===k&&e.id===id)return [2*dp.NE+2*x,2*dp.NE+2*x+1];}return null;}
+// An exit's pipes by kind and id, through an index built once per routed day (the lists ask for thousands).
+function pipeOfExit(k,id,r=R){const dp=r.dp;if(!dp)return null;let m=dp._exi;if(!m){m=new Map();dp.ex.forEach((e,x)=>{const key=e.k+'|'+e.id;if(!m.has(key))m.set(key,x);});Object.defineProperty(dp,'_exi',{value:m,enumerable:false});}
+  const x=m.get(k+'|'+id);return x===undefined?null:[2*dp.NE+2*x,2*dp.NE+2*x+1];}
 function pipeAt(p,h=R.hp,r=R){const dp=r.dp;if(!dp||p===null||p===undefined)return {off:0,loss:0,cap:0,dlv:0};const k=h*dp.NP+p,off=dp.OFFH[k],loss=dp.LOSSH[k];return {off,loss,cap:dp.CAP[p],dlv:off*(1-loss)};}

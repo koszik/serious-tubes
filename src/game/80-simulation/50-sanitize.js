@@ -131,6 +131,9 @@ function migrate(s){sanitize(s);
      told once, and gets a month before loss starts to cost it customers. */
   if(s.engV!==3){if((s.day||0)>0){const kind=[['cone',170],['from:cache',300],['from:pni',200],['from:ix',180]].map(([m,n],i)=>({id:'r'+(9000+i),m,at:'x:*:in',act:'lp',n}));
       s.pol.rules=kind.concat(s.pol.rules).slice(0,POL_LIM.rules);for(const c in s.pops)s.pol.mp[c]=1;s.engNews=true;s.engGrace=(s.day||0)+30;}s.engV=3;}
+  // A port's Prefer / Backup lived on the port; it is a rule now, so the Routing window and the panels share it.
+  for(const [k,L] of [['t',s.transit||[]],['p',s.pni||[]]])for(const x of L){if(x.pref==='high'||x.pref==='low')polSetPort(s.pol,k+':'+x.id,x.pref);delete x.pref;}
+  for(const c of Object.keys(s.ixPref||{})){const v=s.ixPref[c];if((v==='high'||v==='low')&&s.ixp[c]!==undefined)polSetPort(s.pol,'ix:'+c,v);}s.ixPref={};
   // Australian pricing and peering changed in place (#148): a save that was already there gets told once.
   if(s.auV!==1){if((s.day||0)>0&&Object.keys(s.pops).some(c=>CITY[c].au))s.auNews=true;s.auV=1;}
   // Months were 30 days before #257: the intern's budget month counts calendar months now, so it does not reset early.

@@ -12,6 +12,8 @@ Object.assign(ACT,{
    const more=o.type==='wwave'&&S.biz.find(b=>b.type==='wwave'&&b.link===o.link&&b.name===o.name);
    if(more){const l=S.links.find(x=>x.id===o.link);S.offers=S.offers.filter(x=>x!==o);more.slots=(more.slots||0)+(o.slots||0);more.rate+=o.rate;if(l)more.what=wwWhat(l,more.slots);
      floater(CITY[o.city].x,CITY[o.city].y-30,tr('common.signed'),'#16A866');sfx('coin');after();return;}
+   // Its handoff needs free router ports at every site (the intern skips an offer that does not fit, quietly).
+   for(const c of bCities(customer)){const n=bizPorts(customer,c);if(auto?portsUsed(c)+n>portsMax(c)+1e-9:!portGate(c,n))return;}
    S.offers=S.offers.filter(x=>x!==o);S.biz.push(customer);
    floater(CITY[o.city].x,CITY[o.city].y-30,tr('common.signed'),'#16A866');sfx('coin');after();},
  decline:({id})=>{S.offers=S.offers.filter(x=>x.id!==id);after();},

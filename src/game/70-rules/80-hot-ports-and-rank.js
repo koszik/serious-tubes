@@ -1,13 +1,16 @@
 // Everything that can fill up at a POP: transit ports, IX ports, PNIs, caches and the routers themselves.
 const HOT=0.9,HOTL={t:'T',ix:'IX',p:'P',c:'C',r:'R'},HOTC={t:'#7B61FF',ix:'#FFD23F',p:'#2C7A7B',c:'#C8102E',r:'#FF4F9A'};
+// Each says which way runs hot (rx, tx) and the worst loss of its day, so the list ranks what is dropping first.
 function hotPorts(){const out=[];if(!R||!S)return out;
-  for(const t of S.transit){if(t.down>S.day)continue;const cap=lagCap(PORT[t.tier].g,t.n),u=(R.useT[t.id]||0)/cap;if(u>=HOT)out.push({k:'t',city:t.city,lab:tr('hot_ports_and_rank.net_transit_lag',{net:NET[t.net].name,lag:lagName(t.tier,t.n)}),u,tip:tr('hot_ports_and_rank.add_a_lag_member_upgrade_the')});}
-  for(const c in S.ixp){const cap=ixCap(c);if(!cap)continue;const u=(R.useIx[c]||0)/cap;if(u>=HOT)out.push({k:'ix',city:ixCity(c),lab:tr('common.port_port',{port:ixName(c)}),u,tip:tr('hot_ports_and_rank.upgrade_the_ix_port_or_add')});}
-  for(const p of S.pni){if(!pniOn(p))continue;const cap=lagCap(pniG(p),p.n),u=(R.usePni[p.id]||0)/cap;if(u>=HOT)out.push({k:'p',city:p.city,lab:tr('common.pni_with_net',{net:NET[p.net].name}),u,tip:tr('hot_ports_and_rank.add_a_lag_member_or_upgrade')});}
-  const cc={};for(const x of S.caches){const k=x.city+'|'+x.net;(cc[k]=cc[k]||{city:x.city,net:x.net,used:0,cap:0,n:0});cc[k].used+=R.useCache[x.id]||0;cc[k].cap+=cacheG(x);cc[k].n++;}
-  for(const k in cc){const x=cc[k],u=x.used/x.cap;if(u>=HOT)out.push({k:'c',city:x.city,lab:x.n>1?tr('hot_ports_and_rank.name_caches',{name:NET[x.net].cache.name}):tr('common.name_cache',{name:NET[x.net].cache.name}),u,tip:tr('hot_ports_and_rank.ask_for_another_box_the_overflow')});}
-  for(const c in S.pops){const cap=R.nodeCap[c];if(!cap)continue;const u=(R.nodeLoad[c]||0)/cap;if(u>=HOT)out.push({k:'r',city:c,lab:tr('common.routers'),u,tip:tr('hot_ports_and_rank.upgrade_the_router_or_add_a')});}
-  return out.sort((a,b)=>b.u-a.u);}
+  const pd=(k,ids)=>{const D=R.dp?portsDay(k,ids):null;return D?{dir:D.q.tx>D.q.rx?'tx':'rx',loss:Math.max(D.q.lr,D.q.lt)}:{dir:null,loss:0};};
+  for(const t of S.transit){if(t.down>S.day)continue;const cap=lagCap(PORT[t.tier].g,t.n),u=(R.useT[t.id]||0)/cap;if(u>=HOT)out.push({k:'t',city:t.city,lab:tr('hot_ports_and_rank.net_transit_lag',{net:NET[t.net].name,lag:lagName(t.tier,t.n)}),u,tip:tr('hot_ports_and_rank.add_a_lag_member_upgrade_the'),...pd('t',[t.id])});}
+  for(const c in S.ixp){const cap=ixCap(c);if(!cap)continue;const u=(R.useIx[c]||0)/cap;if(u>=HOT)out.push({k:'ix',city:ixCity(c),lab:tr('common.port_port',{port:ixName(c)}),u,tip:tr('hot_ports_and_rank.upgrade_the_ix_port_or_add'),...pd('ix',[c])});}
+  for(const p of S.pni){if(!pniOn(p))continue;const cap=lagCap(pniG(p),p.n),u=(R.usePni[p.id]||0)/cap;if(u>=HOT)out.push({k:'p',city:p.city,lab:tr('common.pni_with_net',{net:NET[p.net].name}),u,tip:tr('hot_ports_and_rank.add_a_lag_member_or_upgrade'),...pd('p',[p.id])});}
+  const cc={};for(const x of S.caches){const k=x.city+'|'+x.net;(cc[k]=cc[k]||{city:x.city,net:x.net,used:0,cap:0,n:0,ids:[]});cc[k].used+=R.useCache[x.id]||0;cc[k].cap+=cacheG(x);cc[k].n++;cc[k].ids.push(x.id);}
+  for(const k in cc){const x=cc[k],u=x.used/x.cap;if(u>=HOT)out.push({k:'c',city:x.city,lab:x.n>1?tr('hot_ports_and_rank.name_caches',{name:NET[x.net].cache.name}):tr('common.name_cache',{name:NET[x.net].cache.name}),u,tip:tr('hot_ports_and_rank.ask_for_another_box_the_overflow'),...pd('c',x.ids)});}
+  // A router drops what is over its capacity.
+  for(const c in S.pops){const cap=R.nodeCap[c];if(!cap)continue;const u=(R.nodeLoad[c]||0)/cap;if(u>=HOT)out.push({k:'r',city:c,lab:tr('common.routers'),u,tip:tr('hot_ports_and_rank.upgrade_the_router_or_add_a'),dir:null,loss:u>1?1-1/u:0});}
+  return out.sort((a,b)=>b.loss-a.loss||b.u-a.u);}
 function hotByCity(){const m={};for(const h of hotPorts())(m[h.city]=m[h.city]||{})[h.k]=Math.max((m[h.city]||{})[h.k]||0,h.u);return m;}
 function isTier2(){return Object.keys(S.pops).length>=5&&Object.keys(S.ixp).length>=3&&R.sessions>=15;}
 // Sparkly Seabone joined the Tier 1s in 1.12. Older saves keep the five they were playing for.

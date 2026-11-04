@@ -204,7 +204,6 @@ S.pol = {
   rules: [{id:'r1', m:'t1', at:'l:lax|tok', act:'nocarry', n:0}],   // in order; at most 64 rules
   qos:   [{m:'class:gaming'}],                    // priority-queue matches, in order; at most 8
   mp:    {lax:1},                                 // POPs with BGP multipath on
-  sess:  {'t:<transitId>':{allowas:1, dflt:1}}    // per-session switches
 };
 ```
 
@@ -411,12 +410,9 @@ filtered by `nocarry` unless a rule matches `pop:`/`class:`/`cust:` keys.
 ### 6.7 Islands, your own prefixes and L2
 - **A flow whose far end is your own POP `q`** (on-net):
   - **Same island:** it stays on the backbone, `p → q` in view 0, and never touches an exit.
-  - **Different islands:** it is a normal route to `q`'s prefixes. The only routes for them come in through `p`'s exits
-    and carry your own AS, so **BGP loop prevention drops them**.
-  - It becomes reachable only if some exit `e` in `p`'s island has `sess[e].allowas` (it accepts the route: AS-path
-    length 2 through a peer, 3 through transit) or `sess[e].dflt` (a default route: AS-path length 3, used only if
-    nothing else exists; transit only).
-  - It then leaves at `e`, enters `q`'s island as though it came from an origin anchored at `e.city` on network `e.net`
+  - **Different islands:** it goes over the internet, as on a network that accepts its own AS from upstream (allowas-in
+    everywhere; there is no switch, and routers keep the full table, so no default route either).
+  - It leaves at `e`, the island's first transit exit (else its first non-cache one), enters `q`'s island as though it came from an origin anchored at `e.city` on network `e.net`
     (§6.6), and crosses two exits.
   - Unreachable flows are counted as unmet. In the "why" view they show as `no route (loop prevention)`.
 - **L2 (`site`) flows** run on the backbone only, using today's `l2Routes` modes (`normal`, `fast`, `scenic`).
@@ -692,7 +688,6 @@ Shared widgets (`93-ui/15-pipes.js`): `pipeBars(cap, [aName, bName], [offA, offB
   - `ruleAdd {m, at, act, n}`, `ruleMove {id, by}`, `ruleDel {id}`;
   - `qosAdd {m}`, `qosDel {i}`;
   - `multipath {city, on}`;
-  - `sess {ref, allowas?, dflt?}`.
 
 ## 13. Tests
 Each phase adds its own tests. All of them are seeded, and none depends on luck. Most cases use a small hand-built network
@@ -746,7 +741,7 @@ playable.
     - **E3:** every capacity has rx and tx;
     - **E4:** every network has an origin;
     - **E5:** a new network starts with an empty `S.pol`;
-    - **E6:** islands cannot reach each other without a link, `allowas` or a default route.
+    - **E6:** islands reach each other over the internet, through an exit on each side (no allowas-in or default-route switch).
 - **`docs/ARCHITECTURE.md`:** rewrite "The life of a day", "compute()" and the globals (`R`, `CP`, `UI.hour`) in phase
   4; until then, keep the "Planned" note.
 - **New ADR `docs/adr/0004-bgp-hourly-engine.md`:** capacity-blind BGP, hourly data plane, origins.
@@ -800,6 +795,14 @@ code differs from the text above:
 - **The hour** shown (`UI.hour`) follows the clock; the HUD shows it in UTC. The map's night shade and the networks list's
   region chips and origins are not built yet; neither are `R.why` ("why this path?"), the MCP `origins`, `why_path` and
   `link_day` tools, nor the ratio rule for peering (§6).
+- **Port preferences** are rules: Prefer / Backup on a port write `{m:'*', at:'x:<ref>:in', act:'lp'}` (Prefer: 50 above
+  the highest port-wide `x:*:in` rule, at least 150; Backup: 10 below the lowest, at most 20) and, for Backup,
+  `prepend 3` at `x:<ref>:out` (`polSetPort`). The panels read them back (`portPref`: above 100 is preferred, below is
+  backup) and show the number. `t.pref`, `p.pref` and `S.ixPref` from older saves become these rules in `sanitize()`.
+  `POL_LIM.rules` is 512, so every port can have its own.
+- **Customer ports** (`bizPorts`, `10-catalog/40-ports.js`): every customer but fiber leases, wholesale capacity and
+  scripted events takes router ports at each site (¼ for 10G and below, otherwise `ceil(bw / router port speed)`); an
+  offer that does not fit is turned away. Connections lists them with their own day (`custDay`).
 - **Hosters** (`30-networks/34-hosters.js`, `type:'host'`): six global ones and one or two per region, open peering,
   upstreams in Tier 1 cones; the long tail's own hosting entries are `host` too. Content is served from the origin's
   server nearest the user (`srvOf`), and that city is where the far side's hot potato starts; under sender pays it is

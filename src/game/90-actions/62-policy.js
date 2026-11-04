@@ -16,5 +16,4 @@ Object.assign(ACT,{
  polQosAdd:({m}={})=>polSet(p=>{m=polVal('polQ',m);if(!m||p.qos.some(q=>q.m===m))return false;p.qos.push({m});}),
  polQosDel:({i})=>polSet(p=>{p.qos.splice(i,1);}),
  polMp:({city,on})=>polSet(p=>{const cs=city==='*'?Object.keys(S.pops):[city];for(const c of cs)if(on)p.mp[c]=1;else delete p.mp[c];}),
- polSess:({ref,k,on})=>polSet(p=>{if(k!=='allowas'&&k!=='dflt')return false;const s=p.sess[ref]||(p.sess[ref]={});if(on)s[k]=1;else delete s[k];}),
 });
