@@ -147,3 +147,34 @@ test('no SLA while a new customer is still being provisioned', () => {
   assert.equal(biz(ev, 's').dn, 1440, 'counted from the day it ends');
   assert.deepEqual(errors, []);
 });
+
+test('broadband: 99% a month, and after a long outage some subscribers claim a month back over two weeks', () => {
+  const { ev, errors } = load();
+  ev("ACT.start({});S.cash=1e9;S.nextFail=S.nextEvent=1e9;ACT.launchBB({city:'fra'});ACT.buyTransit({city:'fra',net:'cog',tier:1});S.pops.fra.bb.d=60;S.day=60;compute()");
+  // Five hours out in a month is inside the 7.2 hours 99% allows.
+  ev('const o=bbOut;bbOut=()=>5;bbSlaTick(S.day);bbOut=o');
+  assert.deepEqual([ev('S.pops.fra.bbDn'), ev('S.pops.fra.bbOwe||0')], [5, 0]);
+  // A busy evening is not an outage: 80% served counts nothing.
+  ev("S.pops.fra.bbDn=0;R.bbF={fra:0.8};bbSlaTick(S.day)");
+  assert.equal(ev('S.pops.fra.bbDn'), 0);
+  // A whole day with no way out: 24 h, 16.8 over, so 17% of subscribers claim a month's fee.
+  const cash = ev('S.cash'), mo = ev("R.cityEye.fra*eyeRate('fra')");
+  ev("R.bbF={};const t=S.transit;S.transit=[];compute();bbSlaTick(S.day);S.transit=t;compute()");
+  const owe = ev('S.pops.fra.bbOwe');
+  assert.equal(ev('S.pops.fra.bbCl'), 0.17);
+  assert.ok(Math.abs(owe - 0.17 * mo) < 2, `${owe} of ${0.17 * mo}`);
+  assert.match(ev('JSON.stringify(UI.toasts||[])') + ev("document.getElementById('toasts')?.textContent||''"), /Broadband outage in Frankfurt/);
+  assert.deepEqual(JSON.parse(ev("JSON.stringify(S.slaLog.map(x=>[x.id,x.sla,x.dn]))")), [['bb:fra', 'bb', 1440]]);
+  // Paid a fourteenth a day, then nothing more that month for the same hours.
+  for (let i = 0; i < 14; i++) ev('S.day++;bbSlaTick(S.day)');
+  assert.ok(Math.abs(cash - ev('S.cash') - owe) < 2, 'all paid within two weeks');
+  assert.equal(ev('S.pops.fra.bbOwe'), 0);
+  assert.match(ev("cityPanel('fra')"), /SLA 99%: 24 h out this month, 7\.\d h allowed/);
+  ev("ACT.custOpen({})");
+  assert.match(ev("document.getElementById('custSec')?.textContent||''") + ev("slaLogHtml(5)"), /Broadband in Frankfurt/);
+  // Saves: bad values are repaired, a broadband log entry survives.
+  ev("const x=JSON.parse(JSON.stringify(S));x.pops.fra.bbCl=9;x.pops.fra.bbOwe='x';x.slaLog.push({d:1,id:'bb:nowhere',sla:'bb',pay:1});S=migrate(x)");
+  assert.deepEqual([ev('S.pops.fra.bbCl'), ev('S.pops.fra.bbOwe')], [0.25, 0]);
+  assert.deepEqual(JSON.parse(ev("JSON.stringify(S.slaLog.map(x=>x.sla))")), ['bb', 'std']);
+  assert.deepEqual(errors, []);
+});

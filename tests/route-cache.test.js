@@ -94,3 +94,13 @@ test('days in a row reuse the kept tables and route like a fresh start every day
   assert.ok(kept > 0, 'at least one day of demand only');
   assert.deepEqual(errors, []);
 });
+
+test('the routing cache tells apart the same items on shifted endpoints', () => {
+  // An endpoint with no items moves every later one up; cached flows keep endpoint indexes, so the key must change.
+  const { ev, errors } = load();
+  ev('ACT.start({});compute()');
+  const key = (eps, ep) => ev(`engKey({GK:'g',pops:Object.keys(S.pops),okBy:Object.fromEntries(NET_IDS.map(n=>[n,[]])),IT:[{ep:${ep},o:0,j:0,ce:0}],EP:${eps},E:[],NE:0})`);
+  const b = "{k:'pop',city:'fra',cls:'eye'}";
+  assert.notEqual(key(`[${b}]`, 0), key(`[{k:'grp',city:'ams',cls:'biz'},${b}]`, 1));
+  assert.deepEqual(errors, []);
+});

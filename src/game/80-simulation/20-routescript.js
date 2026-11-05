@@ -85,7 +85,7 @@ const AI_SAY=[N_('routescript.great_question_here_is_a_production'),N_('routescr
 function aiSlop(bad){const ai=pick(AI_NAMES),fits=TE_RECIPES.map(r=>({r,f:r.fit()})).filter(x=>x.f>0).sort((a,b)=>b.f-a.f).map(x=>x.r);
   // It really does dry-run its three favourite ideas (and one merge) against live traffic, and keeps the best.
   const merge=rs=>{const L=[],seen=new Set();for(const r of rs)for(const x of r.src()){const k=/^spill/.test(x)?'spill':x;if(!seen.has(k)){seen.add(k);L.push(x);}}return L;};
-  const cands=fits.slice(0,3).map(r=>merge([r])).concat([merge(fits.slice(0,2))]),val=x=>x.served*EYE_RATE-x.tc;
+  const cands=fits.slice(0,3).map(r=>merge([r])).concat([merge(fits.slice(0,2))]),val=x=>x.served*EYE_RATE/trafG()-x.tc;
   const keep=S.te&&S.te.script,on=S.te&&S.te.on;if(!S.te)S.te={on:false,day:S.day,tmp:1};let best=null,bv=-Infinity;
   for(const L of cands){if(teParse(L.join('\n')).errors.length)continue;S.te.script=L.join('\n');S.te.on=true;compute();const v=val({served:R.served,tc:R.cost.transit||0});if(v>bv){bv=v;best=L;}}
   if(S.te.tmp)delete S.te;else{S.te.script=keep;S.te.on=on;}compute();

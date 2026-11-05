@@ -425,6 +425,46 @@ test('F7: high-markup customers sign only tight SLAs, and every SLA rebate is ca
   assert.equal(g.ev("Object.keys(BIZ_T).filter(t=>!BIZ_T[t].event&&!slasOf(t).length).join()"), '', 'F7: every contract has a level');
 });
 
+test('F8: customers keep asking: offers every few days, requests from signed customers, contracts with a term', () => {
+  const g = load(), bad = [];
+  g.ev("ACT.start({});S.nextFail=S.nextEvent=1e9;S.lvl=1");
+  const offers = g.ev('(()=>{S.offers=[];let c=0;for(let d=100;d<300;d++){S.day=d;const k=S.offers.length;offerTick(d);if(S.offers.length>k){c++;S.offers=[];}}return c;})()');
+  if (offers < 35) bad.push(`only ${offers} offers in 200 days at level 1`);
+  g.ev("ACT.buildPop({city:'ams'});for(let i=0;i<40;i++)S.biz.push({id:'c'+i,city:'fra',city2:'ams',name:'C'+i,type:'l2vpn',bw:10,rate:50,reqs:[],mood:100,since:0,end:1e9})");
+  const rqs = g.ev('(()=>{let c=0;for(let d=300;d<665;d++){S.day=d;rqTick(d);c+=S.offers.filter(o=>o.rq).length;S.offers=[];}return c;})()');
+  if (rqs < 10) bad.push(`only ${rqs} requests from 40 customers in a year`);
+  const noTerm = g.ev("Object.keys(BIZ_T).filter(t=>{const T=BIZ_T[t];return !T.event&&!T.cap&&!T.fiber&&!termOf(t,'x');}).join()");
+  if (noTerm) bad.push(`no term: ${noTerm}`);
+  fail('F8', bad, 'customers must keep coming and asking, or the game goes quiet again');
+  assert.deepEqual(g.errors, []);
+});
+
+test('F9: traffic per subscriber grows 15% a year for the same money, transit and IX ports fall 15% a year', () => {
+  const g = load(), bad = [];
+  g.ev("ACT.start({});S.day=365");
+  const [tg, te, er] = JSON.parse(g.ev("JSON.stringify([trafG(),transitEro(),eyeRate('fra')/EYE_RATE])"));
+  if (Math.abs(tg - 1.15) > 1e-9) bad.push(`traffic ×${tg} a year`);
+  if (Math.abs(te - 0.85) > 1e-9) bad.push(`transit ×${te} a year`);
+  if (Math.abs(er * tg - 1) > 1e-9) bad.push('broadband revenue per subscriber moved');
+  if (g.ev('ACCESS') < 0.5 || g.ev('ACCESS') > 0.7) bad.push(`access network ${g.ev('ACCESS')} of revenue, not 50–70%`);
+  fail('F9', bad, 'a network that never adds capacity must shrink, as real ones do');
+  assert.deepEqual(g.errors, []);
+});
+
+test('F10: a network left alone makes a bounded amount of money', () => {
+  // The F2 reference build in Frankfurt, untouched for 12 game years.
+  const g = load();
+  g.ev("beginGame('Ref','fra',{mode:'normal',preset:'oncall'});if(UI.pendGame)ACT.pitchSkip()");
+  g.ev("(()=>{const c='fra',n=NETS.filter(n=>sellsAt(n,c)).sort((a,b)=>a.price*netMult(a,c)-b.price*netMult(b,c))[0];ACT.launchBB({city:c});ACT.buyTransit({city:c,net:n.id,tier:1});ACT.buyIx({city:c,tier:1,signed:true});ACT.rs({city:c});})()");
+  let best = 0, total = 0, last = 0;
+  for (let m = 1; m <= 144; m++) { g.ev('for(let i=0;i<30;i++){dayTick();closeModal();}'); last = g.ev('R.revMo-R.costMo'); best = Math.max(best, last); total += last; }
+  const bad = [];
+  if (last > best * 0.05) bad.push(`still making ${Math.round(last)}/mo after 12 years (best ${Math.round(best)})`);
+  if (total > 500000) bad.push(`made ${Math.round(total)} in total`);
+  fail('F10', bad, 'idling at 8x must not turn into unlimited money: check traffic growth, the access cost and transit erosion');
+  assert.deepEqual(g.errors, []);
+});
+
 test('D1: attack sizes come from the world, never from your network', () => {
   const g = load();
   ddFra(g.ev);

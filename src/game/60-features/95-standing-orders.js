@@ -122,7 +122,7 @@ const OPS_RUN={
  repair(X){purgeInc();for(const i of S.inc.slice())if(i.type!=='ddos'&&i.until>S.day&&i.cost>0&&!(i.slow&&i.rushed)&&X.can('repair',i.cost)&&X.pay('repair',()=>ACT.fixInc({id:i.id})))X.did('repair');},
  sales(X){const min=opsP('sales','min'),acc=opsP('sales','acc');let tries=0;
    for(const o of S.offers.slice()){const T=BIZ_T[o.type];if(!T)continue;const v=T.event?(o.fee||0):bizMo(o);
-     if(min&&v<min){S.offers=S.offers.filter(x=>x!==o);X.did('decline');continue;}
+     if(min&&v<min&&!o.rq){S.offers=S.offers.filter(x=>x!==o);X.did('decline');continue;}
      // Each trial is a full routing pass: at most one a shift, and an offer that did not fit waits a week.
      if(acc&&o.exp>S.day&&bCities(o).every(popUp)&&reqOk(o)&&tries<OPS_TRIALS&&!(UI.opsTried&&UI.opsTried.s===S&&UI.opsTried.m.get(o.id)>S.day-7)){tries++;ACT.accept({id:o.id,auto:true});
        if(!S.offers.includes(o)){X.did('sales');X.rev+=bizMo(o);}else{if(!UI.opsTried||UI.opsTried.s!==S)UI.opsTried={s:S,m:new Map()};UI.opsTried.m.set(o.id,S.day);}}}},

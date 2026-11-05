@@ -25,7 +25,7 @@ function engItems(X){const {R2,PC,NN}=X,day=S.day,ev=S.ev,EP=X.EP=[],IT=X.IT=[];
   // does not change with demand, only how much each gets, so routing is kept from day to day.
   const aud=(e,peak)=>{const a=audStatic(e.ci).slice();for(const q of X.pops){const p=S.pops[q];if(q!==e.city&&p.bb)a.push([-1-CIDX[q],Math.max(0,p.bb.d)*EYE_W/(1+kmI(e.ci,CIDX[q])/AUD_KM)]);}
     const t=a.reduce((s,x)=>s+x[1],0);if(t<=0)return;for(const [o,w] of a)if(w>0){if(o>=0)DEMTO[ORIGINS[o].nj]+=peak*w/t;item(e,o,o>=0?ORIGINS[o].nj:-1,peak*w/t);}};
-  for(const c of Object.keys(S.pops)){const p=S.pops[c],eye=(p.bb?p.bb.d:0)*viral*(cnCity(c)&&ev.golden>day?1.4:1);R2.cityEye[c]=eye;R2.cityDem[c]=0;R2.citySrv[c]=0;
+  for(const c of Object.keys(S.pops)){const p=S.pops[c],eye=(p.bb?p.bb.d:0)*viral*(cnCity(c)&&ev.golden>day?1.4:1)*trafG();R2.cityEye[c]=eye;R2.cityDem[c]=0;R2.citySrv[c]=0;
     if(popUp(c)&&eye>0)serve(ep({k:'pop',city:c,cls:'home'}),eye);}
   // Customers of one class in one city share their traffic and their service; tags (or a rule naming one) split them.
   // A booked event keeps its place (at zero) until it is over, so routing is not rebuilt the day it starts.
@@ -76,7 +76,10 @@ function engDisjoint(X,A,B){const memo=X.divM||(X.divM={}),k=A+'>'+B;if(memo[k]!
 const ENGC={key:null};
 function engKey(X,structOnly){const ev=S.ev,d=S.day;let k=(X.GK||'')+'#'+polKey()+'#'+(ev.depeer>d||scnRule('spat')?1:0)+'|'+(ev.leak&&ev.leak.until>d?ev.leak.net:'')+'|'+(scnRule('sender')?1:0)+'|'+(ev.rpki&&ev.rpki.until>d?ev.rpki.nets.join(','):'')+'#'+(S.te&&S.te.on&&coreTE()?'te':'')+(pzOn()||S.ar?'flat':'')+'#'+(scnRule('local')?1:0)+'#'+(coreOn()&&S.core.run>=1?S.core.run+':'+X.pops.map(c=>inCore(c)?1:0).join(''):'');for(const e of X.E)k+='\n'+e.ek+'|'+e.net+'|'+e.city+'|'+e.pref+'|'+(e.nets?e.nets.size??e.nets.length:'*')+'|'+(e.dir?e.dir.size:0);
   k+='#'+NET_IDS.map(n=>X.okBy[n].length).join(',');if(structOnly)return k;
-  for(const it of X.IT){const e=X.EP[it.ep];k+=';'+e.k+e.city+e.cls+(e.key||'')+(e.cache||'')+(e.b?e.b.id:'')+'|'+it.o+'|'+it.j+'|'+it.ce;if(it.site)k+='|'+it.site.path.map(p=>p.id).join(',')+'|'+it.site.share;}
+  // Flows keep endpoint indexes, so the key holds them too: an endpoint with no items shifts the ones after it.
+  // Each endpoint's part is built once (tens of thousands of items share a few hundred endpoints).
+  const epD=X.EP.map((e,i)=>i+e.k+e.city+e.cls+(e.key||'')+(e.cache||'')+(e.b?e.b.id:''));
+  k+='#'+X.EP.length;for(const it of X.IT){k+=';'+epD[it.ep]+'|'+it.o+'|'+it.j+'|'+it.ce;if(it.site)k+='|'+it.site.path.map(p=>p.id).join(',')+'|'+it.site.share;}
   return k;}
 function engRoute(X){const key=RC.on&&X.GK!==null?engKey(X):null;
   if(key!==null&&ENGC.key===key){const C=ENGC;

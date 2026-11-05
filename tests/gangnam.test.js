@@ -15,8 +15,9 @@ test('sender pays: fee on Seoul transit, incumbents only over a paid PNI, cheap 
   assert.ok(ev('R.reach') < 0.99);
   const t = JSON.parse(ev("(()=>{const t=S.transit[0],q=R.p95[t.id];return JSON.stringify({fee:krFee(t,q),q,mo:transitMo(t,q)})})()"));
   assert.ok(t.q > 0 && t.fee === Math.round(t.q * ev('KR_FEE')), 'a sender-pays fee per Gbps of transit');
-  assert.ok(ev("Math.abs(R.rev.eyeballs-R.cityEye.icn*sfOf(R,'icn')*EYE_RATE*KR_ARPU)<1"));
-  ev("ACT.pni({city:'icn',net:'ktt',tier:0});closeModal();for(let i=0;i<90&&!S.pni.every(pniOn);i++)dayTick();compute()");
+  assert.ok(ev("Math.abs(R.rev.eyeballs-R.cityEye.icn*sfOf(R,'icn')*eyeRate('icn'))<1&&eyeRate('icn')===EYE_RATE*KR_ARPU/trafG()"));
+  // No random outage or event while the PNI turns up: the test is about who it reaches.
+  ev("S.nextFail=S.nextEvent=1e9;S.inc=[];ACT.pni({city:'icn',net:'ktt',tier:0});closeModal();for(let i=0;i<90&&!S.pni.every(pniOn);i++)dayTick();compute()");
   assert.ok(ev('R.reachable.ktt') && ev('R.reach') >= 0.99, 'a paid PNI with Kay-Tea brings the reach');
   assert.match(ev('scnCard()'), /Seoul served well/);
   assert.match(ev('scnCard()'), /Monthly profit/);
@@ -40,7 +41,7 @@ test('Korea outside the scenario keeps its usual prices', () => {
   assert.ok(!ev("scnRule('sender')"));
   assert.ok(ev('R.reachable.ktt'), 'transit reaches the incumbents');
   assert.equal(ev("krFee(S.transit[0],100)"), 0);
-  assert.ok(ev("Math.abs(R.rev.eyeballs-R.cityEye.icn*sfOf(R,'icn')*EYE_RATE)<1"));
+  assert.ok(ev("Math.abs(R.rev.eyeballs-R.cityEye.icn*sfOf(R,'icn')*eyeRate('icn'))<1&&eyeRate('icn')===EYE_RATE/trafG()"));
   assert.deepEqual(errors, []);
 });
 

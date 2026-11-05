@@ -124,8 +124,8 @@ function custItems(dp,b){const {byB,byE}=custIdx(dp),live=x=>!BIZ_T[x.type].even
 function epDay(dp,ep){const m=dp._ed||Object.defineProperty(dp,'_ed',{value:new Map(),enumerable:false})._ed;let D=m.get(ep);if(D)return D;
   const NEP=dp.epK.length,rx=new Float64Array(24),tx=new Float64Array(24);let loss=0;
   for(const t of custIdx(dp).byE.get(ep)||[]){const f=dp.IF[t];for(let h=0;h<24;h++){const s=dp.CV[dp.FCV[f]+h],o=dp.EPO[h*NEP+ep],d=o>0?dp.EPD[h*NEP+ep]/o:1,v=dp.IV[t]*s*d;tx[h]+=v*dp.FI[f];rx[h]+=v*dp.FO[f];if(o>0&&s>0&&1-d>loss)loss=1-d;}}
-  let bad=0;for(let h=0;h<24;h++){const o=dp.EPO[h*NEP+ep];if(o>0&&dp.EPD[h*NEP+ep]/o<SLA_BAD)bad++;}
-  m.set(ep,D={rx,tx,loss:Math.max(0,loss),bad});return D;}
+  let bad=0,out=0;for(let h=0;h<24;h++){const o=dp.EPO[h*NEP+ep];if(o>0){const f=dp.EPD[h*NEP+ep]/o;if(f<SLA_BAD)bad++;if(f<BB_OUT)out++;}}
+  m.set(ep,D={rx,tx,loss:Math.max(0,loss),bad,out});return D;}
 // Its loss: the worst hour of what it asked for and did not get, end to end (its port itself is never the bottleneck).
 function custDay(b,r=R){const dp=r.dp;if(!dp||!dp.EPO)return null;const {its,sh,eps}=custItems(dp,b),rx=new Float64Array(24),tx=new Float64Array(24);let loss=0,bad=0;
   for(const ep of eps){const D=epDay(dp,ep);for(let h=0;h<24;h++){rx[h]+=D.rx[h]*sh;tx[h]+=D.tx[h]*sh;}if(D.loss>loss)loss=D.loss;if(D.bad>bad)bad=D.bad;}

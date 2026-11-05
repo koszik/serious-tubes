@@ -16,7 +16,7 @@ function linkDown(l){return l.cut>S.day||(S.ev.runet>S.day&&ruCity(l.a)!==ruCity
 function remoteCities(){return [...new Set(S.links.filter(l=>l.kind==='vxc').flatMap(l=>[l.a,l.b]))].filter(c=>!S.pops[c]);}
 function nniUsed(c,prov){return S.links.filter(l=>l.kind==='vxc'&&l.prov===prov&&(l.a===c||l.b===c)).reduce((a,l)=>a+VXC[l.vt].g,0)+S.biz.filter(b=>BIZ_T[b.type].nni&&b.prov===prov&&b.city===c).reduce((a,b)=>a+b.bw,0);}
 // Monthly price of one connection; compute() sums these, the connections overview lists them.
-function transitMo(t,q){const n=t.n||1;return Math.max(q,PORT[t.tier].g*n*0.2)*transitPerG(NET[t.net],t.city,premOn(t))*S.priceMul+PORT[t.tier].tmo*n+(t.clean?cleanMo(t):0)+krFee(t,q);}
+function transitMo(t,q){const n=t.n||1;return Math.max(q,PORT[t.tier].g*n*0.2)*transitPerG(NET[t.net],t.city,premOn(t))*S.priceMul+tmoOf(t.tier)*n+(t.clean?cleanMo(t):0)+krFee(t,q);}
 // Sender pays (Gangnam Style Peering): on top of the price, every Gbps delivered into Korea (95th percentile).
 const krFee=(t,q)=>CITY[t.city].kr&&scnRule('sender')?Math.round(q*KR_FEE):0;
 function pniMo(p,use){if(!pniOn(p))return 0;return (p.g1?Math.round(PORT[0].pni/2):PORT[p.tier].pni)*(p.n||1)+(NET[p.net].pol==='paid'&&!paidFree(NET[p.net])?NET[p.net].paidFee:0)+(NET[p.net].perG?Math.round(NET[p.net].perG*use):0);}

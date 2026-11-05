@@ -20,7 +20,10 @@ test('hardware gets dearer over the years, gently, and only for new purchases', 
   // what you already own costs what it cost: monthly bills do not move
   ev("S.day=0;ACT.buyTransit({city:'fra',net:'cog',tier:1});compute()");
   const mo = ev('R.costMo');
+  // (transit itself gets cheaper over the years; with that clock held still, the bill is exactly the same)
   ev('S.day=180+365*5;compute()');
+  assert.ok(ev('R.costMo') < mo, 'transit erodes');
+  ev('S.trafD0=S.day;compute()');
   assert.equal(ev('R.costMo'), mo);
   assert.deepEqual(errors, []);
 });

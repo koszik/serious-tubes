@@ -51,9 +51,11 @@ test('#176 saves leave customer defaults out, and loading puts them back exactly
   ev("save(true);S=migrate(loadSave());compute()");
   const after = JSON.parse(ev(sorted)), want = JSON.parse(before);
   // Customers that never got warnings or a previous mood come back with the defaults; everything else is identical.
-  const norm = list => list.map(b => Object.fromEntries(b)).map(b => ({ pm: b.mood, warned: false, warn60: false, ...b }));
+  // Contracts from before terms get an end date on load (none for fiber leases); the rest comes back identical.
+  const norm = list => list.map(b => Object.fromEntries(b)).map(({ end, ...b }) => ({ pm: b.mood, warned: false, warn60: false, ...b }));
   assert.deepEqual(norm(after), norm(want));
   assert.equal(ev("S.biz.find(b=>b.id==='l2').route"), 'fast', 'a chosen route is kept');
+  assert.ok(ev("(b=>b.end>S.day+30&&b.end<=S.day+31+365)(S.biz.find(b=>b.id==='d1'))") && ev("S.biz.find(b=>b.id==='w1').end===undefined"), 'an old contract ends within a year; a wave lease has no term');
   assert.equal(ev("S.biz.find(b=>b.id==='w7').what"), ev("wwWhat(S.links.find(l=>l.id==='df1'),4)"), 'alien waves get their description back');
   assert.match(ev("slotRaw(UI.slot)"), /"Carrier 1"/);
   assert.doesNotMatch(ev("slotRaw(UI.slot)"), /alien wave on your/, 'descriptions are not stored');
@@ -65,7 +67,7 @@ test('#176 an older, unpacked save still loads the same', () => {
   ev(bigBiz);
   const before = ev(sorted);
   ev("S=migrate(JSON.parse(JSON.stringify(S)));compute()");
-  const norm = list => list.map(b => Object.fromEntries(b)).map(b => ({ pm: b.mood, warned: false, warn60: false, ...b }));
+  const norm = list => list.map(b => Object.fromEntries(b)).map(({ end, ...b }) => ({ pm: b.mood, warned: false, warn60: false, ...b }));
   assert.deepEqual(norm(JSON.parse(ev(sorted))), norm(JSON.parse(before)));
   assert.deepEqual(errors, []);
 });

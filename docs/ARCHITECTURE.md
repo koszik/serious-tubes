@@ -114,8 +114,13 @@ never freezes the game.
    actions a player would, muted, within its monthly budget, and the shift recomputes once at the end, only if
    a job changed the network. An order that throws is paused; the day goes on. The NOC gets one notice a week.
 5. Updates customer mood and churn, settles SLAs (`slaTick()`, `40-progress/14-sla.js`: today's minutes down per
-   customer, rebates past its level's allowance) and makes new offers (priced by `40-progress/12-customer-prices.js`);
-   IX members join; loans tick.
+   customer, rebates past its level's allowance; then `bbSlaTick()`, broadband's 99% with claims paid over two weeks),
+   IX members join, loans tick. Then signed customers ask and contracts end (`rqTick()`, `40-progress/16-requests.js`:
+   requests and renewals live in `S.offers` with `rq`), unanswered requests expire (`rqExpire()`), and new offers come
+   (`offerTick()`, priced by `40-progress/12-customer-prices.js`).
+   Broadband traffic grows with one clock (`40-progress/18-traffic-growth.js`): `trafG()` scales `cityEye` in the
+   engine, `eyeRate()` is what a Gbps pays today, `transitEro()` lowers transit and IX prices, `accessMo()` is the
+   access network's cost.
 6. Every 30 days: bills the month (revenue minus costs) and checks for bankruptcy.
 7. Checks goals, level, badges and scenario end conditions.
 

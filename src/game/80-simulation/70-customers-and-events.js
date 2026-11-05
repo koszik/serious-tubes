@@ -39,7 +39,7 @@ function spawnSpecial(t){const T=BIZ_T[t],mine=Object.keys(S.pops),lv=lvl();
     S.offers.push({id:uid(),city,city2:null,name:tr('customers_and_events.name_in_city',{name:nm(),city:CITY[city].name}),type:t,bw,rate:0,reqs:[],start,dur,fee:eventFee(bw,dur,90),exp:start-2});return;}
   if(T.sdwan){const hub=pick(mine),n=3+Math.floor(Math.random()*4),pool=(Math.random()<0.85?mine:OFFC).filter(c=>c!==hub),sites=[hub];
     while(sites.length<n&&pool.length)sites.push(pool.splice(Math.floor(Math.random()*pool.length),1)[0]);if(sites.length<3)return;const bw=pick(T.opts);
-    S.offers.push({id:uid(),city:hub,city2:null,sites,name:nm(),type:t,bw,rate:perG(siteMo(T,bw)*sites.length,bw),reqs:[],exp:S.day+40});return;}
+    S.offers.push({id:uid(),city:hub,city2:null,sites,name:nm(),type:t,bw,rate:perG(siteMo(T,bw)*sites.length,bw),reqs:[],exp:S.day+offerExp()});return;}
   const ready=S.links.filter(l=>l.kind==='df'&&l.ready<=S.day);
   if(t==='wwave'){const u=fiberUse(),ls=ready.filter(l=>freeCh(l,u)>=1&&brFree(l)>=1&&!S.offers.some(o=>o.link===l.id));if(!ls.length)return;S.offers.push(fiberOffer(t,pick(ls),nm));return;}
   if(t==='dfpair'){const u=fiberUse(),ls=ready.filter(l=>pairFree(l,u)&&brFree(l)>=BR_PAIR&&!S.offers.some(o=>o.link===l.id));if(!ls.length)return;S.offers.push(fiberOffer(t,pick(ls),nm));}

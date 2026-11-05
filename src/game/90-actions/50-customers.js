@@ -4,7 +4,7 @@ Object.assign(ACT,{
    if(!w&&!p){toast(tr('customers.nothing_spare_to_sell_on_this'),'bad');sfx('err');return;}const L=l.list||(l.list={w:0,p:0});L.w+=w;L.p+=p;
    toast(tr('broker.listed',{a:CITY[l.a].name,b:CITY[l.b].name}),'good');sfx('click');after();},
  unlistFiber:({id})=>{const l=S.links.find(x=>x.id===id);if(!l||!l.list)return;delete l.list;sfx('click');after();},
- accept:({id,auto=false,sla})=>{const o=S.offers.find(x=>x.id===id);if(!o)return;const ls=slasOf(o.type),k=sla===undefined?ls[0]:sla;if(ls.length&&!ls.includes(k))return;
+ accept:({id,auto=false,sla})=>{const o=S.offers.find(x=>x.id===id);if(!o)return;if(o.rq){applyRq(o,auto);return;}const ls=slasOf(o.type),k=sla===undefined?ls[0]:sla;if(ls.length&&!ls.includes(k))return;
    const customer=auto?autoOffer(o):offerCustomer(o);if(!customer)return;if(ls.length){customer.sla=k;customer.rate=cents(customer.rate*SLA[k].mul);}if(!bHas(o)){toast(tr('customers.you_need_a_pop_in_every'),'bad');return;}
    if(o.type==='wwave'){const l=S.links.find(x=>x.id===o.link);if(!l||chMax(l)-(l.ch||[]).length-soldSlots(l)<o.slots){toast(tr('customers.not_enough_free_channels_on_that'),'bad');return;}}
    if(BIZ_T[o.type].event&&S.day>=o.start){toast(tr('customers.too_late_the_event_has_already'),'bad');return;}
@@ -17,6 +17,6 @@ Object.assign(ACT,{
    for(const c of bCities(customer)){const n=bizPorts(customer,c);if(auto?portsUsed(c)+n>portsMax(c)+1e-9:!portGate(c,n))return;}
    S.offers=S.offers.filter(x=>x!==o);S.biz.push(customer);
    floater(CITY[o.city].x,CITY[o.city].y-30,tr('common.signed'),'#16A866');sfx('coin');after();},
- decline:({id})=>{S.offers=S.offers.filter(x=>x.id!==id);after();},
+ decline:({id})=>{const o=S.offers.find(x=>x.id===id);if(o&&o.rq)declineRq(o);S.offers=S.offers.filter(x=>x.id!==id);after();},
  dropBiz:({id})=>{const b0=S.biz.find(x=>x.id===id);if(!b0)return;if(BIZ_T[b0.type].event&&S.day>=b0.start){toast(tr('customers.the_event_is_already_running_the'),'bad');sfx('err');return;}if(UI.confirm!==id){UI.confirm=id;renderPanel();return;}S.biz=S.biz.filter(b=>b.id!==id);UI.confirm=null;after();},
 });

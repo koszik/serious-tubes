@@ -33,7 +33,7 @@ function renderLeft(){checkLayer();
   renderTabbar();
   if(!S||pzOn()){L.hidden=true;return;}L.hidden=false;
   const ndone=GOALS.filter(g=>S.done[g.id]!==undefined).length;
-  const tabs=[['goals',`<span class="tl">${tr('common.goals')}</span><span class="cnt">${ndone}/${GOALS.length}</span>`],['deals',`<span class="tl">${tr('common.deals')}</span>${S.offers.length?`<span class="cnt">${S.offers.length}</span>`:''}`],['noc',`<span class="tl">NOC</span>${S.inc.length?`<span class="cnt red dot" aria-hidden="true"></span>`:''}`],['nets',`<span class="tl">${tr('common.networks')}</span>`]];
+  const tabs=[['goals',`<span class="tl">${tr('common.goals')}</span><span class="cnt">${ndone}/${GOALS.length}</span>`],['deals',`<span class="tl">${tr('common.deals')}</span>${dealsCnt()}`],['noc',`<span class="tl">NOC</span>${S.inc.length?`<span class="cnt red dot" aria-hidden="true"></span>`:''}`],['nets',`<span class="tl">${tr('common.networks')}</span>`]];
   $('leftTabs').innerHTML=tabs.map(([k,l])=>`<button class="${UI.left===k?'on':''}" data-act="leftTab" data-args='{"t":"${k}"}'>${l}</button>`).join('')+(innerWidth<760?`<button data-act="toggleLeft" style="margin-left:auto" aria-label="${tr('common.close')}">×</button>`:'');
   let h='';
   if(UI.left==='goals'){
@@ -46,9 +46,14 @@ function renderLeft(){checkLayer();
     h+=confSection()+seatSection();
     {const lv=S.lvl||1,nx=LEVELS[lv];h+=`<div class="inc" style="background:#FFF6CF"><div class="nm">${tr('hud_and_panels.customer_level_lv_name',{lv,name:LEVELS[lv-1].n})}</div><div class="meta">${nx?tr('hud_and_panels.next_req_unlocks_what',{req:nx.req,what:lc1(nx.unlock)}):tr('common.every_customer_type_is_unlocked_go')}</div></div>`;}
     if(!S.offers.length)h+=`<p class="empty">${tr('hud_and_panels.no_open_offers_right_now_businesses')}</p>`;
-    for(const o of S.offers.slice().sort((a,b)=>a.exp-b.exp)){const has=bHas(o);
-      h+=`<div class="row"><div class="grow"><div class="nm">${esc(o.name)}</div><div class="meta">${esc(BIZ_T[o.type].l)} · ${CITY[o.city].name}${o.city2?' ⇄ '+CITY[o.city2].name:''} · <b>${bTerms(o)}</b> · ${tr('ui.n_d_left',{n:o.exp-S.day})}${(o.reqs||[]).length?` · ${trn('hud_and_panels.n_special_requirement',o.reqs.length)}`:''}</div>${spotWhy(o)}${slaTerms(o)}${bRisk(o)}${reqList(o)}
-      <div class="btns">${has?acceptBtns(o,'green sm'):btn(tr('common.go_there'),'focusCity',{city:bCities(o).find(c=>!S.pops[c])},'ghost sm')}${btn(tr('common.decline'),'decline',{id:o.id},'ghost sm')}</div>${has?'':`<div class="why">${tr('hud_and_panels.needs_a_pop_in_cities',{cities:bCities(o).filter(x=>!S.pops[x]).map(x=>CITY[x].name).join(', ')})}</div>`}</div></div>`;}
+    // Your own customers first (renewals, then requests), then new ones; whatever runs out soonest on top.
+    const rqs=S.offers.filter(o=>o.rq).sort((a,b)=>(a.rq.k==='renew'?0:1)-(b.rq.k==='renew'?0:1)||a.exp-b.exp),news=S.offers.filter(o=>!o.rq).sort((a,b)=>a.exp-b.exp);
+    const card=o=>{const has=bHas(o),left=o.exp-S.day,rq=!!o.rq;
+      return `<div class="row"><div class="grow"><div class="nm">${esc(o.name)}</div><div class="meta">${esc(BIZ_T[o.type].l)} · ${CITY[o.city].name}${o.city2?' ⇄ '+CITY[o.city2].name:''}${rq?'':` · <b>${bTerms(o)}</b>${termLine(o)}`} · <span${left<=3?' style="color:var(--bad);font-weight:700"':''}>${tr('ui.n_d_left',{n:left})}</span>${!rq&&(o.reqs||[]).length?` · ${trn('hud_and_panels.n_special_requirement',o.reqs.length)}`:''}</div>${rq?rqLine(o):spotWhy(o)+slaTerms(o)+bRisk(o)+reqList(o)}
+      <div class="btns">${has?acceptBtns(o,'green sm'):btn(tr('common.go_there'),'focusCity',{city:bCities(o).find(c=>!S.pops[c])},'ghost sm')}${btn(rq&&o.rq.k==='renew'?tr('requests.let_them_go'):tr('common.decline'),'decline',{id:o.id},'ghost sm')}</div>${has?'':`<div class="why">${tr('hud_and_panels.needs_a_pop_in_cities',{cities:bCities(o).filter(x=>!S.pops[x]).map(x=>CITY[x].name).join(', ')})}</div>`}</div></div>`;};
+    if(rqs.length)h+=`<h3 style="font-size:15px;margin:8px 0 4px">${tr('requests.your_customers_ask')}</h3>`+rqs.map(card).join('');
+    if(rqs.length&&news.length)h+=`<h3 style="font-size:15px;margin:8px 0 4px">${tr('requests.new_customers')}</h3>`;
+    h+=news.map(card).join('');
   }else if(UI.left==='noc'){
     h+=`<div class="btns" style="margin-bottom:8px">${btn(tr('hud_and_panels.open_noc_dashboard'),'dash',{},'pink')}${btn(tr('common.connections'),'connOpen',{},'')}${btn(tr('common.traceroute'),'trace',{},'')}${btn(tr('common.looking_glass'),'lg',{},'')}${btn(`⚙️ ${tr('routing.routing_and_ddos')}${S.te&&!coreTE()?'<span class="cnt red dot" aria-hidden="true"></span>':''}`,'routingOpen',{},'')}</div>`;
     h+=`<p class="lead">${tr('hud_and_panels.your_network_operations_center_every')}</p>`;

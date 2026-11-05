@@ -14,7 +14,8 @@
 const REF = String.raw`(()=>{
 const Q=window.__ref={log:[]};
 const quiet=f=>{const t=window.toast;window.toast=()=>{};try{return f();}finally{window.toast=t;}};
-Q.reserve=()=>Math.max(40000,1.3*(R.costMo||0));
+// A month and a bit of costs in hand; the access network is paid out of the broadband revenue it comes with, so it is left out.
+Q.reserve=()=>Math.max(40000,1.3*((R.costMo||0)-((R.cost&&R.cost.access)||0)));
 Q.can=x=>S.cash>=x+Q.reserve();
 Q.cheap=c=>NETS.filter(n=>n.price&&sellsAt(n,c)&&!(Q.avoid||[]).includes(n.id)&&!S.transit.some(t=>t.city===c&&t.net===n.id)).sort((a,b)=>a.price*netMult(a,c)-b.price*netMult(b,c))[0];
 Q.pop=c=>{if(!S.pops[c])ACT.buildPop({city:c});return !!S.pops[c];};

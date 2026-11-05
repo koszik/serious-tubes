@@ -56,8 +56,19 @@ function sanitize(s){
   const okBiz=b=>b&&own(BIZ_T,b.type)&&(!BIZ_T[b.type].nni||own(FAB,b.prov))&&isCity(b.city)&&(!b.city2||isCity(b.city2))&&(!b.sites||Array.isArray(b.sites)&&b.sites.every(isCity));
   const fixBiz=b=>{b.id=sid(b.id);b.name=String(b.name||tr('common.customer')).slice(0,80);b.bw=num(b.bw,1);b.rate=num(b.rate,0);if(b.fee!==undefined)b.fee=num(b.fee,0);if(b.start!==undefined)b.start=num(b.start,0);if(b.dur!==undefined)b.dur=num(b.dur,1);if(b.slots!==undefined)b.slots=num(b.slots,0);if(b.what!==undefined)b.what=String(b.what).slice(0,200);if(b.broker!==undefined)b.broker=!!b.broker;if(!Array.isArray(b.reqs))b.reqs=[];b.reqs=b.reqs.filter(r=>own(REQS,r));if(b.mood!==undefined)b.mood=num(b.mood,100);if(b.pm!==undefined)b.pm=num(b.pm,b.mood||100);if(b.exp!==undefined)b.exp=num(b.exp,0);if(b.latMax!=null)b.latMax=num(b.latMax,10);if(b.route&&!own(RT,b.route))b.route='normal';if(b.due!==undefined)b.due=num(b.due,0);if(b.win!==undefined)b.win=num(b.win,180);if(b.live!==undefined)b.live=!!b.live;if(b.link!==undefined&&typeof b.link!=='string')delete b.link;
     // SLAs: a level its type signs (old contracts are Standard), and this month's downtime and rebates.
-    if(b.sla!==undefined&&!slasOf(b.type).includes(b.sla))delete b.sla;for(const k of ['dn','dnM','cr'])if(b[k]!==undefined)b[k]=num(b[k],0);if(b.brs!==undefined)b.brs=Array.isArray(b.brs)?b.brs.filter(x=>Number.isFinite(x)).slice(-12):[];return b;};
+    if(b.sla!==undefined&&!slasOf(b.type).includes(b.sla))delete b.sla;for(const k of ['dn','dnM','cr'])if(b[k]!==undefined)b[k]=num(b[k],0);if(b.brs!==undefined)b.brs=Array.isArray(b.brs)?b.brs.filter(x=>Number.isFinite(x)).slice(-12):[];
+    // Requests and terms: a request names a kind and a customer; ends, ignored requests and the renewal decision are numbers.
+    if(b.rq!==undefined){b.rq=b.rq&&typeof b.rq==='object'&&RQ_K.includes(b.rq.k)?{k:b.rq.k,id:sid(b.rq.id)}:null;if(!b.rq)delete b.rq;}
+    for(const k of ['end','rqG','term'])if(b[k]!==undefined)b[k]=num(b[k],0);if(b.rqx!==undefined)b.rqx=Array.isArray(b.rqx)?b.rqx.filter(x=>Number.isFinite(x)).slice(-20):[];
+    if(b.rnw!==undefined)b.rnw=b.rnw&&typeof b.rnw==='object'?{a:b.rnw.a?1:0,p:clamp(num(b.rnw.p,0),0,0.3)}:undefined;if(b.rnw===undefined)delete b.rnw;return b;};
   {const ids=new Map(s.links.map(l=>[l.id,l]));s.biz=s.biz.filter(okBiz).map(b=>unpackBiz(fixBiz(b),ids));}s.offers=s.offers.filter(okBiz).map(fixBiz);
+  // Contracts from before terms end some time in the next year, spread out so they do not all renew on one day.
+  for(const b of s.biz)if(b.end===undefined&&!b.scripted&&termOf(b.type,b.id))b.end=s.day+RENEW_D+1+hstr(String(b.id)+'|end')%365;
+  {const bz=new Set(s.biz.map(b=>b.id));s.offers=s.offers.filter(o=>!o.rq||bz.has(o.rq.id));}s.offD=num(s.offD,-99);
+  // Traffic growth runs from the day it started; a save from before it starts on the day it loads.
+  s.trafD0=clamp(num(s.trafD0,s.day),0,Math.max(0,s.day));
+  // Broadband SLA: this month's hours out, the share of subscribers who claimed, claims still to pay.
+  for(const c in s.pops){const p=s.pops[c];for(const k of ['bbDn','bbDnM','bbCl','bbOwe','bbOweD'])if(p[k]!==undefined)p[k]=Math.max(0,num(p[k],0));if(p.bbCl!==undefined)p.bbCl=Math.min(BB_CAP,p.bbCl);}
   // Sponsorships and capacity conferences (#168): registrations are true or 'sp', the glow and the pending deals are checked.
   for(const k of Object.keys(s.confReg))s.confReg[k]=s.confReg[k]==='sp'?'sp':!!s.confReg[k];
   if(s.conf){const c=s.conf;if(typeof c!=='object'||!own(REG,c.reg))s.conf=null;else s.conf={until:num(c.until,0),reg:c.reg,name:String(c.name||'').slice(0,40),sp:!!c.sp};}
@@ -100,7 +111,7 @@ function sanitize(s){
   const attacks=[s.ev.ddos,...(Array.isArray(s.ev.ddosMore)?s.ev.ddosMore:[])].map(repairAttack).filter(Boolean).slice(0,14);
   if(attacks.length)s.ev.ddos=attacks[0];else delete s.ev.ddos;s.ev.ddosMore=attacks.slice(1);
   // SLA rebates paid: the last few, for the Customers tab.
-  s.slaLog=(Array.isArray(s.slaLog)?s.slaLog:[]).filter(x=>x&&typeof x==='object').map(x=>({d:num(x.d,0),id:String(x.id||''),name:String(x.name||'').slice(0,80),sla:own(SLA,x.sla)?x.sla:'std',pay:num(x.pay,0),dn:num(x.dn,0)})).slice(-SLA_LOG);
+  s.slaLog=(Array.isArray(s.slaLog)?s.slaLog:[]).filter(x=>x&&typeof x==='object').map(x=>({d:num(x.d,0),id:String(x.id||''),name:String(x.name||'').slice(0,80),sla:own(SLA,x.sla)||x.sla==='bb'&&/^bb:/.test(String(x.id))&&isCity(String(x.id).slice(3))?x.sla:'std',pay:num(x.pay,0),dn:num(x.dn,0)})).slice(-SLA_LOG);
   s.ddosStarts=(Array.isArray(s.ddosStarts)?s.ddosStarts:attacks.map(a=>a.start)).filter(d=>typeof d==='number'||typeof d==='string').map(Number).filter(d=>Number.isFinite(d)&&d>s.day-7&&d<=s.day).sort((a,b)=>a-b).slice(-14);
   s.auV=s.auV===1?1:0;if(s.auNews!==true)delete s.auNews;
   // Badges: S.ach[id] is the day it was earned (any save); S.achP[id] the variant (2.0). A missing variant is the standard one.

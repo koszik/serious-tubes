@@ -48,7 +48,7 @@ function dayPost(d){
       (a.sla||(a.sla=[])).push(b.id);b.slaFor=a.start;S.cash-=SLA_PEN;b.mood=Math.max(0,b.mood-18);S.stats.sla=(S.stats.sla||0)+1;
       toast(tr('day_tick.sla_breach_name_the_attack_on',{name:esc(b.name),city:CITY[a.city].name,pen:fmt$(SLA_PEN)}),'bad');sfx('err');}}
   // businesses mood
-  const ids=linkIds(),frr=(coreFrr()&&S.links.some(l=>l.cut)?.5:1)*(rule('moods')==='patient'?.5:1);const bhT=new Set(ddosAll().filter(a=>a.bh).map(a=>a.tgt));for(const b of S.biz.slice()){if(eventTick(b,d)||capPendTick(b,d))continue;b.pm=b.mood;if(bhT.has(b.id))continue;const sf=bizSf(b,ids),reachOk=BIZ_T[b.type].l2||BIZ_T[b.type].fiber||R.reach>0.99||scnRule('local'),scrubOk=b.type!=='scrub'||(hasScrub()&&!scrubFar(b.city)),divOk=reqOk(b);
+  const ids=linkIds(),frr=(coreFrr()&&S.links.some(l=>l.cut)?.5:1)*(rule('moods')==='patient'?.5:1);const bhT=new Set(ddosAll().filter(a=>a.bh).map(a=>a.tgt));for(const b of S.biz.slice()){if(eventTick(b,d)||capPendTick(b,d))continue;b.pm=b.mood;if(bhT.has(b.id))continue;const sf=bizSf(b,ids),reachOk=BIZ_T[b.type].l2||BIZ_T[b.type].fiber||R.reach>0.99||scnRule('local'),scrubOk=b.type!=='scrub'||(hasScrub()&&!scrubFar(b.city)),divOk=reqOk(b)||b.rqG>d;
     if(sf>=0.95&&reachOk&&scrubOk&&divOk)b.mood=Math.min(100,b.mood+2);
     else if(inGrace(b)){}
     else{b.mood-=frr*(Math.max(0,0.95-sf)*45+(!reachOk?3:0)+(!scrubOk?4:0)+(!divOk?3:0));
@@ -66,9 +66,10 @@ function dayPost(d){
   loanTick(d);
   if(rule('money')==='infinite'&&S.cash<1e8)S.cash=1e9;
   // offers
+  rqTick(d);rqExpire(d);
   S.offers=S.offers.filter(o=>o.exp>d);
   brTick();
-  if(S.offers.length<5&&Math.random()<(0.05+0.01*(S.lvl||1))*(ppol()==='closed'?0.6:1)*(confSpOn()?SP_OFFERS:1))spawnOffer();
+  offerTick(d);
   // failures & events
   // Chaos (the rules) scales how often: calm waits about three times as long, spicy comes almost twice as often, none never.
   let dirty=false;const cm=chaosMul();
@@ -81,7 +82,7 @@ function dayPost(d){
   if(dirty)compute();
   opsDay(d);
   // payday floaters
-  if(cal(d).d===1){for(const c in S.pops){let v=(R.cityEye[c]*sfOf(R,c)*EYE_RATE)+S.biz.filter(b=>b.city===c).reduce((a,b)=>a+b.bw*b.rate,0);v=v-R.cityEye[c]*sfOf(R,c)*EYE_RATE*(1-arpuOf(c));if(v>500)floater(CITY[c].x,CITY[c].y-30,'+'+fmt$(v),'#16A866');}sfx('coin');}
+  if(cal(d).d===1){for(const c in S.pops){let v=R.cityEye[c]*sfOf(R,c)*eyeRate(c)+S.biz.filter(b=>b.city===c).reduce((a,b)=>a+b.bw*b.rate,0);if(v>500)floater(CITY[c].x,CITY[c].y-30,'+'+fmt$(v),'#16A866');}sfx('coin');}
   checkGoals();
   scnTick(d);
   confTick(d);
@@ -113,7 +114,7 @@ function spawnOffer(){
   if(T.nni){const city=pick(fabC),prov=pick(FABS.filter(f=>f.cities.includes(city))).id,bw=pick(T.opts),others=mine.filter(c=>c!==city),city2=T.l2&&others.length?pick(others):null;if(T.l2&&!city2)return;
     const base=pick(BIZ_N.filter(n=>!S.usedNames.includes(n)).concat(BIZ_N)).replace(/ (Inc\.|Co\.|Ltd)$/,'');const name=tr('day_tick.name_via_fab',{name:base,fab:FAB[prov].name});useName(base);
     const rate=T.l2?l2Rate(T,city,city2,bw):ipRate(T,bw);
-    S.offers.push({id:uid(),city,city2,prov,name,type:t,bw,rate,reqs:['nni'],exp:S.day+40});return;}
+    S.offers.push({id:uid(),city,city2,prov,name,type:t,bw,rate,reqs:['nni'],exp:S.day+offerExp()});return;}
   let city=(Math.random()<0.65&&mine.length)?pick(mine):pick(OFFC.concat(cnOk()?['pek','sha']:[])),city2=null;
   if(T.l2){city=pick(mine);const pool=(Math.random()<(T.lv>=3?0.8:0.6)?mine:OFFC).filter(c=>c!==city);city2=pick(pool.length?pool:OFFC.filter(c=>c!==city));}
   let bw=T.lv>=2?pick(T.opts):pick(T.opts.slice(0,mine.length>=4?4:3));
@@ -130,5 +131,5 @@ function spawnOffer(){
   if(Math.random()<(T.lv>=3?0.65:0.3))reqs.push(pick(pool));
   if(T.lv>=3&&Math.random()<0.35){const more=pool.filter(k=>!reqs.includes(k));if(more.length)reqs.push(pick(more));}
   const r2=cents(rate*(1+reqs.reduce((a,k)=>a+REQS[k].bonus,0)));
-  S.offers.push({id:uid(),city,city2,name,type:t,bw,rate:r2,reqs,latMax:T.lat?+(kmBetween(city,city2)/200*1.35).toFixed(1):null,exp:S.day+40});
+  S.offers.push({id:uid(),city,city2,name,type:t,bw,rate:r2,reqs,latMax:T.lat?+(kmBetween(city,city2)/200*1.35).toFixed(1):null,exp:S.day+offerExp()});
 }

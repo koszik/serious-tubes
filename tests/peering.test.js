@@ -189,7 +189,7 @@ test('DE-KICKS hides prices, haggles, harmonises upwards, auto-enrolls add-ons a
   ev("ACT.cancelIx({city:'fra'});ACT.cancelIx({city:'fra'})");
   assert.equal(ev("S.ixp.fra"), undefined, 'second time you can actually leave');
   ev("ACT.buildPop({city:'ams'})");
-  assert.equal(ev("ixPortMo('ams',1)"), ev("Math.round(PORT[1].ix*ixMul('ams'))"), 'other IXs keep open pricing');
+  assert.equal(ev("ixPortMo('ams',1)"), ev("Math.round(PORT[1].ix*transitEro()*ixMul('ams'))"), 'other IXs keep open pricing');
   assert.deepEqual(errors, []);
 });
 

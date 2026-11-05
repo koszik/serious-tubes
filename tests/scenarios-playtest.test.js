@@ -12,12 +12,16 @@ const home = (c) => [['bb', c], ['tr', c, 1], ['ix', c]];
 const GN_H = ['hire', ['transit', 'routers', 'repair', 'sales', 'ix', 'caches', 'pni']];
 // 3.0: traffic over a full wave is dropped, not spilled back onto Seoul transit, so the haul to Tokyo takes two waves;
 // content is served from where it really sits, so Hong Kong's exchange is worth joining too.
-const GN_REF = [['bb', 'icn'], ['ix', 'icn'], ['tr', 'icn', 1], ['pni', 'icn', 'ktt', 0], GN_H, ['served', 100], ['link', 'icn', 'tok', 1], ['link', 'icn', 'tok', 1], ['tr', 'tok', 1], ['ix', 'tok'], ['last', 'icn'], ['pop', 'hkg'], ['ix', 'hkg']];
+// 3.x: broadband pays for its access network and less per Gbps as traffic grows, so the reference also sells
+// broadband in Tokyo once Seoul is served (the goal is the network's profit, not Seoul's).
+const GN_REF = [['bb', 'icn'], ['ix', 'icn'], ['tr', 'icn', 1], ['pni', 'icn', 'ktt', 0], GN_H, ['served', 100], ['link', 'icn', 'tok', 1], ['link', 'icn', 'tok', 1], ['tr', 'tok', 1], ['ix', 'tok'], ['last', 'icn'], ['pop', 'hkg'], ['ix', 'hkg'], ['wait', 120], ['bb', 'tok']];
 // ref: the reference plan; win: [earliest, latest] day it may win on; cheese: the shortcut, and `by`, the day before
 // which it must not win (null: never within the scenario's days).
 const PLAY = {
-  // 3.x: European circuits pay European wave prices, so Stuttgart starts with $450k (was $400k) to keep its pace.
-  stg: { ref: [['bb', 'stg'], ['ix', 'stg'], ['link', 'stg', 'fra', 1], ['ix', 'fra'], ['bb', 'fra'], ['link', 'fra', 'ams', 1], ['ix', 'ams'], ['bb', 'ams'], ['link', 'ams', 'lon', 1], ['ix', 'lon'], ['bb', 'lon'], ['link', 'fra', 'par', 1], ['ix', 'par'], ['bb', 'par'], ['hire', ['routers', 'repair', 'caches', 'pni', 'ix', 'sales'], { pni: { paid: true } }], ['link', 'stg', 'muc', 1], ['ix', 'muc'], ['bb', 'muc'], ['wait', 120], ['pnis'], ['link', 'lon', 'nyc', 2], ['ix', 'nyc'], ['bb', 'nyc'], ['wait', 200], ['pnis']],
+  // 3.x: European circuits pay European wave prices, and broadband pays for its access network and grows less
+  // profitable, so Stuttgart starts with $900k (was $400k, then $450k), and the reference crosses to New York and
+  // Ashburn early instead of after its first PNIs.
+  stg: { ref: [['bb', 'stg'], ['ix', 'stg'], ['link', 'stg', 'fra', 1], ['ix', 'fra'], ['bb', 'fra'], ['link', 'fra', 'ams', 1], ['ix', 'ams'], ['bb', 'ams'], ['link', 'ams', 'lon', 1], ['ix', 'lon'], ['bb', 'lon'], ['link', 'fra', 'par', 1], ['ix', 'par'], ['bb', 'par'], ['hire', ['routers', 'repair', 'caches', 'pni', 'ix', 'sales'], { pni: { paid: true } }], ['link', 'stg', 'muc', 1], ['ix', 'muc'], ['bb', 'muc'], ['link', 'lon', 'nyc', 2], ['ix', 'nyc'], ['bb', 'nyc'], ['link', 'nyc', 'ash', 1], ['ix', 'ash'], ['wait', 120], ['pnis'], ['wait', 200], ['pnis']],
     win: [120, 240], cheese: [['bb', 'stg'], ['ix', 'stg'], ['link', 'stg', 'fra', 1], ['ix', 'fra'], ['bb', 'fra'], ['loans'], ['hire', ['routers', 'repair']]], by: null },
   // The other way round the planet: Paris, New York, Los Angeles, Tokyo, Hong Kong, Singapore.
   redsea: { ref: [...home('mrs'), ['link', 'mrs', 'par', 1], ['bb', 'par'], ['ix', 'par'], ['link', 'par', 'nyc', 1, 'amitie'], ['tr', 'nyc', 1], ['ix', 'nyc'], ['link', 'nyc', 'lax', 1], ['ix', 'lax'], ['tr', 'lax', 1], ['link', 'lax', 'tok', 1, 'jup'], ['bb', 'tok'], ['tr', 'tok', 1], ['ix', 'tok'], ['link', 'tok', 'hkg', 1, 'apg'], ['bb', 'hkg'], ['tr', 'hkg', 1], ['ix', 'hkg'], ['link', 'hkg', 'sin', 1], ['bb', 'sin'], ['tr', 'sin', 1], ['ix', 'sin'], HIRE],
@@ -75,7 +79,8 @@ for (const [name, plan] of Object.entries({
   'Seoul transit and Kay-Tea': [['bb', 'icn'], ['ix', 'icn'], ['tr', 'icn', 1], ['pni', 'icn', 'ktt', 0], GN_H],
   'everything from Tokyo': [['bb', 'icn'], ['link', 'icn', 'tok', 1], ['tr', 'tok', 1], ['ix', 'tok'], ['pni', 'tok', 'ktt', 0], ['pop', 'hkg'], GN_H],
   'the 1.x reference': [...home('icn'), ['link', 'icn', 'tok', 1], ['ix', 'tok'], ['tr', 'tok', 1], ['link', 'icn', 'hkg', 1], ['ix', 'hkg'], ['tr', 'hkg', 1], HIRE],
-  'Tokyo haul, Seoul transit first': GN_REF.filter((s) => s[0] !== 'last'),
+  // (without the Tokyo broadband the reference adds late: that one still wins, by day 250, on Tokyo's homes alone)
+  'Tokyo haul, Seoul transit first': GN_REF.filter((s) => s[0] !== 'last' && !(s[0] === 'bb' && s[1] === 'tok') && s[0] !== 'wait'),
 })) {
   test(`gangnam: ${name} does not win`, () => {
     const g = load();
