@@ -532,6 +532,7 @@ const API_VIEW={
  tab:{args:[['t','string']],doc:'Switch the city panel\'s tab.'},
  leftTab:{args:[['t','leftTab']],doc:'Switch the left drawer and open it.'},
  toggleLeft:{args:[],doc:'Open or close the left drawer.'},
+ latOpen:{args:[['city','cityId']],doc:'Show or hide the flows behind a city\'s latency warning in its panel.'},
  netFocus:{args:[['id','netId']],doc:'Focus one network in the left drawer.'},
  netFilter:{args:[['f','netFilter']],doc:'All networks, or only the out-of-reach ones.'},
  meetGo:{args:[['city','cityId']],doc:'Go to a city and open where to meet networks there.'},
@@ -787,7 +788,7 @@ const API_RESULTS_DOC={
  citySrv:{type:'map',doc:'Traffic served per city.'},
  cityEye:{type:'map',doc:'Broadband traffic per city: subscribers (pops[c].bb.d, in day-0 Gbps) × traffic per subscriber (trafG()). Revenue per Gbps is eyeRate(c), which falls as traffic grows.'},
  latF:{type:'map',doc:'Fraction of each city\'s traffic that goes far (over a threshold latency).'},
- latFar:{type:'map',doc:'The far exit each slow city sends traffic through.'},
+ latFar:{type:'map',doc:'The far exit carrying most of each slow city\'s slow traffic: to, k (c when mostly your cache), ms (traffic-weighted extra round trip), rt (round trip), share. Per network, see rqC.'},
  demTo:{type:'map',doc:'Your traffic destined to each network, in Gbps. The number CDN caches ask about.'},
  served:{type:'number',doc:'Total traffic served, in Gbps.'},
  demand:{type:'number',doc:'Total traffic demanded, in Gbps.'},
@@ -795,6 +796,8 @@ const API_RESULTS_DOC={
  sessions:{type:'number',doc:'Peering sessions up.'},
  revMo:{type:'number',doc:'Revenue per month.'},
  costMo:{type:'number',doc:'Cost per month.'},
+ rq:{type:'map',doc:'Routing quality per customer id, judged per far network: each network carrying at least RQ_SH of its traffic gets ms, its traffic-weighted extra round trip over a handoff in the customer\'s own city (in where the far network hands it over, out where you send it, over worldMs and your backbone), fix (the part your existing exits could save), rt (the round trip itself), share, inC/inK/inN and outC/outK/outN where it comes in and leaves, the kind of exit and the network there (outC null when one of your caches serves it). The top-level fields are the slowest such network; flows lists every network from RQ_SHOW (1%) up, slowest first, the ones the city warning and the NOC show. Customers lose happiness by each flow\'s ms over LAT_TOL[type], weighted by its share.'},
+ rqC:{type:'map',doc:'The same per broadband city (tolerance 20 ms).'},
  cost:{type:'map',doc:'Monthly cost by category (transit, pni, ix, links…; xc is every cross-connect: one per transit, exchange, PNI and fabric port or LAG member, one at each end of a wave or lit fiber pair and two for a second site\'s ring, at xcMo(city) each, after a one-off xcNrc(city); pni is only what paid peers charge; access is the broadband access network, 55% of what subscribers pay outside Australia).'},
  rev:{type:'map',doc:'Monthly revenue by source.'},
  reachable:{type:'map',doc:'Networks reachable per net id.'},
@@ -846,7 +849,7 @@ function apiJson(v){
    carries the keys confGo/confSponsor need, which exist in no field of S; TE_RECIPES renders
    each recipe's script, because the source is a function and some read the live network. The
    recipes' relevance score is not exposed: judging which one fits is the agent's job. */
-const API_TABLES={CITIES,NETS,CABLES,XIX,PORT,XC_REG,XC_NRC,XC_CITY,LT,NNI,VXC,RG,OPT,DF_SYS,FAB,SCRUB_TIERS,BIZ_T,SLA,LEVELS,GOALS,SCN,BANKS,REQS,NSH,MET,PREF,RT,PPOL,CONFS,LAG_MAX,RMAX,REGEN_MAX,START_CASH,CONF_COST,CONF_SP,CAP_COST,CAP_LV,CONF_DAYS,SUB_UPGRADES,SEA_DESIGNS,TE_COST,TE_MO,MYIX_COST,CN_LIC,SITE2_COST,MYIX_FAB,INTERNS,OPSK,CHARTERS,SEAT_N,CORE_LV,CORE_COST,CORE_REQ,CORE_LAB,INTERN_MO,PZ_TIERS,AR_TIERS,PZ_RG};
+const API_TABLES={CITIES,NETS,CABLES,XIX,PORT,XC_REG,XC_NRC,XC_CITY,LAT_TOL,LT,NNI,VXC,RG,OPT,DF_SYS,FAB,SCRUB_TIERS,BIZ_T,SLA,LEVELS,GOALS,SCN,BANKS,REQS,NSH,MET,PREF,RT,PPOL,CONFS,LAG_MAX,RMAX,REGEN_MAX,START_CASH,CONF_COST,CONF_SP,CAP_COST,CAP_LV,CONF_DAYS,SUB_UPGRADES,SEA_DESIGNS,TE_COST,TE_MO,MYIX_COST,CN_LIC,SITE2_COST,MYIX_FAB,INTERNS,OPSK,CHARTERS,SEAT_N,CORE_LV,CORE_COST,CORE_REQ,CORE_LAB,INTERN_MO,PZ_TIERS,AR_TIERS,PZ_RG};
 const API_MADE={
   BADGES:()=>!S?[]:BADGES.map(b=>{const on=S.ach&&S.ach[b.id]!==undefined,ever=!!hof()[b.id];
     return b.secret&&!on&&!ever?{id:b.id,i:'❔',t:'???',d:tr('badges.a_secret_badge'),r:b.r,secret:true}:{...b,ever};}),

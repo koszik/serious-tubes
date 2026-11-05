@@ -44,20 +44,20 @@ function dayPost(d){
     if(l.own&&l.ready>d&&Math.random()<0.012){const extra=10+Math.floor(Math.random()*40);setCableReady(l,l.ready+leadDays(extra));toast(tr('day_tick.construction_delay_n_days_why_a',{n:leadDays(extra),why:pick(l.sub?SEA_DELAYS.map(x=>tr(x)):[tr('day_tick.archaeologists_found_a_roman'),tr('day_tick.a_protected_hamster_species_lives'),tr('day_tick.the_railway_changed_its_mind_about'),tr('day_tick.the_drilling_crew_hit_a_granite'),tr('day_tick.a_town_council_wants_a_public'),tr('day_tick.somebody_else_s_gas_main_was'),tr('day_tick.the_permit_office_lost_your_permit')]),a:CITY[l.a].name,b:CITY[l.b].name}),'bad');}}
   // DDoS protection SLA: a protected customer under attack who goes down, or is blackholed, is paid out (once per attack).
   for(const a of ddosAll()){
-    for(const b of S.biz)if(b.type==='scrub'&&b.id===a.tgt&&!(a.sla||[]).includes(b.id)&&(a.bh||ddosSf(a)<0.85)){
+    for(const b of S.biz)if(b.type==='scrub'&&b.id===a.tgt&&!(a.sla||[]).includes(b.id)&&(a.bh||ddosHit(a)<0.85)){
       (a.sla||(a.sla=[])).push(b.id);b.slaFor=a.start;S.cash-=SLA_PEN;b.mood=Math.max(0,b.mood-18);S.stats.sla=(S.stats.sla||0)+1;
       toast(tr('day_tick.sla_breach_name_the_attack_on',{name:esc(b.name),city:CITY[a.city].name,pen:fmt$(SLA_PEN)}),'bad');sfx('err');}}
   // businesses mood
-  const ids=linkIds(),frr=(coreFrr()&&S.links.some(l=>l.cut)?.5:1)*(rule('moods')==='patient'?.5:1);const bhT=new Set(ddosAll().filter(a=>a.bh).map(a=>a.tgt));for(const b of S.biz.slice()){if(eventTick(b,d)||capPendTick(b,d))continue;b.pm=b.mood;if(bhT.has(b.id))continue;const sf=bizSf(b,ids),reachOk=BIZ_T[b.type].l2||BIZ_T[b.type].fiber||R.reach>0.99||scnRule('local'),scrubOk=b.type!=='scrub'||(hasScrub()&&!scrubFar(b.city)),divOk=reqOk(b)||b.rqG>d;
-    if(sf>=0.95&&reachOk&&scrubOk&&divOk)b.mood=Math.min(100,b.mood+2);
+  const ids=linkIds(),frr=(coreFrr()&&S.links.some(l=>l.cut)?.5:1)*(rule('moods')==='patient'?.5:1);const bhT=new Set(ddosAll().filter(a=>a.bh).map(a=>a.tgt));for(const b of S.biz.slice()){if(eventTick(b,d)||capPendTick(b,d))continue;b.pm=b.mood;if(bhT.has(b.id))continue;const sf=bizSf(b,ids),reachOk=BIZ_T[b.type].l2||BIZ_T[b.type].fiber||R.reach>0.99||scnRule('local'),scrubOk=b.type!=='scrub'||(hasScrub()&&!scrubFar(b.city)),divOk=reqOk(b)||b.rqG>d,lag=rtqPain(b),lagOk=lag<=latTol(b.type)*0.05;
+    if(sf>=0.95&&reachOk&&scrubOk&&divOk&&lagOk)b.mood=Math.min(100,b.mood+2);
     else if(inGrace(b)){}
-    else{b.mood-=frr*(Math.max(0,0.95-sf)*45+(!reachOk?3:0)+(!scrubOk?4:0)+(!divOk?3:0));
+    else{b.mood-=frr*(Math.max(0,0.95-sf)*45+(!reachOk?3:0)+(!scrubOk?4:0)+(!divOk?3:0)+(lagOk?0:Math.min(3,lag/latTol(b.type))));
       if(b.mood<=0){S.biz=S.biz.filter(x=>x!==b);toast(tr('day_tick.name_cancelled_too_many_outages_and',{name:esc(b.name),city:CITY[b.city].name}),'bad');sfx('err');}
       else if(b.mood<30&&!b.warned){b.warned=b.warn60=true;const why=bizWhy(b)[0],paused=pref('pauseFurious')&&autoPause();
         toast(tr('day_tick.name_is_furious_fix_service_in',{name:esc(b.name),city:CITY[b.city].name})+(why?`<br><i>${esc(why)}</i>`:'')+(paused?`<br><b>${tr('common.game_paused')}</b>`:''),'bad',[{l:tr('common.show_me'),act:'custGo',args:{id:b.id}}].concat(paused?[resumeAct()]:[]));sfx('err');}
       else if(b.mood<60&&!b.warn60&&pref('warnUnhappy')){b.warn60=true;const why=bizWhy(b)[0];toast(tr('day_tick.name_is_getting_unhappy_happiness_p',{name:esc(b.name),p:Math.round(b.mood),city:CITY[b.city].name})+(why?`<br><i>${esc(why)}</i>`:''),'',[{l:tr('common.show_me'),act:'custGo',args:{id:b.id}}]);}}
     if(b.mood>60)b.warned=false;if(b.mood>75)b.warn60=false;}
-  slaTick(d);
+  slaTick(d);rtqNotice(d);
   // own IX members join
   for(const c in S.myIx){const m=S.myIx[c];if(d>=m.next&&m.members.length<myFab(c).max){
     const cands=NETS.filter(n=>n.type!=='t1'&&!m.members.includes(n.id)&&(n.pops.includes(c)||n.pops.some(p=>CITY[p].reg===CITY[c].reg)));
@@ -131,5 +131,5 @@ function spawnOffer(){
   if(Math.random()<(T.lv>=3?0.65:0.3))reqs.push(pick(pool));
   if(T.lv>=3&&Math.random()<0.35){const more=pool.filter(k=>!reqs.includes(k));if(more.length)reqs.push(pick(more));}
   const r2=cents(rate*(1+reqs.reduce((a,k)=>a+REQS[k].bonus,0)));
-  S.offers.push({id:uid(),city,city2,name,type:t,bw,rate:r2,reqs,latMax:T.lat?+(kmBetween(city,city2)/200*1.35).toFixed(1):null,exp:S.day+offerExp()});
+  S.offers.push({id:uid(),city,city2,name,type:t,bw,rate:r2,reqs,latMax:T.lat?latMaxOf(city,city2):null,exp:S.day+offerExp()});
 }

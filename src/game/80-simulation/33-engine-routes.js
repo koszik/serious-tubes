@@ -1,7 +1,7 @@
 /* Endpoints, items and routes (docs/specs/network-engine.md §5, §6). An endpoint is your side: a POP's eyeballs, a
    group of customers of one class in one city, an L2 circuit, a cache's fill, an attack. An item is one endpoint and
    one far end (an origin, one of your POPs, the other site of a circuit) with its peak volume. */
-function engItems(X){const {R2,PC,NN}=X,day=S.day,ev=S.ev,EP=X.EP=[],IT=X.IT=[];
+function engItems(X){const {R2,PC,NN}=X,day=S.day,ev=S.ev,EP=X.EP=[],IT=X.IT=[],DV=ddosDiverted(X);
   const viral=(ev.viral>day?1.25:1)*(ev.php&&ev.php>day?0.7:1),loc=scnRule('local'),mt=ev.pmtud&&ev.pmtud.until>day?ev.pmtud:null;
   const shTab=c=>cnCity(c)?NSH_CN:ruCity(c)?NSH_RU:CITY[c].kr?S.krExit?NSH_KRX:NSH_KR:NSH;
   const cacheNets=new Set(S.caches.filter(c=>popUp(c.city)).map(c=>c.net));
@@ -26,11 +26,12 @@ function engItems(X){const {R2,PC,NN}=X,day=S.day,ev=S.ev,EP=X.EP=[],IT=X.IT=[];
   const aud=(e,peak)=>{const a=audStatic(e.ci).slice();for(const q of X.pops){const p=S.pops[q];if(q!==e.city&&p.bb)a.push([-1-CIDX[q],Math.max(0,p.bb.d)*EYE_W/(1+kmI(e.ci,CIDX[q])/AUD_KM)]);}
     const t=a.reduce((s,x)=>s+x[1],0);if(t<=0)return;for(const [o,w] of a)if(w>0){if(o>=0)DEMTO[ORIGINS[o].nj]+=peak*w/t;item(e,o,o>=0?ORIGINS[o].nj:-1,peak*w/t);}};
   for(const c of Object.keys(S.pops)){const p=S.pops[c],eye=(p.bb?p.bb.d:0)*viral*(cnCity(c)&&ev.golden>day?1.4:1)*trafG();R2.cityEye[c]=eye;R2.cityDem[c]=0;R2.citySrv[c]=0;
-    if(popUp(c)&&eye>0)serve(ep({k:'pop',city:c,cls:'home'}),eye);}
+    if(popUp(c)&&eye>0)serve(ep({k:'pop',city:c,cls:'home',dv:DV.get('bb:'+c)||null}),eye);}
   // Customers of one class in one city share their traffic and their service; tags (or a rule naming one) split them.
   // A booked event keeps its place (at zero) until it is over, so routing is not rebuilt the day it starts.
   const G=new Map();for(const b of S.biz){const T=BIZ_T[b.type],cls=CLASS_OF[b.type];if(!cls||T.fiber||T.l2||!popUp(b.city))continue;
-    const tg=(polTags(PC,'b:'+b.id)||[]).join(','),key=b.city+'|'+cls+'|'+tg;let g=G.get(key);if(!g)G.set(key,g={k:'grp',city:b.city,cls,members:[],peak:0,key});g.members.push(b.id);
+    // A diverted target is its own group: only its addresses move to the scrubbing centers.
+    const dv=DV.get(b.id)||null,tg=(polTags(PC,'b:'+b.id)||[]).join(','),key=b.city+'|'+cls+'|'+tg+(dv?'|dv:'+b.id:'');let g=G.get(key);if(!g)G.set(key,g={k:'grp',city:b.city,cls,members:[],peak:0,key,dv});g.members.push(b.id);
     if(T.event)g.keep=true;if(!T.event||eventLive(b))g.peak+=b.bw*TRAFFIC[cls].pu;}
   for(const g of G.values()){const e=ep(g),d=e.T.dst;if(d==='server')serve(e,g.peak);else aud(e,g.peak);}
   // An embedded cache fills overnight from its own network, never from itself.
@@ -78,7 +79,7 @@ function engKey(X,structOnly){const ev=S.ev,d=S.day;let k=(X.GK||'')+'#'+polKey(
   k+='#'+NET_IDS.map(n=>X.okBy[n].length).join(',');if(structOnly)return k;
   // Flows keep endpoint indexes, so the key holds them too: an endpoint with no items shifts the ones after it.
   // Each endpoint's part is built once (tens of thousands of items share a few hundred endpoints).
-  const epD=X.EP.map((e,i)=>i+e.k+e.city+e.cls+(e.key||'')+(e.cache||'')+(e.b?e.b.id:''));
+  const epD=X.EP.map((e,i)=>i+e.k+e.city+e.cls+(e.key||'')+(e.cache||'')+(e.b?e.b.id:'')+(e.dv?'dv'+e.dv.join('.'):''));
   k+='#'+X.EP.length;for(const it of X.IT){k+=';'+epD[it.ep]+'|'+it.o+'|'+it.j+'|'+it.ce;if(it.site)k+='|'+it.site.path.map(p=>p.id).join(',')+'|'+it.site.share;}
   return k;}
 function engRoute(X){const key=RC.on&&X.GK!==null?engKey(X):null;
@@ -88,7 +89,7 @@ function engRoute(X){const key=RC.on&&X.GK!==null?engKey(X):null;
   engRouteBuild(X);
   if(key!==null){
     Object.assign(ENGC,{key,L:X.L,M:X.M,CH:X.CH,LALT:X.LALT,POPI:X.POPI,POPC:X.POPC,SHL:X.SHL,pathList:X.pathList,walkList:X.walkList,inList:X.inList,F:{...X.F,v:null},
-      IT:X.IT.map(it=>({f:it.f,lat:it.lat,inX:it.inX,outX:it.outX,lx:it.lx,tz:it.tz}))});}}
+      IT:X.IT.map(it=>({f:it.f,lat:it.lat,inX:it.inX,outX:it.outX,lx:it.lx,tz:it.tz,ex:it.ex,fx:it.fx,rt:it.rt}))});}}
 /* What routing learns from the network's structure alone (views, best paths, ways in, pipe lists, second paths): kept
    while the structure stays (ENGS), so a day where only customers sign or leave redoes just the per-item work. */
 const ENGS={key:null,M:null};
@@ -130,13 +131,15 @@ function engRouteBuild(X){const {E,okBy,PC,COMP,SDi,SPi,adj,wW,NE,R2,EP,IT,NC}=X
   const expM=e=>{if(!PC.expAny)return '';const m=[];let i=0;for(const rs of PC.exp.values())for(const r of rs){if(polHit(r,e.has))m.push(i);i++;}return m.join(',');};
   for(const e of EP)e.xm=expM(e);
   const XA=M.XA,XA0={no:false,prep:0,reg:false,bh:false},XA3={no:false,prep:3,reg:false,bh:false},xattr=(x,e)=>{if(!PC.expAny)return x.pref==='low'?XA3:XA0;const k=x.xi+'|'+e.xm;let a=XA.get(k);if(!a)XA.set(k,a=PC.expAny?polExport(PC,x,e.has):{no:false,prep:x.pref==='low'?3:0,reg:false,bh:false});return a;};
-  const INM=M.INM,inCands=(o,e,ce,sv)=>{const O=ORIGINS[o],pi=e.ci,isl=COMP[pi],key=o+'|'+sv+'|'+isl+'|'+e.xm+'|'+(ce===1?pi:ce===0?'':'n');let c=INM.get(key);if(c)return c;
-    const sc=[];for(const x of okBy[O.net]){if(COMP[x.ci]!==isl)continue;if(x.k==='c'&&ce!==1)continue;const a=xattr(x,e);if(a.no||a.reg&&CITY[x.city].rg!==O.reg)continue;
+  const INM=M.INM,inCands=(o,e,ce,sv)=>{const O=ORIGINS[o],pi=e.ci,isl=COMP[pi],key=o+'|'+sv+'|'+isl+'|'+e.xm+'|'+(ce===1?pi:ce===0?'':'n')+(e.dv?'|dv'+e.dv.join('.'):'');let c=INM.get(key);if(c)return c;
+    // Scrubbing: the far network can only reach these addresses where the centers announce them (if it reaches you there).
+    const dv=e.dv&&okBy[O.net].some(x=>e.dv.includes(x.ci)&&COMP[x.ci]===isl&&x.k!=='c')?e.dv:null;
+    const sc=[];for(const x of okBy[O.net]){if(COMP[x.ci]!==isl)continue;if(dv&&!dv.includes(x.ci))continue;if(x.k==='c'&&ce!==1)continue;const a=xattr(x,e);if(a.no||a.reg&&CITY[x.city].rg!==O.reg)continue;
       // A cache maps users only across the links its routes may cross (a `nocarry` rule keeps it to its side).
       if(x.k==='c'&&PC.linkAny){const v=viewOf(polNoCarry(PC,routeHas(PC,x,O,false)));CVW.set(x.xi+'|'+pi,v);if(!(spOf(v,pi).D[x.ci]<Infinity))continue;}
       const al=asLen(x,O.net),rel=x.k==='c'?0:(x.k==='p'&&x.net===O.net)||(x.k==='ix'&&al===1&&x.id!=='~grace')?1:2;
       // Ties between equally near ways in go by the far side's own tie-breaks: stable, and spread over your ports.
-      const s={x,rel,as:al+a.prep,d:x.k==='c'||X.FLAT?SDi[pi][x.ci]:Math.round(kmI(sv,x.ci)),t:-1,o:O};
+      const s={x,rel,as:al+a.prep,d:x.k==='c'||X.FLAT?SDi[pi][x.ci]:Math.round(worldMs(sv,x.ci)*10),t:-1,o:O};
       // Only the three best are kept: the way in, and two to spill onto.
       if(sc.length<3||cmpIn(s,sc[sc.length-1])<0){sc.push(s);sc.sort(cmpIn);if(sc.length>3)sc.pop();}}
     c=sc.map(s=>s.x.xi);INM.set(key,c);return c;},tieH=s=>s.t>=0?s.t:(s.t=hstr(s.o.net+'|'+s.o.reg+'|'+s.x.k+'|'+s.x.city+'|'+(s.x.net||'')+'|'+s.x.xi)),
@@ -168,7 +171,7 @@ function engRouteBuild(X){const {E,okBy,PC,COMP,SDi,SPi,adj,wW,NE,R2,EP,IT,NC}=X
     for(let k=0;k<ni.length;k++){const q=back?ni.length-1-k:k;node(ni[q],k&&k<ni.length-1?PASS(ni[q]):1);}return close(-1);};
   X.pathList=pathList;X.inList=inList;X.walkList=(v,root,from,away)=>{const mk='w'+v+'|'+root+'|'+from+'|'+(away?1:0);let id=LMEM.get(mk);if(id===undefined){walk(spOf(v,root).P,root,from,away,1,true);LMEM.set(mk,id=close(-1));}return id;};
   // One-way backbone latency from POP pi to city ci along the IGP path, once per pair.
-  const BMS=M.BMS||(M.BMS=new Map()),bbMs=(pi,ci)=>{if(ci===pi||!(SDi[pi][ci]<Infinity))return 0;const k=pi*NC+ci;let v=BMS.get(k);if(v===undefined){v=0;for(const ed of walkI(SPi[pi],pi,ci).path)v+=ed.lat;BMS.set(k,v);}return v;};
+  const ACH=M.ACH||(M.ACH=new Map()),BMS=M.BMS||(M.BMS=new Map()),bbMs=(pi,ci)=>{if(ci===pi||!(SDi[pi][ci]<Infinity))return 0;const k=pi*NC+ci;let v=BMS.get(k);if(v===undefined){v=0;for(const ed of walkI(SPi[pi],pi,ci).path)v+=ed.lat;BMS.set(k,v);}return v;};
   // Each item: its far end's timezone, its routes and lists, then its flow (items alike share one).
   const FM=new Map(),F=X.F={v:[],fi:[],fo:[],sh:[],tz:[],q:[],g:[],in:[],out:[],cdn:[],ep:[],kind:[],oalt:[],cap:[]},SHI=X.SHI=M.SHI,SHL=X.SHL=M.SHL;
   // Puzzles route like a network with Auto-TE: what does not fit spills onto the next path, as their references expect.
@@ -194,10 +197,14 @@ function engRouteBuild(X){const {E,okBy,PC,COMP,SDi,SPi,adj,wW,NE,R2,EP,IT,NC}=X
       cdn=NET[O.net].type==='cdn'&&cs.length>1?1:0;
       // The Great Firewall on traffic crossing China's border (a premium path loses far less).
       if(inX>=0){const x=E[inX],cf=cnCity(e.city),cn=!!NETS[it.j].cn;if(cf!==x.cn||(cf&&!cn)||(!cf&&cn&&x.k==='t'))g=(x.k==='t'&&x.prem)||(x.k==='p'&&x.pnc)?0.03:gfwL(S.ev);}
-      // Detour: the part of the trip to the far end that is yours to shorten.
-      const lx=outX>=0?outX:inX;if(lx>=0&&e.k!=='fill'){const x=E[lx],ms=bbMs(pi,x.ci);
+      /* Routing quality: the round trip in (where the far network chose to hand it over) and out (where you did),
+         over the internet and your backbone, against the ideal of a handoff in the customer's own city; `fx` is what the
+         exits you already have to that network could save. */
+      const xi=inX>=0?inX:outX,xo=outX>=0?outX:inX;if(xi>=0&&e.k!=='fill'){const leg=x=>bbMs(pi,E[x].ci)+(E[x].k==='c'?0:worldMs(E[x].ci,sv)),li=leg(xi),lo=leg(xo),rtt=li+lo,ideal=2*worldMs(pi,sv);
+        const ak=O.net+'|'+pi+'|'+sv+'|'+it.ce;let ach=ACH.get(ak);if(ach===undefined){ach=Infinity;for(const x of okBy[O.net])if((x.k!=='c'||it.ce===1)&&COMP[x.ci]===COMP[pi]){const l=leg(x.xi);if(l<ach)ach=l;}ACH.set(ak,ach=2*ach);}
+        it.rt=rtt;it.ex=Math.max(0,rtt-ideal);it.fx=Math.max(0,rtt-Math.max(ideal,ach));const lx=li-worldMs(pi,sv)>=lo-worldMs(pi,sv)?xi:xo;
         // Under sender pays Korean users mind the haul itself, however direct (Gangnam Style Peering).
-        lat=CITY[e.city].kr&&scnRule('sender')?ms:Math.max(0,ms+(kmI(x.ci,sv)-kmI(pi,sv))*KM_MS);it.lx=lx;}}
+        const kr=CITY[e.city].kr&&scnRule('sender');lat=kr?bbMs(pi,E[xo].ci):it.ex/2;it.lx=kr?xo:lx;}}
     it.lat=lat;it.inX=inX;it.outX=outX;it.tz=tz;
     const sh=shapeId(e.sh),key=it.site||it.o<0?null:e.i+'|'+tz+'|'+ins.join(',')+'|'+out+'|'+oalt+'|'+g+'|'+(cdn?it.j:'');let f=key===null?undefined:FM.get(key);
     if(f===undefined){f=F.v.length;if(key!==null)FM.set(key,f);F.v.push(0);F.fi.push(T.in);F.fo.push(T.out);F.sh.push(sh);F.tz.push(tz);F.q.push(e.q);F.g.push(g);F.in.push(ins);F.out.push(out);F.cdn.push(cdn);F.ep.push(e.i);F.kind.push(0);F.oalt.push(oalt);F.cap.push(capK);}

@@ -20,7 +20,19 @@ function routerModels(c){const p=S.pops[c],g=p.rgen||0,rt=p.routers||1;
 function portNote(c){const p=S.pops[c];if(!p)return '';const g=p.rgen||0;return RG[g].maxP<PORT.length-1?`<p class="note" style="margin-top:0">${tr('sites_and_service.your_model_here_tops_out_at',{model:esc(RG[g].n),pn:RG[g].pn})}</p>`:'';}
 // Service: what you deliver, times how it feels. Traffic backhauled far to transit is slow, and users notice.
 const latSlow=c=>!!(R&&R.latF&&R.latF[c]<0.97&&R.latFar[c]);
-function latNote(c){if(!latSlow(c))return '';const f=R.latFar[c];const v={p:pct(Math.min(1,f.share)),city:esc(CITY[c].name),to:esc(CITY[f.to].name),ms:Math.round(f.ms)};return `<div class="latwarn">🐢 ${CITY[c].kr&&scnRule('sender')?tr('sites_and_service.p_of_city_s_traffic_comes_from_kr',v):tr('sites_and_service.p_of_city_s_traffic_is',v)}</div>`;}
+/* The headline is the slowest flow, in its own words: served from a far cache, backhauled out to a far exit, or
+   handed over far away by the other network (hot potato); the list below names every slow one. */
+// Warned when service suffers, or when any network the NOC judges is slow: the chip, the box and the NOC agree.
+const latWarn=c=>latSlow(c)||rtqSlowC(c).length>0;
+function latNote(c){if(!latWarn(c))return '';const f=R.latFar[c],kr=CITY[c].kr&&scnRule('sender'),w=rtqSlowC(c)[0],nm=x=>esc(CITY[x].name);
+  const v=w&&!kr?{p:pct(Math.min(1,w.share)),city:nm(c),to:nm(rtqCache(w)||!w.outC||w.outC===c?w.inC:w.outC),ms:Math.round(w.rt||w.ms)}:{p:pct(Math.min(1,f.share)),city:nm(c),to:nm(f.to),ms:Math.round(kr?f.ms:f.rt||f.ms)};
+  const msg=kr?tr('sites_and_service.p_of_city_s_traffic_comes_from_kr',v):w?(rtqCache(w)?tr('sites_and_service.p_of_city_s_traffic_from_cache',v):w.outC&&w.outC!==c?tr('sites_and_service.p_of_city_s_traffic_is',v):tr('sites_and_service.p_of_city_s_traffic_comes_in_at',v)):f.k==='c'?tr('sites_and_service.p_of_city_s_traffic_from_cache',v):tr('sites_and_service.p_of_city_s_traffic_is',v);
+  return `<div class="latwarn">🐢 ${msg}${latFlows(c)}</div>`;}
+// The flows behind a city's latency warning, the same ones the NOC judges: each network's round trip, its extra, and its way.
+function latFlows(c){const fl=rtqSlowC(c).slice(0,5);if(!fl.length)return '';
+  return `<ul class="latflows">${fl.map(f=>{const v=rtqVars(f);for(const k in v)if(typeof v[k]==='string')v[k]=esc(v[k]);return `<li>${rtqCache(f)?tr('sites_and_service.flow_rt_cache',v):tr('sites_and_service.flow_rt_in_out',v)}</li>`;}).join('')}</ul>`;}
+// The worst extra round trip behind a city's warning, for its chip.
+const latWorst=c=>{const fl=rtqSlowC(c);return Math.round(fl.length?fl[0].ms:R.latFar[c].ms);};
 const LAT_OK=20,LAT_BAD=50,latLoss=rtt=>rtt<=LAT_OK?0:rtt<=LAT_BAD?0.2*(rtt-LAT_OK)/(LAT_BAD-LAT_OK):0.5;
 const krLatLoss=rtt=>rtt<=KR_LAT_OK?0:rtt<=KR_LAT_BAD?0.25*(rtt-KR_LAT_OK)/(KR_LAT_BAD-KR_LAT_OK):0.5;
 function sfOf(r,c){if(r.psf&&r.psf[c]!==undefined)return r.psf[c];const d=r.cityDem[c]||0;return d<=1e-6?1:clamp(r.citySrv[c]/d,0,1)*((r.latF&&r.latF[c])??1);}

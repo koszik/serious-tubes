@@ -20,7 +20,7 @@
 .x{margin-left:auto;border:2.5px solid var(--ink);background:var(--paper);border-radius:10px;width:32px;height:32px;font-size:20px;line-height:1;cursor:pointer;font-weight:900;flex:none}
 .facts{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
 .fact{background:var(--soft);border:2px solid var(--ink);border-radius:9px;padding:1px 8px;font-size:12px;font-weight:700}
-.fact.bad{background:#FFE3E3}.latwarn{background:#FFF1F1;border:2px solid #FF5A5F;border-radius:10px;padding:8px 10px;margin:6px 0;font-size:13px;line-height:1.4}
+.fact.bad{background:#FFE3E3}button.fact.bad{cursor:pointer;font:inherit;font-size:12px;font-weight:700;border:2px solid var(--ink)}.latflows{margin:4px 0 0;padding-left:18px;font-size:12px;line-height:1.4}.latwarn{background:#FFF1F1;border:2px solid #FF5A5F;border-radius:10px;padding:8px 10px;margin:6px 0;font-size:13px;line-height:1.4}
 .fact.ixf{background:#FFF3C4}
 .fact.mine{background:var(--me);color:#fff}
 .fact.down{background:var(--bad);color:#fff}

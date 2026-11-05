@@ -123,6 +123,13 @@ never freezes the game.
    access network's cost.
    Every fiber patch to another network is a cross-connect (`80-simulation/42-cross-connects.js`): `xcMo(c)` a month and
    `xcNrc(c)` to install, counted by `xcTotal()` into the money view's own line; port and link prices include them.
+   Latency outside your network comes from the cable map (`80-simulation/81-world-latency.js`: `worldMs(a,b)`, one
+   Dijkstra row per source city on first use); latency customers ask for `bestBuildMs(a,b)` × 1.15. Each traffic item
+   gets its routing quality in the routing pass (`it.ex`, `it.fx`: in plus out against a handoff in its own city),
+   summed per customer and city and per far network into `R.rq` / `R.rqC`: an endpoint is judged by its slowest network
+   carrying at least `RQ_SH` of its traffic, so one slow network is not averaged away (`40-progress/19-routing-quality.js`).
+   DDoS: `ddosPlan()` runs before endpoints are built (Flowspec at the edge first; a diverted target gets its own
+   endpoint, announced only at the live scrubbing centers), then `ddosLoad()` in the hourly pass.
 6. Every 30 days: bills the month (revenue minus costs) and checks for bankruptcy.
 7. Checks goals, level, badges and scenario end conditions.
 

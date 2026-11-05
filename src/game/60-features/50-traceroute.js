@@ -30,8 +30,8 @@ function traceroute(src,to){const P=trPaths(src),me=slug(S.name)+'.net',lines=[]
   const direct=e.k==='t'&&e.tnet&&(e.tnet===N.id||(N.up||[]).includes(e.tnet))?' '+(e.tnet===N.id?tr('traceroute.the_carrier_s_own_port_beats_other',{net:N.name}):tr('traceroute.net_buys_transit_from_carrier_so_that',{net:N.name,carrier:NET[e.tnet].name})):'';
   let asPath=[S.asn];
   if(e.k==='t'){const T=NET[e.tnet];asPath.push(T.asn);hop(`be-${S.asn}.${e.city}.${slug(T.name)}.net`,`203.0.113.${hstr(e.city)%250}`,0.4,tr('traceroute.hand_off_to_net',{net:T.name}));
-    if(T.id!==N.id){const far=(N.pops&&N.pops.length?N.pops:[e.city]).reduce((a,c)=>kmBetween(e.city,c)<kmBetween(e.city,a)?c:a,(N.pops||[e.city])[0]);const km=CITY[far]?kmBetween(e.city,far):0;
-      hop(`ae-2.core.${far}.${slug(T.name)}.net`,`203.0.113.${(hstr(far)+7)%250}`,km*1.3/100+0.3,CITY[far]?tr('traceroute.net_carries_it_to_city',{net:T.name,city:CITY[far].name}):'');
+    if(T.id!==N.id){const far=(N.pops&&N.pops.length?N.pops:[e.city]).reduce((a,c)=>worldMs(CIDX[e.city],CIDX[c])<worldMs(CIDX[e.city],CIDX[a])?c:a,(N.pops||[e.city])[0]);const rt=CITY[far]?2*worldMs(CIDX[e.city],CIDX[far]):0;
+      hop(`ae-2.core.${far}.${slug(T.name)}.net`,`203.0.113.${(hstr(far)+7)%250}`,rt+0.3,CITY[far]?tr('traceroute.net_carries_it_to_city',{net:T.name,city:CITY[far].name}):'');
       hop(`${slug(N.name)}-peer.${far}.${slug(T.name)}.net`,`198.51.100.${hstr(N.id)%250}`,0.4,tr('traceroute.net_hands_it_to_to',{net:T.name,to:N.name}));}}
   else if(e.k==='ix'){hop(`${slug(ixName(e.city))}.peering.${e.city}`,`185.0.${hstr(e.city)%250}.${hstr(N.id)%250}`,0.3,tr('traceroute.across_the_ix_switch',{ix:ixName(e.city)}));}
   else if(e.k==='p'){hop(`pni-${slug(NET[e.via||N.id].name)}.${e.city}.${me}`,ip(hstr(N.id),3),0.2,tr('traceroute.private_cross_connect'));}

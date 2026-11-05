@@ -60,7 +60,7 @@ function sanitize(s){
     // Requests and terms: a request names a kind and a customer; ends, ignored requests and the renewal decision are numbers.
     if(b.rq!==undefined){b.rq=b.rq&&typeof b.rq==='object'&&RQ_K.includes(b.rq.k)?{k:b.rq.k,id:sid(b.rq.id)}:null;if(!b.rq)delete b.rq;}
     for(const k of ['end','rqG','term'])if(b[k]!==undefined)b[k]=num(b[k],0);if(b.rqx!==undefined)b.rqx=Array.isArray(b.rqx)?b.rqx.filter(x=>Number.isFinite(x)).slice(-20):[];
-    if(b.rnw!==undefined)b.rnw=b.rnw&&typeof b.rnw==='object'?{a:b.rnw.a?1:0,p:clamp(num(b.rnw.p,0),0,0.3)}:undefined;if(b.rnw===undefined)delete b.rnw;return b;};
+    if(b.latW!==undefined)b.latW=num(b.latW,0);if(b.rnw!==undefined)b.rnw=b.rnw&&typeof b.rnw==='object'?{a:b.rnw.a?1:0,p:clamp(num(b.rnw.p,0),0,0.3)}:undefined;if(b.rnw===undefined)delete b.rnw;return b;};
   {const ids=new Map(s.links.map(l=>[l.id,l]));s.biz=s.biz.filter(okBiz).map(b=>unpackBiz(fixBiz(b),ids));}s.offers=s.offers.filter(okBiz).map(fixBiz);
   // Contracts from before terms end some time in the next year, spread out so they do not all renew on one day.
   for(const b of s.biz)if(b.end===undefined&&!b.scripted&&termOf(b.type,b.id))b.end=s.day+RENEW_D+1+hstr(String(b.id)+'|end')%365;
@@ -104,7 +104,7 @@ function sanitize(s){
     delete a.entries;delete a.entry;delete a.ixbh;delete a.fresh;
     if(typeof a.tgt!=='string'||(a.tgt.startsWith('bb:')?a.tgt!=='bb:'+a.city:!s.biz.some(b=>b.id===a.tgt&&b.city===a.city))){
       const bs=s.biz.filter(b=>b.city===a.city&&BIZ_T[b.type]&&!BIZ_T[b.type].l2&&!BIZ_T[b.type].fiber).sort((x,y)=>(DD_W[y.type]||1)-(DD_W[x.type]||1)||y.bw-x.bw);a.tgt=bs.length?bs[0].id:'bb:'+a.city;}
-    a.carpet=!!a.carpet;a.sac=a.sac?1:0;a.colMax=clamp(num(a.colMax,0),0,1);if(a.worst!==undefined)a.worst=clamp(num(a.worst,1),0,1);
+    a.carpet=!!a.carpet;a.sac=a.sac?1:0;a.colMax=clamp(num(a.colMax,0),0,1);if(a.worst!==undefined)a.worst=clamp(num(a.worst,1),0,1);if(a.sf0!==undefined)a.sf0=clamp(num(a.sf0,1),0.01,1);
     if(a.eng!==undefined){a.eng=num(a.eng,a.start);a.eng=Math.max(a.start,Math.min(s.day,a.eng));}
     if(a.who!==undefined&&!FLOOD_WHO.includes(a.who))delete a.who; // a label from the list, never text from the file
     a.sla=Array.isArray(a.sla)?a.sla.filter(x=>typeof x==='string').slice(0,s.biz.length):[];return a;};

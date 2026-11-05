@@ -65,11 +65,11 @@ function renderLeft(){checkLayer();
     const hot=S.links.filter(l=>!linkDown(l)&&capOf(l)>0&&(R.load[l.id]||0)/capOf(l)>=0.85).sort((a,b)=>(R.load[b.id]/capOf(b))-(R.load[a.id]/capOf(a)));
     if(hot.length){h+=`<h3 style="font-size:15px;margin:4px 0">${tr('common.congested_links')}</h3>${S.te&&S.te.on?'':'<p class="meta" style="margin:0 0 4px">'+tr('hud_and_panels.raise_a_full_link_s_metric')+'</p>'}`+hot.map(l=>{const d=hotDir(l);return `<div class="row"><div class="grow"><div class="nm">${esc(d.from)} → ${esc(d.to)}</div><div class="meta">${capName(l)} · ${tr('hud_and_panels.p_full',{p:pct(d.g/capOf(l))})} · <span style="color:${d.loss>=0.001?'var(--bad)':'inherit'}">${lossTxt(d.loss)}</span></div></div>${btn(tr('common.inspect'),'selLink',{id:l.id},'pink sm')}</div>`;}).join('');}
     h+=hwCard();
-    const slow=Object.keys(S.pops).filter(latSlow).sort((a,b)=>R.latF[a]-R.latF[b]);
-    if(slow.length)h+=`<h3 style="font-size:15px;margin:4px 0">🐢 ${tr('common.slow_cities')}</h3><p class="meta" style="margin:0 0 4px">${tr('hud_and_panels.their_users_go_out_through_transit')}</p>`+slow.map(c=>{const f=R.latFar[c];return `<div class="row"><div class="grow"><div class="nm">${CITY[c].name} → ${CITY[f.to].name}</div><div class="meta">${tr('hud_and_panels.p_of_its_traffic_ms_ms',{p:pct(Math.min(1,f.share)),ms:Math.round(f.ms),sf:pct(R.latF[c])})}</div></div>${btn(tr('common.inspect'),'focusCity',{city:c},'ghost sm')}</div>`;}).join('');
+    // Routing quality: customers and cities whose round trip is longer than a handoff where they are.
+    const slowH=rtqSection();h+=slowH;
     const hotR=hotPorts();
     if(hotR.length)h+=`<h3 style="font-size:15px;margin:4px 0">${tr('hud_and_panels.ports_caches_and_routers_running_hot')}</h3>`+hotR.map(x=>`<div class="row"><span class="hotk hk-${x.k}">${HOTL[x.k]}</span><div class="grow"><div class="nm">${CITY[x.city].name} · ${esc(x.lab)}</div><div class="meta">${x.dir?(x.dir==='rx'?tr('pipes.in_rx'):tr('pipes.out_tx'))+' ':''}${tr('hud_and_panels.p_full',{p:pct(Math.min(1,x.u))})} · <span style="color:${x.loss>=0.001?'var(--bad)':'inherit'}">${lossTxt(x.loss)}</span> · ${esc(x.tip)}</div></div>${btn(tr('common.inspect'),'focusCity',{city:x.city},'pink sm')}</div>`).join('');
-    if(!S.inc.length&&!hot.length&&!hotR.length&&!slow.length)h+=`<p class="empty">${tr('hud_and_panels.all_systems_green_enjoy_it_while')}</p>`;
+    if(!S.inc.length&&!hot.length&&!hotR.length&&!slowH)h+=`<p class="empty">${tr('hud_and_panels.all_systems_green_enjoy_it_while')}</p>`;
     h+=`<div class="kv" style="margin-top:8px"><span>${tr('hud_and_panels.incidents_so_far')}</span><b>${S.stats.incidents}</b></div><div class="kv"><span>${tr('hud_and_panels.survived_with_no_impact')}</span><b>${S.stats.survived}</b></div>`;
   }else{
     if(Object.keys(S.ixp).length||ppol()!=='open')h+=pdeskCard();

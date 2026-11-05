@@ -157,6 +157,18 @@ test('W5: every island city can be reached: it shares its land, has a cable, or 
   fail('W5', bad, 'land a cable there or give it beach:true');
 });
 
+test('W6: internet latency follows the cables, within 15% of measured RTTs, and never transits Russia or mainland China', () => {
+  const g = load(), bad = [];
+  g.ev('ACT.start({})');
+  for (const [a, b, real] of [['lon', 'nyc', 72], ['fra', 'sin', 155], ['lon', 'tok', 220], ['ams', 'hkg', 185], ['lax', 'tok', 105], ['lon', 'syd', 270]]) {
+    const r = g.ev(`2*worldMs(CIDX.${a},CIDX.${b})`);
+    if (Math.abs(r / real - 1) > 0.15) bad.push(`${a}-${b} ${Math.round(r)} ms against ${real}`);
+  }
+  if (g.ev("latMaxOf('lon','tok')") < g.ev("bestBuildMs('lon','tok')")) bad.push('a latency customer asks for less than anyone could build');
+  fail('W6', bad, 'fix the cable catalog (a missing or mislaid cable), not the factors');
+  assert.deepEqual(g.errors, []);
+});
+
 // ---------- Networks ----------
 
 test('N1: network ids and ASNs are unique, ASNs are valid', () => {
@@ -479,6 +491,18 @@ test('F11: every connection to another network pays one cross-connect per fiber 
   assert.deepEqual(g.errors, []);
 });
 
+test('F12: a customer is judged on the extra round trip its routing adds, both ways, against its type', () => {
+  const g = load(), bad = [];
+  g.ev("ACT.start({});S.cash=1e9;S.lvl=13;S.nextFail=S.nextEvent=1e9;for(const x of GOALS)S.done[x.id]=0;for(const c of ['fra','mad'])(S.pops[c]||ACT.buildPop({city:c}),S.pops[c].rgen=RG_TOP);UI.via=null;UI.lmode='wave';openLinkModal('fra','mad');ACT.buildLink({tier:2});closeModal();for(const l of S.links)l.ready=0;ACT.buyTransit({city:'mad',net:'cog',tier:2});S.biz.push({id:'g',city:'fra',city2:null,name:'G',type:'game',bw:5,rate:100,reqs:[],mood:100,since:-99});S.day=100;compute()");
+  const far = g.ev('R.rq.g.ms');
+  if (!(far > g.ev("latTol('game')"))) bad.push(`a gamer behind a Madrid exit is only ${far} ms over`);
+  g.ev("ACT.buyTransit({city:'fra',net:'cog',tier:2});compute()");
+  if (!(g.ev('R.rq.g.ms') < far / 3)) bad.push('local transit does not fix it');
+  if (Object.values(g.ev('LAT_TOL')).some((v) => !(v >= 10 && v <= 50))) bad.push('tolerances outside 10–50 ms');
+  fail('F12', bad, 'routing quality: in where the far network hands over, out where you send it, against a handoff where the customer is');
+  assert.deepEqual(g.errors, []);
+});
+
 test('D1: attack sizes come from the world, never from your network', () => {
   const g = load();
   ddFra(g.ev);
@@ -522,6 +546,20 @@ test('D4: RTBH costs only the target', () => {
   g.ev('S.ev.ddos.until=S.day;dayTick()');
   assert.equal(g.ev('S.stats.ddosSac'), 1, 'D4: sacrificed, not held');
   assert.equal(g.ev('S.stats.ddosOk||0'), 0);
+  assert.deepEqual(g.errors, []);
+});
+
+test('D5: Flowspec filters at the edge first; scrubbing takes only what the edge cannot, and moves the target rather than doubling it', () => {
+  const g = load(), bad = [];
+  g.ev("ACT.start({});S.cash=1e9;S.lvl=13;S.nextFail=S.nextEvent=1e9;for(const x of GOALS)S.done[x.id]=0;S.pops.fra.rgen=RG_TOP;ACT.launchBB({city:'fra'});S.pops.fra.bb.d=100;ACT.buyTransit({city:'fra',net:'cog',tier:2});ACT.buildPop({city:'ams'});S.pops.ams.rgen=RG_TOP;ACT.buyTransit({city:'ams',net:'ntt',tier:2});UI.via=null;UI.lmode='wave';openLinkModal('fra','ams');ACT.buildLink({tier:2});closeModal();for(const l of S.links)l.ready=0;ACT.buildScrub({city:'ams',tier:1});S.day=60;compute()");
+  const run = (vec) => { g.ev(`S.ev.ddos={id:'x',city:'fra',tgt:'bb:fra',vec:'${vec}',gbps:20,until:S.day+2,bh:false,start:S.day,carpet:false,sf0:1};compute()`); return JSON.parse(g.ev("(()=>{const m=ddosReport(S.ev.ddos);return JSON.stringify({edge:m.edge,pulled:m.pulled});})()")); };
+  if (!run('dns').edge) bad.push('a filterable flood the edge can take went to scrubbing');
+  const a = run('ack');
+  if (a.edge || !(a.pulled > 0)) bad.push('a flood with no signature was not scrubbed');
+  if (!g.ev("(R.haul||[]).every(q=>q.h===1)")) bad.push('clean traffic is hauled on top of the target’s own');
+  g.ev("S.pops.ams.down=S.day+5;compute()");
+  if (g.ev("ddosReport(S.ev.ddos).pulled") > 0) bad.push('a center that is down still pulls the flood');
+  fail('D5', bad, 'Flowspec first at the edge; a diversion is an announcement at live centers');
   assert.deepEqual(g.errors, []);
 });
 

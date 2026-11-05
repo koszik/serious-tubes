@@ -6,7 +6,8 @@ const FIN=['nyc','chi','lon','fra','tok','sin','hkg','ams','ash'];
 // What a capability brings in, and why the offer says it came.
 const SPOT_W={lat:N_('specialist.spotted_your_ms_ms_a_b_path'),df:N_('specialist.spotted_your_cap_of_dark_fiber'),div:N_('specialist.spotted_your_two_diverse_paths_a'),eye:N_('specialist.spotted_your_broadband_in_a_one')};
 const SPOT_BIG=12,SPOT_DF=0.75;
-const latMaxOf=(a,b)=>+(kmBetween(a,b)/200*1.35).toFixed(1);
+// What a latency customer asks for: the fastest path anyone could build between the two (81-world-latency.js), plus 15%.
+const LAT_MARGIN=1.15,latMaxOf=(a,b)=>+(bestBuildMs(a,b)*LAT_MARGIN).toFixed(1);
 let BIGEYE=null;const bigEye=()=>BIGEYE||(BIGEYE=CITIES.slice().sort((x,y)=>y.P-x.P).slice(0,SPOT_BIG).map(c=>c.id));
 // Worked out at most once a day (and again when the network changes shape): offers spawn far less often than that.
 let SPOTC=null;

@@ -5,6 +5,23 @@
    and everyone on it loses the same share; Flowspec drops matching junk on each ingress router, within that router's
    rule budget; what is left rides the backbone to the target. An engaged scrubbing center takes the flood on its own
    ingress instead (magnet) and cleans up to its tier (sponge); what it cannot take hurts only the target. */
+/* Before routing: Flowspec first. The edge takes an attack when it has a signature, every POP it enters has rule room
+   and no port it fills would run full (yesterday's use plus the junk). Anything else goes to scrubbing, which is an
+   announcement: the target's addresses are announced only at the live centers, so the internet sends all its traffic
+   there and routing brings the clean part home. X.DP: attack id -> {edge, why, dv (center city indexes)}. */
+function ddosPlan(X){const P=X.DP=new Map(),live=ddosAll().slice().sort((a,b)=>(a.start||0)-(b.start||0)||(a.id<b.id?-1:a.id>b.id?1:0));if(!live.length)return P;
+  const fsP={},J=new Map(),r=R||{},use=e=>{const m=e.k==='t'?r.useT:e.k==='ix'?r.useIx:e.k==='p'?r.usePni:e.k==='c'?r.useCache:null;return (m&&m[e.id])||0;},bhAll=!!(X.TRX&&X.TRX.blackhole);
+  for(const a of live){if(!S.pops[a.city]||!popUp(a.city)||a.bh||bhAll){P.set(a.id,{edge:false,why:null,dv:null});continue;}
+    const V=DDOS_VEC[a.vec],need=V&&V.fs?(a.carpet?FS_CARPET:1):0,sp=new Map();ddosSpread(a.gbps,X.E,X.okBy,sp);
+    let why=need?null:{k:'sig'};const by=new Map(),mine=[];
+    for(const [e,g] of sp){const left=e.clean?g*0.1:g;mine.push([e,left]);by.set(e.city,(by.get(e.city)||0)+left);const j=(J.get(e)||0)+left;J.set(e,j);if(!why&&j+use(e)>e.cap)why={k:'port',city:e.city};}
+    if(!why)for(const c of by.keys()){const cap=fsCap(c),left=fsP[c]??cap;if(!cap){why={k:'router',city:c};break;}if(left<need){why={k:'rules',city:c};break;}}
+    if(!why){for(const c of by.keys())fsP[c]=(fsP[c]??fsCap(c))-need;P.set(a.id,{edge:true,why:null,dv:null});continue;}
+    const eng=scrubEng(a);if(eng>=1)for(const [e,g] of mine)J.set(e,J.get(e)-g);
+    P.set(a.id,{edge:false,why,dv:eng>0?[...new Set(S.scrubs.filter(x=>popUp(x.city)).map(x=>CIDX[x.city]))]:null});}
+  return P;}
+// The centers a target's traffic is diverted to while it is scrubbed (city indexes), by target.
+function ddosDiverted(X){const m=new Map();if(X.DP)for(const a of ddosAll()){const p=X.DP.get(a.id);if(p&&p.dv&&p.dv.length)m.set(a.tgt||'bb:'+a.city,p.dv);}return m;}
 // Does this private peer honour blackhole communities? About half do, the same ones in every game.
 function pniHonours(n){let h=0;for(let i=0;i<n.length;i++)h=(h*31+n.charCodeAt(i))|0;return (h&2)===0;}
 const ddRank=e=>e.k==='p'?1:e.k==='ix'?2:e.k==='t'?3:9;
@@ -19,7 +36,9 @@ function ddosSpread(g,E,okBy,out){if(g<=0)return;let tot=0;const pick=[];
   for(let k=0;k<pick.length;k+=5){const s=pick[k],L=pick[k+1],best=pick[k+2],sac=pick[k+3],cap=pick[k+4],w=g*s/tot;
     for(const e of L)if(ddRank(e)===best&&e.id!=='~grace'&&(!sac||e.sac))out.set(e,(out.get(e)||0)+w*e.cap/cap);}}
 // How much of a scrubbing center is engaged for this attack: 0, half on the first day of on-demand diversion, or all.
-function scrubEng(a){if(!hasScrub()||a.bh)return 0;if(S.scrubMode!=='ondemand')return 1;
+// A center whose POP is down withdraws its routes: the flood takes the normal path.
+const scrubLive=()=>hasScrub()&&S.scrubs.some(x=>popUp(x.city));
+function scrubEng(a){if(!scrubLive()||a.bh)return 0;if(S.scrubMode!=='ondemand')return 1;
   const from=S.ddosAuto&&S.ddosAuto.scrub===false?a.eng:(a.eng??a.start);if(from===undefined||from===null)return 0;return S.day<=from?0.5:1;}
 // One POP's Flowspec rule budget: its routers' TCAM.
 const fsCap=c=>{const p=S.pops[c];return p?(RG[p.rgen||0].fsN||0):0;};
@@ -32,7 +51,7 @@ function ddosLoad(X){const {E,okBy,R2}=X;R2.ddos=[];R2.haul=[];R2.tgtF={};R2.bbF
   const recs=[],room={};
   for(const a of live){const c=a.city,m={attack:a,tgt:a.tgt,g:a.gbps,bh:!!(a.bh||X.autoBh),ports:new Map(),up:0,fs:0,fsAt:[],fsFull:[],fsNone:[],deliv:0,pulled:0,cleaned:0,over:0,parts:[],tf:1,col:0,slowed:0,eng:0};
     recs.push(m);R2.ddos.push(m);if(!popUp(c)||!S.pops[c]){m.offline=true;continue;}
-    m.eng=m.bh?0:scrubEng(a);const pull=a.gbps*m.eng,sp=new Map();ddosSpread(a.gbps-pull,E,okBy,sp);
+    const pl=X.DP&&X.DP.get(a.id);m.edge=!!(pl&&pl.edge);m.why=pl?pl.why:null;m.eng=m.bh||m.edge?0:scrubEng(a);const pull=a.gbps*m.eng,sp=new Map();ddosSpread(a.gbps-pull,E,okBy,sp);
     for(const [e,g] of sp){let left=g;
       if(m.bh)left*=e.k==='p'?(pniHonours(e.net)?0:1):RTBH_LEFT[e.k]??1;else if(e.clean)left*=0.1;
       m.up+=g-left;if(left>1e-9){m.ports.set(e,{off:left,in:0});e.J+=left;}}
@@ -50,10 +69,10 @@ function ddosLoad(X){const {E,okBy,R2}=X;R2.ddos=[];R2.haul=[];R2.tgtF={};R2.bbF
       if(need&&S.pops[city]){const cap=fsCap(city),left=fsLeft[city]??cap;
         if(!cap)m.fsNone.push(city);else if(left>=need){fsLeft[city]=left-need;rest=g*(1-FS_DROP);m.fs+=g-rest;m.fsAt.push(city);}else{fsLeft[city]=left;m.fsFull.push(city);}}
       m.deliv+=X.haul(city,a.city,rest,'ddos:'+city,city);}
-    // Clean traffic comes back from each center to the target, the long way round if the center is far.
+    // How far the clean traffic travels back from each center, for the card.
     const tb=ddosTb(a,R2);
-    for(const x of m.parts){const v=tb*x.a/Math.max(m.pulled,1e-9),h=x.city===a.city?v:X.haul(x.city,a.city,v,'scrub:'+a.city+'>'+x.city,null,true);
-      R2.haul.push({city:a.city,to:x.city,tier:x.tier,a:x.a,h:v>0?h/v:1,ms:x.city===a.city?0:X.ms(a.city,x.city)*2,attack:a.id});}
+    // (Routing already carries the clean traffic home: the target's addresses are announced at the centers, ddosPlan.)
+    for(const x of m.parts)R2.haul.push({city:a.city,to:x.city,tier:x.tier,a:x.a,h:1,ms:x.city===a.city?0:X.ms(a.city,x.city)*2,attack:a.id});
     // The target: blackholed, or what its own port and the scrubbing centers let through.
     const fa=Math.min(1,2*tb/(m.deliv+tb)),fsc=m.pulled>0?m.cleaned/m.pulled:1;
     m.tf=m.bh?0:fa*((1-m.eng)+m.eng*fsc);

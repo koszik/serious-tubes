@@ -35,6 +35,11 @@ function ddosExpire(){for(const a of ddosAll(S,false))if(a.until<=S.day||!S.pops
 function ddosReport(a){return (R.ddos||[]).find(m=>m.attack===a)||null;}
 // How well the target is doing: what reached it, times how its city is doing.
 function ddosSf(a){const m=ddosReport(a),tf=m?m.tf:1;if(ddosBb(a))return Math.min(tf,sfOf(R,a.city));return tf*bizSfOf(R,a.city);}
+// What the attack itself did: the target's service against what it had just before (a city already short of
+// capacity is not the attack's doing).
+const ddosHit=a=>Math.min(1,ddosSf(a)/Math.max(0.01,a.sf0??1));
+// The target's service right now, before an attack lands on it.
+const ddosBase=(c,tgt)=>{if(!R||!R.cityDem)return 1;if(!tgt||tgt.startsWith('bb:'))return sfOf(R,c)*((R.bbF&&R.bbF[c])??1);const b=S.biz.find(x=>x.id===tgt);return b?bizSf(b):1;};
 // What the attack costs everyone else, as a share of all your traffic.
 const ddosCol=a=>{const m=ddosReport(a);return m&&R.demand>0?m.col/R.demand:0;};
 // Who is under attack, in words.
@@ -81,7 +86,7 @@ function ddosTick(){if(scnRule('ddos')){if(S.mode==='sandbox')return;let next=+S
 function ddosAttack(recompute=true){const fl=scnRule('ddos');ddosExpire();
   S.ddosStarts=(S.ddosStarts||[]).filter(d=>d>S.day-7&&d<=S.day);if(S.ddosStarts.length>=14||!Object.keys(S.pops).length)return null;S.ddosStarts.push(S.day);
   const [tgt,c]=ddosPickTgt(),vec=pick(ddosVectors(ddGame(tgt))),r=Math.random(),dur=r<0.7?1:r<0.95?2:3;
-  const a={id:uid(),city:c,tgt,vec,gbps:0,until:S.day+dur,bh:false,start:S.day,carpet:Math.random()<0.2,fresh:1};a.gbps=ddosSize(a);
+  const a={id:uid(),city:c,tgt,vec,gbps:0,until:S.day+dur,bh:false,start:S.day,carpet:Math.random()<0.2,fresh:1,sf0:+ddosBase(c,tgt).toFixed(3)};a.gbps=ddosSize(a);
   if(fl)a.who=pick(FLOOD_WHO);
   if(!S.ev.ddos)S.ev.ddos=a;else(S.ev.ddosMore||(S.ev.ddosMore=[])).push(a);
   addInc({type:'ddos',ref:c,atk:a.id,until:a.until,msg:tr('ddos.started',{g:fmtG(a.gbps),vec:DDOS_VEC[vec].n,who:ddosWho(a)}),cost:0});
@@ -96,7 +101,7 @@ function ddosNews(){let again=false;const auto=S.ddosAuto&&S.ddosAuto.rtbh;
   if(again)compute();
   const T=S.stats.ddT||(S.stats.ddT={});
   for(const a of ddosAll()){const m=ddosReport(a);if(!m)continue;
-    if(a.fresh){delete a.fresh;const fl=scnRule('ddos'),col=ddosCol(a),sf=ddosSf(a),bad=col>=0.01||sf<0.97;
+    if(a.fresh){delete a.fresh;const fl=scnRule('ddos'),col=ddosCol(a),sf=ddosHit(a),bad=col>=0.01||sf<0.97;
       const how=a.bh?tr('ddos.news_rtbh'):col>=0.01?tr('ddos.news_ports',{n:m.full,k:m.slowed}):sf<0.97?tr('ddos.news_target',{p:pct(sf)}):tr('ddos.news_held');
       toast(`<b>${incTitle('ddos')}: ${esc(ddosWho(a))}</b><br>${esc(tr('ddos.started',{g:fmtG(a.gbps),vec:DDOS_VEC[a.vec].n,who:ddosWho(a)}))} ${esc(how)}${fl&&a.who?`<br><i>${esc(tr('failures.attacker_who',{who:tr(a.who)}))}</i>`:''}`,bad?'bad':'good',[{l:tr('common.open_noc'),act:'leftTab',args:{t:'noc'}}],{a:'city',v:a.city});
       if(bad)sfx('alert');}
@@ -104,7 +109,7 @@ function ddosNews(){let again=false;const auto=S.ddosAuto&&S.ddosAuto.rtbh;
     if(!T.port&&m.full>0&&!a.bh){T.port=1;toast(tr('ddos.learn_port'),'',[],{a:'tab',v:'noc'});}
     if(!T.fs&&m.fsFull.length){T.fs=1;toast(tr('ddos.learn_fs',{city:CITY[m.fsFull[0]].name}),'',[],{a:'city',v:m.fsFull[0]});}}}
 // What the day did to each live attack's score: the worst the target got, the most it cost everyone else.
-function ddosTrack(list=ddosAll()){for(const a of list)if(S.pops[a.city]){a.worst=Math.min(a.worst??1,ddosSf(a));a.colMax=Math.max(a.colMax||0,ddosCol(a));}}
+function ddosTrack(list=ddosAll()){for(const a of list)if(S.pops[a.city]){a.worst=Math.min(a.worst??1,ddosHit(a));a.colMax=Math.max(a.colMax||0,ddosCol(a));}}
 // RTBH costs the target: its service is gone while it lasts, and it remembers.
 function ddosRtbhMood(a){const b=ddosBiz(a);if(b)b.mood=Math.max(0,b.mood-25);}
 /* When an attack is over. Held: the target got 97% and nobody else lost more than 1%. Sacrificed: you blackholed the
@@ -129,18 +134,25 @@ function ddosOne(a){const V=DDOS_VEC[a.vec]||{n:'?',fs:false},m=ddosReport(a),ro
   if(m.portList&&m.portList.length){const full=m.portList.filter(p=>p.fac<0.97);
     h+=row(full.length?false:true,full.length?trn('ddos.row_ports_full',m.portList.length,{k:full.length,labs:esc(full.slice(0,2).map(p=>p.lab+' ('+CITY[p.city].name+')').join(', '))+(full.length>2?' +'+(full.length-2):'')}):trn('ddos.row_ports_ok',m.portList.length));
     if(m.slowed)h+=row(false,trn('ddos.row_slowed',m.slowed));}
-  // 2. Inside: Flowspec and scrubbing.
-  if(!a.bh){if(!V.fs)h+=row(null,tr('ddos.row_fs_none',{vec:esc(V.n)}));
-    else if(m.fs>1e-6)h+=row(true,tr('ddos.row_fs',{g:fmtG(m.fs),n:m.fsAt.length}))+(m.fsFull.length?row(false,tr('ddos.row_fs_full',{cities:esc(ddCities(m.fsFull))})):'');
+  // 2. Inside: Flowspec at the edge first, then scrubbing for what the edge cannot take.
+  if(!a.bh){const W=m.why,wc=W&&W.city&&CITY[W.city]?CITY[W.city].name:'';
+    if(!V.fs)h+=row(null,tr('ddos.row_fs_none',{vec:esc(V.n)}));
+    else if(m.edge||m.fs>1e-6)h+=row(true,tr('ddos.row_fs',{g:fmtG(m.fs||a.gbps),n:Math.max(1,m.fsAt.length)}))+(m.fsFull.length?row(false,tr('ddos.row_fs_full',{cities:esc(ddCities(m.fsFull))})):'');
+    else if(W&&W.k==='rules')h+=row(false,tr('ddos.row_fs_full',{cities:esc(wc)}));
+    else if(W&&W.k==='router')h+=row(null,tr('ddos.row_fs_no_router_in',{city:esc(wc)}));
+    else if(W&&W.k==='port')h+=row(false,tr('ddos.row_fs_port_full',{city:esc(wc)}));
     else if(m.fsFull.length)h+=row(false,tr('ddos.row_fs_full',{cities:esc(ddCities(m.fsFull))}));
     else if(m.portList&&m.portList.length)h+=row(null,tr('ddos.row_fs_no_router'));
-    if(m.pulled>0)h+=row(m.over>1e-6?false:true,tr('ddos.row_scrub',{g:fmtG(m.pulled),c:fmtG(m.cleaned),cities:esc(ddCities(m.parts.map(x=>x.city)))}));
+    if(m.edge)h+=row(true,tr('ddos.row_scrub_not_needed'));
+    else if(m.pulled>0)h+=row(m.over>1e-6?false:true,tr('ddos.row_scrub',{g:fmtG(m.pulled),c:fmtG(m.cleaned),cities:esc(ddCities(m.parts.map(x=>x.city)))}));
+    else if(hasScrub()&&!scrubLive())h+=row(false,tr('ddos.row_scrub_down',{cities:esc(ddCities(S.scrubs.map(x=>x.city)))}));
     else if(engIdle)h+=row(null,tr('ddos.row_scrub_idle'));
     else if(!hasScrub())h+=row(null,tr('ddos.row_scrub_none'));
     const far=(R.haul||[]).filter(q=>q.attack===a.id&&q.ms>0).sort((x,y)=>y.ms-x.ms)[0];if(far)h+=row(null,tr('ddos.row_detour',{ms:far.ms.toFixed(0),city:esc(CITY[far.to].name)}));}
   // 3. The result.
-  const sf=ddosSf(a),col=ddosCol(a);
-  h+=`<div class="meta"><b>${a.bh?tr('ddos.res_rtbh',{who:esc(ddosBiz(a)?ddosBiz(a).name:CITY[a.city].name)}):col>=0.01?tr('ddos.res_col',{p:pct(sf),g:fmtG(m.col)}):sf<0.97?tr('ddos.res_target',{p:pct(sf)}):tr('ddos.res_held')}</b></div>`;
+  // The attack's own doing, against the target's service just before it; a target already short says so apart.
+  const sf=ddosHit(a),col=ddosCol(a),s0=a.sf0??1;
+  h+=`<div class="meta"><b>${a.bh?tr('ddos.res_rtbh',{who:esc(ddosBiz(a)?ddosBiz(a).name:CITY[a.city].name)}):col>=0.01?tr('ddos.res_col_usual',{p:pct(sf),g:fmtG(m.col)}):sf<0.97?tr('ddos.res_target_usual',{p:pct(sf)}):tr('ddos.res_held')}</b></div>${!a.bh&&s0<0.97?`<div class="meta">${tr('ddos.already_at_p_before',{who:esc(ddosBiz(a)?ddosBiz(a).name:CITY[a.city].name),p:pct(s0)})}</div>`:''}`;
   // The one thing to do now, and the rest behind "More".
   const rt=btn(tr('ddos.btn_rtbh'),'rtbh',{id:a.id},'red sm'),un=btn(tr('common.stop_blackholing'),'unrtbh',{id:a.id},'ghost sm'),eng=btn(tr('ddos.btn_engage'),'ddosEngage',{id:a.id},'green sm'),hb=btn(tr('incidents_and_ddos.hackback_3000tm_20k'),'hackback',{id:a.id},'sm',S.cash<20000);
   const main=a.bh?un:engIdle?eng:m.full>0&&col>=0.01?rt:'',more=[a.bh||main===rt?'':rt,hb].filter(Boolean).join('');

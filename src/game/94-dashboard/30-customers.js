@@ -7,6 +7,7 @@ function bizWhy(b){const T=BIZ_T[b.type],out=[];if(T.event&&!eventLive(b))return
   if(b.type==='scrub'&&!hasScrub())out.push(tr('common.needs_a_scrubbing_center'));
   {const q=b.type==='scrub'&&scrubFar(b.city);if(q)out.push(tr('customers.attacks_on_city_are_hauled_to',{city:CITY[b.city].name,to:CITY[q.to].name,ms:Math.round(q.ms)}));}
   for(const k of b.reqs||[])if(REQS[k]&&!REQS[k].ok(b))out.push(typeof REQS[k].l==='function'?REQS[k].l(b):REQS[k].l);
+  if(rtqOver(b)>0&&!inGrace(b))out.push(rtqWhy(rtq(b),b.name).replace(/<[^>]+>/g,''));
   return out;}
 const moodCls=m=>m<30?'bad':m<60?'warn':'';
 const custStats=()=>{const bz=S.biz.filter(b=>!BIZ_T[b.type].event),mo=bz.reduce((a,b)=>a+bizMo(b),0);

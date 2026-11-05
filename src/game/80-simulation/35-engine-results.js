@@ -6,6 +6,8 @@ function engResults(X){const {R2,E,NX,NE,NP,EP,IT,F,L,hp,OFFH,LOSSH,CAP,NOH,EPO,
   // Items as columns: their flow, network, far end, peak volume, endpoint, cache part, detour and the exit it uses.
   const NI=IT.length,IF=new Int32Array(NI),IJ=new Int32Array(NI),IO=new Int32Array(NI),IV=new Float64Array(NI),IE=new Int32Array(NI),IC=new Uint8Array(NI),ILAT=new Float64Array(NI),ILX=new Int32Array(NI),IS=new Int32Array(NI);
   for(let t=0;t<NI;t++){const it=IT[t];IF[t]=it.f;IJ[t]=it.j;IO[t]=it.o;IS[t]=it.sv>=0?it.sv:it.o>=0?ORIGINS[it.o].ci:-1;IV[t]=it.v;IE[t]=it.ep;IC[t]=it.ce;ILAT[t]=it.lat||0;ILX[t]=it.lx===undefined?-1:it.lx;}
+  // Routing quality per endpoint: traffic-weighted extra RTT, what routing alone could save, and the worst item.
+  const NEP0=EP.length,RQW=new Float64Array(NEP0),RQN=new Map();let rqK=-1,rqO=null;
   const EPIP=new Uint8Array(NEP),EPPOP=new Uint8Array(NEP),EPCI=new Int32Array(NEP);for(let i=0;i<NEP;i++){const k=EP[i].k;EPIP[i]=k==='pop'||k==='grp'?1:0;EPPOP[i]=k==='pop'?1:0;EPCI[i]=EP[i].ci;}
   const FVi=new Float64Array(F.v.length),FGa=Float64Array.from(F.g);for(let f=0;f<FVi.length;f++)FVi[f]=F.v[f]>0?1/F.v[f]:0;
   R2.hp=hp;R2.served=TS[hp];R2.demand=TD[hp];R2.egT.l2=TL2[hp];R2.teMoved=X.teMoved||0;
@@ -48,15 +50,25 @@ function engResults(X){const {R2,E,NX,NE,NP,EP,IT,F,L,hp,OFFH,LOSSH,CAP,NOH,EPO,
     for(let k=0;k<3;k++){const id=FIN[f*3+k],w=WC[f*3+k];if(id<0||!(w>0))continue;const xi=LX[id],x=E[xi],g=din*w/tw,kx=EXK_I[x.k];
       EGK[kx]+=g;NEA[j*4+kx]+=g;if(x.rank<=2)peered+=g;if(kx===0){const q=xi*NN+j;TNA.set(q,(TNA.get(q)||0)+g);}}
     // Backhaul: users notice the detour to where their traffic leaves (Korean users under sender pays much sooner).
+    // Routing quality per far network: one slow network is felt even when the average looks fine.
+    {const it=IT[t];if(it.ex!==undefined){RQW[ei]+=v;const k=ei*NN+j;let o=k===rqK?rqO:RQN.get(k);if(!o)RQN.set(k,o={ei,j,w:0,x:0,r:0,f:0,b:-1,t:-1});rqK=k;rqO=o;o.w+=v;o.x+=v*it.ex;o.r+=v*(it.rt||0);o.f+=v*(it.fx||0);if(v*it.ex>o.b){o.b=v*it.ex;o.t=t;}}}
     if(EPPOP[ei]&&ILX[t]>=0){const ci=EPCI[ei],lt=ILAT[t];LATW[ci]+=v;if(lt>0){const ls=(snd&&CITIES[ci].kr?krLatLoss:latLoss)(2*lt);
-      if(ls>0){LATL[ci]+=v*ls;const x=E[ILX[t]],k=ci*NC+x.ci;let o=FAR.get(k);if(!o)FAR.set(k,o={c:CITIES[ci].id,to:x.city,g:0,ms:0});o.g+=v;if(2*lt>o.ms)o.ms=2*lt;}}}}
+      if(ls>0){LATL[ci]+=v*ls;const x=E[ILX[t]],k=ci*NC+x.ci;let o=FAR.get(k);if(!o)FAR.set(k,o={c:CITIES[ci].id,to:x.city,g:0,x:0,r:0,kc:0});o.g+=v;o.x+=v*2*lt;o.r+=v*(IT[t].rt||2*lt);if(x.k==='c')o.kc+=v;}}}}
   R2.gfwCross+=gC;R2.gfwLost+=gL;
   R2.peered=peered;for(let k=0;k<4;k++){if(EGK[k]>0)R2.egT[EXK[k]]=EGK[k];if(EGO[k]>0)R2.egO[EXK[k]]=EGO[k];}R2.egO.l2=R2.egT.l2||0;
   for(let j=0;j<NN;j++){const b=j*4;if(NEA[b]||NEA[b+1]||NEA[b+2]||NEA[b+3])R2.netEg[NETS[j].id]={t:NEA[b],ix:NEA[b+1],p:NEA[b+2],c:NEA[b+3]};}
   for(const [q,g] of TNA){const x=E[Math.floor(q/NN)],n=NETS[q%NN].id,m=R2.tNet[x.id]||(R2.tNet[x.id]={});m[n]=(m[n]||0)+g;}
   for(let j=0;j<NN;j++)if(DEMTO[j]>0)R2.demTo[NETS[j].id]=DEMTO[j];
   for(const e of EP)if(e.k==='pop'&&LATW[e.ci]>0&&LATL[e.ci]>0){const c=e.city;R2.latF[c]=clamp(1-LATL[e.ci]/LATW[e.ci],0,1);if(R2.psf[c]!==undefined&&!grace)R2.psf[c]*=R2.latF[c];}
-  for(const o of FAR.values()){const cur=R2.latFar[o.c],w=LATW[CIDX[o.c]];if(!cur||o.g>cur.g)R2.latFar[o.c]={to:o.to,g:o.g,ms:o.ms,share:w>0?o.g/w:0};}
+  /* Each endpoint is judged by its slowest far network that carries a noticeable share (RQ_SH) of its traffic; every
+     network from RQ_SHOW up is listed (ms the extra round trip, rt the round trip itself, both traffic-weighted). */
+  R2.rq={};R2.rqC={};const RQL=new Map(),xn=x=>x.k==='t'||x.k==='p'?x.net:null;for(const o of RQN.values()){const W=RQW[o.ei];if(!(W>0)||!(o.w/W>=RQ_SHOW))continue;const it=IT[o.t],xi=it.inX>=0?E[it.inX]:null,xo=it.outX>=0?E[it.outX]:null;
+    const fl={net:NETS[o.j].id,ms:o.x/o.w,rt:o.r/o.w,fix:o.f/o.w,share:o.w/W,inC:xi&&xi.city,inK:xi&&xi.k,inN:xi&&xn(xi),outC:xo&&xo.city,outK:xo&&xo.k,outN:xo&&xn(xo)};
+    let L2=RQL.get(o.ei);if(!L2)RQL.set(o.ei,L2=[]);L2.push(fl);}
+  for(const [ei,fl] of RQL){fl.sort((a,b)=>b.ms-a.ms);const e=EP[ei],top=fl.find(f=>f.share>=RQ_SH),q=top?{...top,flows:fl}:{ms:0,fix:0,flows:fl};
+    if(e.k==='pop')R2.rqC[e.city]=q;else if(e.k==='grp'&&e.members)for(const id of e.members)R2.rq[id]=q;}
+  // The far exit that carries most of a city's slow traffic: ms its extra round trip, rt the round trip, traffic-weighted.
+  for(const o of FAR.values()){const cur=R2.latFar[o.c],w=LATW[CIDX[o.c]];if(!cur||o.g>cur.g)R2.latFar[o.c]={to:o.to,k:o.kc>o.g/2?'c':'t',g:o.g,ms:o.x/o.g,rt:o.r/o.g,share:w>0?o.g/w:0};}
   R2.peerShare=R2.served>0?R2.peered/R2.served:0;
   // Floods: what the ports let through, and who else felt it.
   // Collateral is what everyone loses on the pipes the junk crosses (the ports it comes in on and its way to the target).

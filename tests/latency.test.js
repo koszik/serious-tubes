@@ -25,7 +25,7 @@ test('broadband backhauled to transit far away is slow, and slow is bad service'
   ev("UI.sel={type:'city',id:'lon'};UI.tab='up';renderPanel()");
   assert.match(ev("document.getElementById('panelBody').textContent"), /backhauled to transit in New York/);
   ev("UI.sel=null;UI.left='noc';UI.leftOpen=true;renderLeft()");
-  assert.match(ev("document.getElementById('left').textContent"), /Slow cities/);
+  assert.match(ev("document.getElementById('left').textContent"), /Routing quality.*London: traffic to .* \(\d+% of it\) takes \d+ ms longer than it needs, in at .* and out at New York/s);
   // bad service costs customers and money: broadband shrinks instead of growing
   const d0 = ev('S.pops.lon.bb.d'), a0 = ev('S.pops.ams.bb.d');
   for (let i = 0; i < 20; i++) ev('dayTick()');
@@ -33,7 +33,8 @@ test('broadband backhauled to transit far away is slow, and slow is bad service'
   assert.ok(ev('S.pops.ams.bb.d') >= a0, 'Amsterdam does not');
   // local transit fixes it
   ev("ACT.buyTransit({city:'lon',net:'cog',tier:1});compute()");
-  assert.equal(ev('R.latF.lon'), undefined);
+  // (a sliver of American content still comes in at New York: the far network's hot potato)
+  assert.ok((ev('R.latF.lon') ?? 1) > 0.995);
   assert.ok(ev("sfOf(R,'lon')") > 0.95);
   assert.deepEqual(errors, []);
 });

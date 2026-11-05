@@ -13,7 +13,7 @@ function kmI(a,b){const n=CITIES.length;if(!KMM)KMM=new Float64Array(n*n).fill(-
 // server, and a city's biggest audiences. A content network serves Paris from Paris when it is there, not from London.
 let NEARO=null,SRVO=null;
 function srvOf(o,ci){const n=CITIES.length;if(!SRVO)SRVO=new Int32Array(ORIGINS.length*n).fill(-1);const k=o*n+ci;let v=SRVO[k];
-  if(v<0){const sv=ORIGINS[o].sv;v=sv[0];for(const s of sv)if(kmI(ci,s)<kmI(ci,v))v=s;SRVO[k]=v;}return v;}
+  if(v<0){const sv=ORIGINS[o].sv;v=sv[0];for(const s of sv)if(worldMs(ci,s)<worldMs(ci,v))v=s;SRVO[k]=v;}return v;}
 // Under sender pays, content networks keep their servers out of Korea and serve it from next door (Gangnam Style Peering).
 function srvNoKr(o,ci){const sv=ORIGINS[o].sv;let v=-1;for(const s of sv)if(!CITIES[s].kr&&(v<0||kmI(ci,s)<kmI(ci,v)))v=s;return v<0?srvOf(o,ci):v;}
 function nearO(j,ci){const n=CITIES.length;if(!NEARO)NEARO=new Int32Array(NETS.length*n).fill(-1);const k=j*n+ci;let v=NEARO[k];
@@ -42,7 +42,7 @@ const asLen=(e,n)=>e.k==='c'?1:e.k==='p'?(e.net===n?1:2):e.k==='ix'?(e.id==='~gr
 
 function compute(){RW.gen++;
   const R2=emptyR();R2.l2route={};R2.l2split={};R2.bizDem={};R2.bizSrv={};const X=engBase(R2);
-  engItems(X);engRoute(X);engHours(X);engResults(X);
+  ddosPlan(X);engItems(X);engRoute(X);engHours(X);engResults(X);
   computeMoney(R2);R=R2;UI.hotMap=hotByCity();}
 // The graph, today's exits and who reaches whom: what every routing question starts from (the looking glass too).
 function engBase(R2){const day=S.day,pops=Object.keys(S.pops).filter(popUp),NC=CITIES.length,NN=NETS.length,ev=S.ev,PC=polCompile();
