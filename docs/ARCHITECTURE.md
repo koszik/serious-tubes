@@ -66,7 +66,8 @@ Development runs on `npm run dev` (assembles on every request, reloads on save);
 | `scripts/lib/compile-labels.js` | Shrinks labels to short ids in the shipped page and dictionaries |
 | `scripts/build.js` | Builds `_site/` for GitHub Pages: copies `site/`, writes the page, stamps `__VERSION__`/`__BUILD_DATE__`, bakes release notes, writes `version.json` |
 | `scripts/dev.js` | `npm run dev`: development server, no dependencies |
-| `scripts/test.js` | `npm test`: runs every `tests/*.test.js` |
+| `scripts/test.js` | `npm test`: the smoke check, then every `tests/*.test.js`, longest first, `@parts` files split |
+| `scripts/test-smoke.js` | `npm run test:smoke`: ~10 s check that everything compiles, boots and plays a day cleanly |
 | `scripts/release-notes.js` | Extracts a version's CHANGELOG bullets |
 | `scripts/perf-bench.js`, `perf-browser.js`, `perf-stats.js`, `perf-fixture.js` | Big-network benchmark, base vs head, headless and in Chromium as a desktop and a throttled phone, with a significance test per row (posted on every PR by `perf.yml` + `perf-comment.yml`), and the generator of its save, `tests/fixtures/big-network.json` |
 | `scripts/mcp.js`, `scripts/lib/mcp-game.js`, `scripts/lib/mcp-commands.js`, `scripts/lib/mcp-page.js` | The game as a local MCP server: typed tools to play, inspect and debug it from an AI client ([MCP.md](MCP.md)) |
@@ -293,3 +294,10 @@ assert.deepEqual(errors, []);
 `ev()` runs code inside the page. To force a specific random failure, patch the
 picker, e.g. evaluate `fireFailure` with `.replace('const e=pick(opts);', "const e='x';")`.
 Use `window.__reseed(n)` to reset the random sequence mid-test.
+
+`npm test` starts with the smoke check (`scripts/test-smoke.js`, about 10 s: every script compiles, the page boots,
+a new game and the big network play a day, no `NaN` or `{placeholder}` on the main screens) and stops there if it
+fails. It then runs every file as its own process, as many as there are cores, longest first by
+`tests/durations.json`. A file marked `// @parts N` runs as N processes, each with every Nth test
+(`tests/harness.js` `parts()`), so one heavy file is not the floor of a run. While working, run the suites a change
+touches (`npm test -- tests/a.test.js tests/b.test.js`); the full run once at the end (the `write-tests` skill).

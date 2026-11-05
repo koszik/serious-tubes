@@ -105,4 +105,14 @@ function browser({ locks = true, channel = true } = {}) {
 }
 const flush = (n = 3) => new Promise((r) => { const go = (i) => (i ? setTimeout(() => go(i - 1), 2) : r()); go(n); });
 
-module.exports = { load, seed, browser, flush };
+// A file marked `// @parts N` runs as N processes at once (scripts/test.js); each registers every Nth test, in the order
+// they are written. Use it as `const test = parts(require('node:test'))`; outside the runner every test runs.
+function parts(test) {
+  const m = /^(\d+)\/(\d+)$/.exec(process.env.TEST_PART || '');
+  if (!m) return test;
+  const i = +m[1] - 1, n = +m[2];
+  let k = 0;
+  return Object.assign((...a) => (k++ % n === i ? test(...a) : undefined), test);
+}
+
+module.exports = { load, seed, browser, flush, parts };

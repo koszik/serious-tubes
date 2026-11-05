@@ -1,7 +1,8 @@
 // The published weekly scenario: the generator (scripts/weekly-scenario.js) and its reference player, --check, and the
 // game's side: fetched only when the Scenarios list opens, validated strictly, the in-browser weekly as the fallback,
 // a goal type and progress card for each kind of week, the win, the streak and the share line.
-const test = require('node:test');
+// @parts 2
+const test = require('./harness').parts(require('node:test'));
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');

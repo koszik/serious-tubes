@@ -1,6 +1,8 @@
 // The published weekly puzzle: Sunday 06:00 Berlin weeks, the generator (scripts/weekly-puzzle.js), its --check,
 // and the game's fetch: only when Puzzles opens, validated strictly, with the seeded weekly as the fallback.
-const test = require('node:test');
+// @parts 8
+const { parts } = require('./harness');
+const test = parts(require('node:test'));
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
@@ -95,29 +97,17 @@ test('generator: a quarter of weeks, all verified, varied, small and in the sche
   assert.deepEqual(JSON.parse(fs.readFileSync(path.join(d, 'index.json'), 'utf8')).weeks, out.map((j) => j.key));
 });
 
-test('--check passes on the committed files and rejects tampered ones', () => {
-  const g = G.game();
-  // Weeks still to come are re-solved; past ones are checked the way the game reads them. check() only reports;
-  // refresh() (the first half of --check) is what fixes.
-  assert.deepEqual(G.check(g, DIR), [], 'committed weeklies verify');
-  const bad = (edit, why) => {
-    const d = tmp();
-    for (const k of G.list(DIR).slice(-3)) fs.copyFileSync(path.join(DIR, k + '.json'), path.join(d, k + '.json'));
-    G.writeIndex(d);
-    const k = G.list(d)[0], f = path.join(d, k + '.json'), j = JSON.parse(fs.readFileSync(f, 'utf8'));
-    const r = edit(j, d, k); fs.writeFileSync(f, typeof r === 'string' ? r : JSON.stringify(j));
-    assert.notDeepEqual(G.check(g, d, 0), [], why);
-  };
-  bad((j) => { j.budget = Math.floor(j.ref.three * 0.8 / 10000) * 10000; j.ref.three = j.budget - 1; }, 'a budget nobody can earn three stars under');
-  bad((j) => { j.cities[0] = 'xxx'; }, 'an unknown city');
-  bad((j) => { j.name.l = 'puzzles.hello_world'; }, 'a label that is not a weekly name');
-  bad((j) => { j.joke.p = { hub: 'fra' }; }, 'parameters the label does not take');
-  bad((j) => { j.extra = '<img src=x onerror=alert(1)>'; }, 'an unknown field');
-  bad((j) => { j.key = '2030-W01'; }, 'a file under another week\'s name');
-  bad((j) => { j.dem.push({ t: 'l2', a: j.cities[0], b: j.cities[1], g: 10, ms: 1 }); }, 'an impossible latency target');
-  bad((j) => { j.dem[0].g = 5000; }, 'more traffic than a puzzle carries');
-  bad(() => '{nope', 'not JSON');
-  bad((j, d) => { fs.writeFileSync(path.join(d, 'index.json'), '{"v":1,"weeks":[]}'); }, 'an index that misses weeks');
+// Weeks still to come are re-solved; past ones are checked the way the game reads them. check() only reports;
+// refresh() (the first half of --check) is what fixes. The weeks are checked in three groups side by side (each
+// week on its own; the index over all of them is checked once, without re-solving).
+test('--check passes on the committed files: the index and every file as the game reads it', () => {
+  assert.deepEqual(G.check(G.game(), DIR, 8.64e15), [], 'committed weeklies verify');
+});
+for (let part = 0; part < 3; part++) test(`--check passes on the committed files: weeks to come re-solved (group ${part + 1} of 3)`, () => {
+  const d = tmp(), keys = G.list(DIR).filter((k, i) => i % 3 === part);
+  for (const k of keys) fs.copyFileSync(path.join(DIR, k + '.json'), path.join(d, k + '.json'));
+  G.writeIndex(d);
+  assert.deepEqual(G.check(G.game(), d), [], 'committed weeklies verify');
 });
 
 test('--check regenerates a published week when new prices break its budget, and only then', () => {
@@ -147,6 +137,28 @@ test('--check regenerates a published week when new prices break its budget, and
   // Weeks that are over cannot be played again: their stars stay, so a broken budget there is left alone.
   const e = read(k0); e.budget = 50000; fs.writeFileSync(path.join(d, k0 + '.json'), JSON.stringify(e));
   assert.deepEqual(G.refresh(g, d, 8.64e15), { fixed: [], bad: [] });
+});
+
+// Each tampering on its own, so they run side by side: a copy of the last three weeks with one file edited.
+const TAMPER = [
+  [(j) => { j.budget = Math.floor(j.ref.three * 0.8 / 10000) * 10000; j.ref.three = j.budget - 1; }, 'a budget nobody can earn three stars under'],
+  [(j) => { j.cities[0] = 'xxx'; }, 'an unknown city'],
+  [(j) => { j.name.l = 'puzzles.hello_world'; }, 'a label that is not a weekly name'],
+  [(j) => { j.joke.p = { hub: 'fra' }; }, 'parameters the label does not take'],
+  [(j) => { j.extra = '<img src=x onerror=alert(1)>'; }, 'an unknown field'],
+  [(j) => { j.key = '2030-W01'; }, 'a file under another week\'s name'],
+  [(j) => { j.dem.push({ t: 'l2', a: j.cities[0], b: j.cities[1], g: 10, ms: 1 }); }, 'an impossible latency target'],
+  [(j) => { j.dem[0].g = 5000; }, 'more traffic than a puzzle carries'],
+  [() => '{nope', 'not JSON'],
+  [(j, d) => { fs.writeFileSync(path.join(d, 'index.json'), '{"v":1,"weeks":[]}'); }, 'an index that misses weeks'],
+];
+for (const [edit, why] of TAMPER) test(`--check rejects a tampered file: ${why}`, () => {
+  const g = G.game(), d = tmp();
+  for (const k of G.list(DIR).slice(-3)) fs.copyFileSync(path.join(DIR, k + '.json'), path.join(d, k + '.json'));
+  G.writeIndex(d);
+  const k = G.list(d)[0], f = path.join(d, k + '.json'), j = JSON.parse(fs.readFileSync(f, 'utf8'));
+  const r = edit(j, d, k); fs.writeFileSync(f, typeof r === 'string' ? r : JSON.stringify(j));
+  assert.notDeepEqual(G.check(g, d, 0), [], why);
 });
 
 test('stars belong to the revision of the week they were earned on', () => {

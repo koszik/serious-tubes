@@ -2,7 +2,8 @@
 // the player's own actions, a plan a sensible human would follow) that wins within its days, and the obvious shortcut
 // does not. The win days below were recorded in the 2.0.0 playtest; a balance change that moves them far is a change
 // in how the scenario plays, so look before you re-record.
-const test = require('node:test');
+// @parts 4
+const test = require('./harness').parts(require('node:test'));
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
 const { play } = require('../scripts/lib/scenario-ref');

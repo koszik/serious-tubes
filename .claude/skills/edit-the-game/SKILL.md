@@ -29,8 +29,9 @@ there: `10-catalog` prices and gear, `20-world` cities and cables, `30-networks`
 
 ```bash
 npm run dev        # http://localhost:8080, assembled on every request, reloads on save
-npm test           # all suites (assembles src/ in memory; no build needed)
-npm test -- tests/peering.test.js    # one suite
+npm test -- tests/peering.test.js    # while working: the suites your change touches
+npm run test:smoke # ~10 s check that everything still boots and plays a day
+npm test           # once at the end: all suites (assembles src/ in memory; no build needed)
 ```
 
 A browser error points at a line of the assembled page; the dev server prints the `src/` file and line

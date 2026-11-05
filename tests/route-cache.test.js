@@ -2,7 +2,9 @@
 // rebuilt only when their key changes. These tests make sure every kind of change that can matter changes the key (a
 // stale table would route yesterday's network), that demand alone does not (or nothing is gained), and that routing
 // with the kept tables is exactly routing without them.
-const test = require('node:test');
+// @parts 3
+const { parts } = require('./harness');
+const test = parts(require('node:test'));
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -25,11 +27,9 @@ function step(ev, change) {
     return JSON.stringify({g,x,same:a===b,len:a.length});})()`));
 }
 
-test('a change to links, POPs, ports, peering, events or RouteScript rebuilds what routing keeps; demand alone does not', () => {
-  const { ev, errors } = open();
-  assert.ok(ev('RC.gk!==null&&ENGC.key!==null'), 'routing keeps its tables after a compute');
-  // [what changes, the graph key moves, the exits key moves]
-  const changes = [
+// [what changes, the graph key moves, the exits key moves], in three groups that each start from the fixture.
+const CHANGES = {
+  'demand alone does not; links, POPs and metrics do': [
     // Demand and capacity only: nothing structural, the kept tables are used.
     ['for(const c in S.pops)if(S.pops[c].bb)S.pops[c].bb.d*=1.07', false, false],
     ['S.biz.forEach(b=>b.bw*=1.1)', false, false],
@@ -44,6 +44,8 @@ test('a change to links, POPs, ports, peering, events or RouteScript rebuilds wh
     ["S.pairMet=S.pairMet||{};{const l=S.links[10];S.pairMet[l.a<l.b?l.a+'|'+l.b:l.b+'|'+l.a]='avoid';}", true, true],
     ['S.pops.sea.down=S.day+3', true, true],
     ['S.pops.sea.down=0', true, true],
+  ],
+  'transit ports, PNIs, caches, exchanges and sessions': [
     // The exits: transit ports, PNIs, caches, exchanges, sessions.
     ["S.transit[2].pref='low'", false, true],
     ["S.transit[2].pref='high'", false, true],
@@ -58,6 +60,8 @@ test('a change to links, POPs, ports, peering, events or RouteScript rebuilds wh
     ['S.ev.ixdown={};S.ev.ixdown[Object.keys(S.ixp)[2]]=S.day+3', false, true],
     ['delete S.rs[Object.keys(S.rs)[0]]', false, true],
     ['delete S.ixp[Object.keys(S.ixp)[3]]', false, true],
+  ],
+  'events and RouteScript': [
     // Events that change who reaches whom, and RouteScript.
     ["S.ev.rpki={nets:['ggl','nfx'],until:S.day+3}", false, true],
     ['S.ev.depeer=S.day+3', false, true],
@@ -66,16 +70,22 @@ test('a change to links, POPs, ports, peering, events or RouteScript rebuilds wh
     ["S.te.script+='\\nprefer pni for goggle'", false, true],
     // avoid link: the edge's weight, so the graph key moves too.
     ["{const l=S.links.find(x=>!linkDown(x));S.te.script+='\\navoid link '+CITY[l.a].name.toLowerCase()+'-'+CITY[l.b].name.toLowerCase();}", true, true],
-  ];
-  for (const [change, g, x] of changes) {
-    const r = step(ev, change);
-    assert.ok(r.same, `${change}: routing with the kept tables is routing without them`);
-    if (g !== null) assert.equal(r.g, g, `${change}: the graph key ${g ? 'moves' : 'stays'}`);
-    assert.equal(r.x, x, `${change}: the exits key ${x ? 'moves' : 'stays'}`);
-    assert.ok(r.len > 1e5, 'a big network was routed');
-  }
-  assert.deepEqual(errors, []);
-});
+  ],
+};
+for (const [name, changes] of Object.entries(CHANGES)) {
+  test(`what routing keeps is rebuilt when it must: ${name}`, () => {
+    const { ev, errors } = open();
+    assert.ok(ev('RC.gk!==null&&ENGC.key!==null'), 'routing keeps its tables after a compute');
+    for (const [change, g, x] of changes) {
+      const r = step(ev, change);
+      assert.ok(r.same, `${change}: routing with the kept tables is routing without them`);
+      if (g !== null) assert.equal(r.g, g, `${change}: the graph key ${g ? 'moves' : 'stays'}`);
+      assert.equal(r.x, x, `${change}: the exits key ${x ? 'moves' : 'stays'}`);
+      assert.ok(r.len > 1e5, 'a big network was routed');
+    }
+    assert.deepEqual(errors, []);
+  });
+}
 
 test('days in a row reuse the kept tables and route like a fresh start every day', () => {
   const { ev, errors } = open();

@@ -1,4 +1,6 @@
-const test = require('node:test');
+// @parts 3
+const { parts } = require('./harness');
+const test = parts(require('node:test'));
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -19,7 +21,10 @@ const ORIGINAL = `(function(o){if(!o||!own(BIZ_T,o.type)||!(o.exp>S.day)||!(o.bw
     return !bizWhy(b).length&&healthy.every(x=>!bizWhy(x).length)?b:null;
   }finally{S=state;R=result;UI.hotMap=hot;b.start=o.start;if(T.cap)delete b.live;}})`;
 
-test('the faster sales trial signs exactly the offers the two-pass trial signs', () => {
+// Six days of offers, in two halves run side by side: the second plays the first three days without trials (a trial
+// changes nothing, so the days are the same) and tries the offers of the last three. The second pass is skipped only
+// once events booked ahead have built up, in the later days: that half checks it.
+for (const [from, to, skips] of [[0, 3, 0], [3, 6, 5]]) test(`the faster sales trial signs exactly the offers the two-pass trial signs (days ${from + 1}–${to})`, () => {
   const { ev, dom, errors } = load();
   try {
     const save = fs.readFileSync(path.join(__dirname, 'fixtures', 'big-network.json'), 'utf8');
@@ -27,7 +32,7 @@ test('the faster sales trial signs exactly the offers the two-pass trial signs',
     assert.ok(ev('S.biz.some(x=>BIZ_T[x.type].event&&x.start>S.day)'), 'the fixture has events booked ahead, so the shortcut runs');
     const seen = { yes: 0, no: 0, skipped: 0, third: 0 };
     ev('window.__n=0;const _c=compute;window.compute=function(){__n++;return _c.apply(this,arguments)}');
-    for (let day = 0; day < 6; day++) {
+    for (let day = 0; day < to; day++) {
       ev(`__reseed(${1000 + day});S.offers=[];for(let i=0;i<10;i++)spawnOffer();`);
       // Small offers that fit, and on alternate days a squeeze, so offers fail on capacity and on others' service too.
       ev(`for(const o of S.offers)o.bw=Math.max(1,Math.round(o.bw*${day % 2 ? 1 : 0.05}))`);
@@ -35,7 +40,7 @@ test('the faster sales trial signs exactly the offers the two-pass trial signs',
       // And circuits over the busiest links, which take bandwidth from customers who had it.
       ev(`for(const l of S.links.filter(l=>!linkDown(l)&&S.pops[l.a]&&S.pops[l.b]&&R.load[l.id]>1).sort((x,y)=>R.load[y.id]/capOf(y)-R.load[x.id]/capOf(x)).slice(${day},${day}+2))
         S.offers.push({id:'sq'+l.id,city:l.a,city2:l.b,name:'Squeeze',type:'l2vpn',bw:${day % 2 ? 300 : 2},rate:100,reqs:[],exp:S.day+30})`);
-      for (const id of JSON.parse(ev('JSON.stringify(S.offers.map(o=>o.id))'))) {
+      for (const id of day < from ? [] : JSON.parse(ev('JSON.stringify(S.offers.map(o=>o.id))'))) {
         const o = `S.offers.find(x=>x.id===${JSON.stringify(id)})`;
         const before = ev('JSON.stringify(R.load)+R.served');
         ev('__n=0');const fast = ev(`JSON.stringify(autoOffer(${o}))`);const n = ev('__n');
@@ -49,7 +54,7 @@ test('the faster sales trial signs exactly the offers the two-pass trial signs',
       ev('S.nextFail=S.day+99;S.nextEvent=S.day+99;dayTick()');
     }
     assert.ok(seen.yes >= 3 && seen.no >= 3, `both answers come up (${JSON.stringify(seen)})`);
-    assert.ok(seen.skipped >= 5, `the second pass is often skipped (${JSON.stringify(seen)})`);
+    assert.ok(seen.skipped >= skips, `the second pass is often skipped (${JSON.stringify(seen)})`);
     assert.ok(seen.third >= 3, `and run when the offer hurts someone (${JSON.stringify(seen)})`);
     assert.deepEqual(errors, []);
   } finally { dom.window.close(); }

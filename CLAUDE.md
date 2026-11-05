@@ -21,7 +21,9 @@ Read these before larger changes:
 ```bash
 npm ci                       # once: installs jsdom for the tests
 npm run dev                  # play while developing: http://localhost:8080, reloads on save
-npm test                     # node:test + jsdom, every tests/*.test.js, must stay green
+npm run test:smoke           # ~10 s: everything compiles, the page boots, a day plays, no NaN on screen
+npm test -- tests/x.test.js  # while working: only the suites the change touches
+npm test                     # once at the end: smoke check, then every tests/*.test.js; must stay green
 node scripts/i18n-check.js   # must report "0 missing, 0 unused, 0 broken" (and sorted dictionaries)
 node scripts/i18n-add.js FILE.json   # add/change/remove translations (see `add-strings`)
 npm run build                # builds _site/ for GitHub Pages (assembles src/, stamps version, bakes release notes)
@@ -71,7 +73,8 @@ npm run mcp                  # the game as a local MCP server for AI clients (do
   and the numbers go into the PR and into your summary. Every PR also gets them as a comment from
   CI. Anything slower needs a reason or a fix.
 - **Tests come with features.** Add or extend a test in `tests/` for every feature or
-  fix (a new feature gets its own `tests/<feature>.test.js`). Tests are seeded, so they must not
+  fix (a new feature gets its own `tests/<feature>.test.js`). While working run only the suites the change
+  touches, and the full `npm test` once at the end (see `write-tests`). Tests are seeded, so they must not
   depend on luck.
 - **CHANGELOG style:** plain English, written for players, one bullet per change,
   issue numbers in parentheses like `(#37)`. No internal names, no jokes explained. The CHANGELOG

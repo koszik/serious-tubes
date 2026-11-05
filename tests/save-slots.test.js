@@ -1,4 +1,5 @@
-const test = require('node:test');
+// @parts 2
+const test = require('./harness').parts(require('node:test'));
 const assert = require('node:assert/strict');
 const { load, browser, flush } = require('./harness');
 

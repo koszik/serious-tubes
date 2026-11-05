@@ -1,6 +1,7 @@
 // Puzzle mode (#190), with traffic: small builds that carry real flows, routed by the game's own compute(), with stars,
 // no clock, and a main save that is never touched.
-const test = require('node:test');
+// @parts 2
+const test = require('./harness').parts(require('node:test'));
 const assert = require('node:assert/strict');
 const { load } = require('./harness');
 const SV = require('../scripts/lib/puzzle-solver');
