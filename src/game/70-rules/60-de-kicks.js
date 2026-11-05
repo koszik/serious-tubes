@@ -10,7 +10,7 @@ function dkAddonMo(c){return S.dk&&S.dk.add[c]?S.dk.add[c].reduce((a,x)=>a+x.mo,
 function dkState(){S.dk=S.dk||{m:{},add:{},ret:{},retUsed:{},stall:0,q:null};return S.dk;}
 function dkQuoteMult(){const pops=Object.keys(S.pops).length,big=Math.min(1.2,pops*0.04+(R.served||0)/20000);return +(0.95+Math.random()*0.45+big).toFixed(2);}
 function dkQuoteModal(){const q=S.dk.q,c=q.city,mo=Math.round(PORT[q.tier].ix*transitEro()*(S.pops[c]?1:REMOTE_FEE)*q.m*ixMul(c));
-  openModal(`<div class="eyebrow">${tr('de_kicks.de_kicks_group_sales')}</div><h2 style="font-size:26px">${tr('de_kicks.your_personalised_port_quote_for_ix',{port:PORT[q.tier].n,ix:esc(ixName(c))})}</h2>
+  openModal(`<div class="eyebrow">${tr('de_kicks.de_kicks_group_sales')}</div><h2 style="font-size:26px">${tr('de_kicks.your_personalised_port_quote_for_ix',{port:PORT[q.tier].n,ix:esc(ixName(c))})}</h2>${S.pops[ixCity(c)]?xcNote(ixCity(c)):''}
   <p class="tagline">${tr('de_kicks.thanks_for_your_interest_we_don')}</p>
   <div class="kv"><span>${tr('de_kicks.monthly_price_just_for_you')}</span><b>${tr('common.price_mo',{price:fmt$(mo)})}</b></div>
   <div class="kv"><span>${tr('common.list_price')}</span><b>${tr('common.confidential')}</b></div>

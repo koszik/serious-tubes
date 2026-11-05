@@ -1775,6 +1775,7 @@
 "dashboard.all_n":"Alle ({n})",
 "dashboard.amp_huts_and_spares":"Verstärkerhütten und Ersatzteile",
 "dashboard.caches_pnis_and_ix":"Caches, PNIs und IX",
+"dashboard.cross_connects_fiber_patches":"Cross-Connects (Glasfaser-Patches zu Providern, Exchanges, Peers und deinen Links)",
 "dashboard.customers_are_upset":"Kunden sind verärgert",
 "dashboard.delivered_30_days":"Geliefert, 30 Tage",
 "dashboard.five_nines_ish":"fünf Neunen, so ungefähr",
@@ -4211,4 +4212,7 @@
 "wkscn.weekly_scenario_key":"Wochenszenario {key}",
 "wkscn.won_day_d_par_par":"Gewonnen an Tag {d} (Par {par})",
 "wkscn.won_on_day_d":"Gewonnen an Tag {d}!",
+"xc.cross_connects":"Cross-Connects",
+"xc.cross_connects_in_city_are_free_monthly":"Cross-Connects in {city} kosten nichts im Monat, nur {nrc} einmalig für die Installation. Jeder Port zu einem anderen Netz und jedes Ende einer Wave oder eines Faserpaars ist einer.",
+"xc.prices_include_cross_connects_in_city":"Cross-Connects in {city}: {nrc} Installation und {mo}/Monat pro Stück, in den Preisen hier enthalten. Jeder Port zu einem anderen Netz und jedes Ende einer Wave oder eines Faserpaars ist einer.",
 };

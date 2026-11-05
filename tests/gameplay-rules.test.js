@@ -465,6 +465,20 @@ test('F10: a network left alone makes a bounded amount of money', () => {
   assert.deepEqual(g.errors, []);
 });
 
+test('F11: every connection to another network pays one cross-connect per fiber patch, whatever its speed', () => {
+  const g = load(), bad = [];
+  g.ev("ACT.start({});S.cash=1e9;S.lvl=13;S.pops.fra.rgen=RG_TOP;compute()");
+  const xc = (code) => g.ev(`(()=>{const s=JSON.stringify(S);${code};compute();const v=R.cost.xc||0;S=JSON.parse(s);compute();return v;})()`);
+  const small = xc("S.pni.push({id:'a',city:'fra',net:'ggl',tier:0,n:1})"), big = xc("S.pni.push({id:'a',city:'fra',net:'ggl',tier:5,n:1})");
+  if (small !== big || !small) bad.push(`a 10G PNI pays ${small}, a 3.2T one ${big}`);
+  if (xc("S.pni.push({id:'a',city:'fra',net:'ggl',tier:1,n:3})") !== 3 * small) bad.push('a LAG pays per member');
+  if (g.ev("xcMo('sao')") !== 0 || !(g.ev("xcMo('ash')") > g.ev("xcMo('fra')"))) bad.push('cheaper markets free, US hubs dearest');
+  for (const [k, code] of [['transit', "S.transit.push({id:'t',city:'fra',net:'cog',tier:1})"], ['IX', "S.ixp.fra=1"], ['fabric', "S.nni.push({id:'n',city:'fra',prov:FABS.find(f=>f.cities.includes('fra')).id,tier:0})"]])
+    if (xc(code) !== small) bad.push(`a ${k} port does not pay one patch`);
+  fail('F11', bad, 'a cross-connect is a fiber patch: one per port or LAG member and per end of a wave or lit pair, priced by the building');
+  assert.deepEqual(g.errors, []);
+});
+
 test('D1: attack sizes come from the world, never from your network', () => {
   const g = load();
   ddFra(g.ev);

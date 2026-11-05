@@ -174,7 +174,7 @@ test('the outcome says what happened', () => {
   assert.ok(r.toasts.some((t) => /^bad: /.test(t)), 'with the game\'s words');
   ev('S.cash=1e9');
   const tr = act(T, 'buyTransit', { city: 'fra', net: 'ntt', tier: 1 });
-  assert.equal(tr.charged, ev('PORT[1].setup'), 'charged is the price at the money gate');
+  assert.equal(tr.charged, ev("PORT[1].setup+xcNrc('fra')"), 'charged is the price at the money gate');
   // A De-Kicks quote is a question: other game commands wait until it is answered or closed.
   const d = act(T, 'buyIx', { city: 'fra', tier: 1 });
   assert.equal(d.outcome, 'decision');

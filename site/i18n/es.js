@@ -1773,6 +1773,7 @@
 "dashboard.all_n":"Todo ({n})",
 "dashboard.amp_huts_and_spares":"Casetas de amplificación y repuestos",
 "dashboard.caches_pnis_and_ix":"cachés, PNIs e IX",
+"dashboard.cross_connects_fiber_patches":"Cross-connects (latiguillos de fibra a proveedores, exchanges, peers y tus enlaces)",
 "dashboard.customers_are_upset":"los clientes están molestos",
 "dashboard.delivered_30_days":"Entregado, 30 días",
 "dashboard.five_nines_ish":"casi cinco nueves",
@@ -4209,4 +4210,7 @@
 "wkscn.weekly_scenario_key":"Escenario semanal {key}",
 "wkscn.won_day_d_par_par":"Ganado el día {d} (par {par})",
 "wkscn.won_on_day_d":"¡Ganado el día {d}!",
+"xc.cross_connects":"Cross-connects",
+"xc.cross_connects_in_city_are_free_monthly":"Los cross-connects en {city} no tienen cuota mensual, solo {nrc} de instalación cada uno. Cada puerto hacia otra red, y cada extremo de una wave o un par de fibra, es uno.",
+"xc.prices_include_cross_connects_in_city":"Cross-connects en {city}: {nrc} de instalación y {mo}/mes cada uno, incluidos en estos precios. Cada puerto hacia otra red, y cada extremo de una wave o un par de fibra, es uno.",
 };

@@ -19,7 +19,8 @@ function nniUsed(c,prov){return S.links.filter(l=>l.kind==='vxc'&&l.prov===prov&
 function transitMo(t,q){const n=t.n||1;return Math.max(q,PORT[t.tier].g*n*0.2)*transitPerG(NET[t.net],t.city,premOn(t))*S.priceMul+tmoOf(t.tier)*n+(t.clean?cleanMo(t):0)+krFee(t,q);}
 // Sender pays (Gangnam Style Peering): on top of the price, every Gbps delivered into Korea (95th percentile).
 const krFee=(t,q)=>CITY[t.city].kr&&scnRule('sender')?Math.round(q*KR_FEE):0;
-function pniMo(p,use){if(!pniOn(p))return 0;return (p.g1?Math.round(PORT[0].pni/2):PORT[p.tier].pni)*(p.n||1)+(NET[p.net].pol==='paid'&&!paidFree(NET[p.net])?NET[p.net].paidFee:0)+(NET[p.net].perG?Math.round(NET[p.net].perG*use):0);}
+// A PNI's own bill is only what a paid peer charges; its patches are cross-connects (42-cross-connects.js).
+function pniMo(p,use){if(!pniOn(p))return 0;return (NET[p.net].pol==='paid'&&!paidFree(NET[p.net])?NET[p.net].paidFee:0)+(NET[p.net].perG?Math.round(NET[p.net].perG*use):0);}
 function ixMo(c){return S.myIx[c]?Math.round(myFab(c).mo*((S.ixSite||{})[c]==='ab'?1.5:1)):ixPortMo(c,S.ixp[c])*((S.ixn||{})[c]||1)+dkAddonMo(c);}
 function nniPort(c,prov){return (S.nni||[]).find(x=>x.city===c&&x.prov===prov);}
 function repayCost(l,B){return B.equity?Math.round(l.amount*3):Math.round(Math.max(l.bal,B.crypto&&l.got?l.got:0)*1.02);}

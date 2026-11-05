@@ -47,9 +47,9 @@ test('kit buys only missing components and preserves extra routers and service p
   const { ev, errors } = setup(t);
   ev("S.pops.fra.routers=4;S.pops.fra.gen=true;S.pops.fra.rgen=3;S.transit.push({id:'test',city:'fra',net:'cog',tier:0,site:'a'});compute()");
   const cash = ev('S.cash');
-  assert.equal(ev("utilityKit('fra').cost"), ev('SITE2_COST'));
+  assert.equal(ev("utilityKit('fra').cost"), ev("site2Cost('fra')"));
   ev("ACT.utilityKit({city:'fra',cost:utilityKit('fra').cost})");
-  assert.equal(ev('S.cash'), cash - ev('SITE2_COST'));
+  assert.equal(ev('S.cash'), cash - ev("site2Cost('fra')"));
   assert.equal(ev('S.pops.fra.routers'), 4);
   assert.equal(ev('S.pops.fra.rgen'), 3);
   assert.equal(ev('S.transit[0].site'), 'a');

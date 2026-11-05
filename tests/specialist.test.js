@@ -80,7 +80,7 @@ test('#187 pioneer fiber: dig your own before level 3, at a markup', () => {
   ev('ACT.orderDf()');
   const l = JSON.parse(ev("JSON.stringify(S.links.find(l=>l.kind==='df'))"));
   assert.ok(l && l.own, 'your own trench');
-  assert.equal(cash - ev('S.cash'), ev(`digCost(${km})+DF_SYS.lite.cost+ampCount(${km})*AMP_COST`));
+  assert.equal(cash - ev('S.cash'), ev(`digCost(${km})+DF_SYS.lite.cost+ampCount(${km})*AMP_COST+linkXcNrc(S.links.find(l=>l.kind==='df').a,S.links.find(l=>l.kind==='df').b)`));
   ev('S.lvl=3');
   assert.equal(ev(`digCost(${km})`), ev(`dfBuildCost(${km})`), 'no markup at level 3');
   assert.deepEqual(errors, []);

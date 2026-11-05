@@ -1,5 +1,5 @@
 Object.assign(ACT,{
- addSite:({city})=>{const p=S.pops[city];if(!p||p.site2)return;if(!spend(SITE2_COST))return;p.site2=true;p.site2Day=S.day;toast(tr('sites_peering_caches.second_site_live_in_city_b',{city:CITY[city].name,b:esc(siteName(city,'b')),a:esc(siteName(city,'a'))}),'good');sfx('build');after();},
+ addSite:({city})=>{const p=S.pops[city];if(!p||p.site2)return;if(!spend(site2Cost(city)))return;p.site2=true;p.site2Day=S.day;toast(tr('sites_peering_caches.second_site_live_in_city_b',{city:CITY[city].name,b:esc(siteName(city,'b')),a:esc(siteName(city,'a'))}),'good');sfx('build');after();},
  rmSite:({city})=>{const p=S.pops[city];if(!p||!p.site2)return;if(UI.confirm!=='site'+city){UI.confirm='site'+city;renderPanel();return;}UI.confirm=null;p.site2=0;p.sdown=null;p.ringcut=0;for(const t of S.transit)if(t.city===city)t.site='a';for(const x of S.pni)if(x.city===city)x.site='a';for(const x of S.caches)if(x.city===city)x.site='a';if(S.ixSite)for(const x of ixIdsIn(city))delete S.ixSite[x];after();},
  siteSet:({k,id,s})=>{if(!['a','b','ab'].includes(s))return;
    const o=k==='t'?S.transit.find(x=>x.id===id):k==='p'?S.pni.find(x=>x.id===id):null;if(k!=='ix'&&!o)return;if(k==='ix'&&(!isIx(id)||S.ixp[id]===undefined||!S.pops[ixCity(id)]))return;

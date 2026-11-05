@@ -229,11 +229,11 @@ test('Amsterdam has FRIES-IX, with free 10G and 100G ports and paid larger ports
   assert.equal(ev("ixPortMo('ams~3',0)"), 0, '10G port is free');
   ev("ACT.buyIx({city:'ams~3',tier:1})");
   assert.equal(ev("S.ixp['ams~3']"), 1);
-  assert.equal(cash(), c0, '100G port is free');
+  assert.equal(cash(), c0 - ev("xcNrc('ams')"), '100G port is free (the cross-connect is not)');
   assert.equal(ev("S.ixp.ams"), undefined, 'HAMS-IX is separate');
   c0 = cash();
   ev("ACT.lagIx({city:'ams~3',d:1})");
-  assert.equal(cash(), c0, 'LAG members are free too');
+  assert.equal(cash(), c0 - ev("xcNrc('ams')"), 'LAG members are free too (each needs its own cross-connect)');
   assert.equal(ev("ixPortMo('ams~3',2)"), ev("Math.round(PORT[2].ix*ixMul('ams~3'))"), '400G is a paid game tier');
   ev("ACT.buyIx({city:'ams',tier:1});ACT.rs({city:'ams~3'});compute()");
   assert.ok(ev("ixSessions('ams~3').has('drz')"));
@@ -243,7 +243,7 @@ test('Amsterdam has FRIES-IX, with free 10G and 100G ports and paid larger ports
   ev("selectCity('ams');ACT.tab({t:'peer'})");
   const txt = ev("document.getElementById('panelBody').textContent");
   assert.match(txt, /FRIES-IX/); assert.match(txt, /HAMS-IX/);
-  assert.match(ev("ixBlock('ams~3',true)"), /LAG member <small>free/);
+  assert.match(ev("ixBlock('ams~3',true)"), new RegExp('LAG member <small>\\' + ev("fmt$(xcMo('ams'))") + '/mo'), 'the port is free; its cross-connect is not');
   ev("save();restored=migrate(JSON.parse(slotRaw(UI.slot)));");
   assert.equal(ev("restored.ixp['ams~3']"), 1, 'free port survives save migration');
   assert.equal(ev("restored.ixn['ams~3']"), 2, 'free LAG survives save migration');

@@ -65,7 +65,7 @@ test('#198 ordering a cable: useless upgrades can not be picked, and stale picks
     assert.equal(btn('engineering').textContent.includes('✓'), false);
     const cash = ev('S.cash'), cost = ev("seaQuote('lon','nyc','standard').cost");
     ev('ACT.orderCable()');
-    assert.equal(cash - ev('S.cash'), cost, 'no upgrade charged');
+    assert.equal(cash - ev('S.cash'), cost + ev("linkXcNrc('lon','nyc')"), 'no upgrade charged (just the cross-connects)');
     assert.deepEqual(errors, []);
   } finally { dom.window.close(); }
 });

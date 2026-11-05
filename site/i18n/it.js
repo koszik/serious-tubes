@@ -1773,6 +1773,7 @@
 "dashboard.all_n":"Tutte ({n})",
 "dashboard.amp_huts_and_spares":"Shelter amplificatori e ricambi",
 "dashboard.caches_pnis_and_ix":"cache, PNI e IX",
+"dashboard.cross_connects_fiber_patches":"Cross-connect (bretelle in fibra verso provider, exchange, peer e i tuoi link)",
 "dashboard.customers_are_upset":"clienti furiosi",
 "dashboard.delivered_30_days":"Consegnato, 30 giorni",
 "dashboard.five_nines_ish":"cinque nove, più o meno",
@@ -4209,4 +4210,7 @@
 "wkscn.weekly_scenario_key":"Scenario della settimana {key}",
 "wkscn.won_day_d_par_par":"Vinto il giorno {d} (par {par})",
 "wkscn.won_on_day_d":"Vinto il giorno {d}!",
+"xc.cross_connects":"Cross-connect",
+"xc.cross_connects_in_city_are_free_monthly":"I cross-connect a {city} non hanno canone mensile, solo {nrc} di installazione ciascuno. Ogni porta verso un’altra rete, e ogni capo di una wave o di una coppia di fibre, è uno.",
+"xc.prices_include_cross_connects_in_city":"Cross-connect a {city}: {nrc} di installazione e {mo}/mese ciascuno, inclusi in questi prezzi. Ogni porta verso un’altra rete, e ogni capo di una wave o di una coppia di fibre, è uno.",
 };

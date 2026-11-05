@@ -1774,6 +1774,7 @@
 "dashboard.all_n":"All ({n})",
 "dashboard.amp_huts_and_spares":"Amp huts and spares",
 "dashboard.caches_pnis_and_ix":"caches, PNIs and IX",
+"dashboard.cross_connects_fiber_patches":"Cross-connects (fiber patches to providers, exchanges, peers and your links)",
 "dashboard.customers_are_upset":"customers are upset",
 "dashboard.delivered_30_days":"Delivered, 30 days",
 "dashboard.five_nines_ish":"five nines-ish",
@@ -4210,4 +4211,7 @@
 "wkscn.weekly_scenario_key":"Weekly scenario {key}",
 "wkscn.won_day_d_par_par":"Won day {d} (par {par})",
 "wkscn.won_on_day_d":"Won on day {d}!",
+"xc.cross_connects":"Cross-connects",
+"xc.cross_connects_in_city_are_free_monthly":"Cross-connects in {city} have no monthly fee, only {nrc} to install each. Every port to another network, and each end of a wave or fiber pair, is one.",
+"xc.prices_include_cross_connects_in_city":"Cross-connects in {city}: {nrc} to install and {mo}/mo each, included in the prices here. Every port to another network, and each end of a wave or fiber pair, is one.",
 };

@@ -48,7 +48,7 @@ test('the value line matches the transit bill by hand, and the worth-it rule', (
   assert.ok(v.t > 1 && v.ix === 0 && v.p === 0 && v.u < 1e-6, 'all of it over transit');
   assert.ok(t.q - v.t > t.floor, 'above the commit, so each Gbps saved is the per-Gbps price');
   assert.ok(Math.abs(v.saved - v.t * t.per) < 1e-6, 'saved = Gbps × transit price');
-  assert.equal(v.cost, ev("PORT[1].pni"), 'a 100G PNI with Goggle (no fee, no per-G)');
+  assert.equal(v.cost, ev("xcMo('fra')"), 'a 100G PNI with Goggle (no fee, no per-G): its cross-connect');
   assert.equal(v.tier, 1, 'the smallest port Goggle accepts');
   assert.equal(v.val, v.saved - v.cost);
   assert.equal(v.worth, v.val > 0);

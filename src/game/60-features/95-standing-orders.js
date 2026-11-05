@@ -142,16 +142,16 @@ const OPS_RUN={
      // "Already connected" (#227): only the providers you buy from here, the smallest first, never a new contract.
      const have=opsP('transit','prov')==='have',n=have?null:opsProv(c);if(!have&&!n)continue;
      const grow=t=>{const k=t.n||1,up=t.tier+1;
-       if(k<4&&portOk(c,t.tier))return {cost:PORT[t.tier].setup,go:()=>ACT.lagT({id:t.id,d:1}),w:'+1×'+PORT[t.tier].n};
+       if(k<4&&portOk(c,t.tier))return {cost:PORT[t.tier].setup+xcNrc(c),go:()=>ACT.lagT({id:t.id,d:1}),w:'+1×'+PORT[t.tier].n};
        if(PORT[up]&&portShown(up)&&portOk(c,up))return {cost:PORT[up].setup*k,go:()=>ACT.buyTransit({city:c,net:t.net,tier:up}),w:PORT[t.tier].n+'→'+PORT[up].n};
-       if(k<LAG_MAX&&portOk(c,t.tier))return {cost:PORT[t.tier].setup,go:()=>ACT.lagT({id:t.id,d:1}),w:'+1×'+PORT[t.tier].n};return null;};
+       if(k<LAG_MAX&&portOk(c,t.tier))return {cost:PORT[t.tier].setup+xcNrc(c),go:()=>ACT.lagT({id:t.id,d:1}),w:'+1×'+PORT[t.tier].n};return null;};
      for(let step=0;step<4;step++){const cap=ts.reduce((a,t)=>a+lagCap(PORT[t.tier].g,t.n),0);if(cap>=N*peak)break;
        let job=null;
        if(have){for(const t of ts.slice().sort((a,b)=>lagCap(PORT[a.tier].g,a.n)-lagCap(PORT[b.tier].g,b.n)||transitPerG(NET[a.net],c,!!a.premium)-transitPerG(NET[b.net],c,!!b.premium))){job=grow(t);if(job)break;}}
        else{const t=ts.find(x=>x.net===n.id);
          if(t)job=grow(t);
          else{const need=N*peak-cap,ok=PORT.map((P,i)=>i).filter(i=>portShown(i)&&portOk(c,i)),i=ok.find(i=>PORT[i].g>=need)??ok.at(-1);
-           if(i!==undefined)job={cost:PORT[i].setup,go:()=>ACT.buyTransit({city:c,net:n.id,tier:i}),w:'+'+PORT[i].n};}}
+           if(i!==undefined)job={cost:PORT[i].setup+xcNrc(c),go:()=>ACT.buyTransit({city:c,net:n.id,tier:i}),w:'+'+PORT[i].n};}}
        if(!job||!X.can('transit',job.cost)||!X.pay('transit',job.go))break;
        X.did('transit',c+' '+job.w);ts=S.transit.filter(t=>t.city===c);}}},
  optics(X){const at=opsP('optics','at')/100,big=opsP('optics','pick')==='big',gpd=(o,l)=>optG(o,l)/optCost(o);
@@ -220,11 +220,11 @@ function opsDay(d){if(!opsHired())return;const O=S.ops,m=monthIdx(d);if(m!==O.mo
 // New POP from the template: price the whole bundle first, then click through it in one go.
 function opsTplQuote(c){if(!S||S.pops[c]||!cityOn(c)||(cnCity(c)&&!cnOk()))return null;const T=S.ops.tpl,parts=[];let cost=popCost(c),net=null,ix=null,kit=null;
   if(T.bb){cost+=bbCost(c);parts.push(tr('ops.tpl_bb'));}
-  if(T.transit&&!scnRule('noTransit')){net=opsProv(c);if(net){cost+=PORT[0].setup;parts.push(tr('ops.tpl_transit'));}}
+  if(T.transit&&!scnRule('noTransit')){net=opsProv(c);if(net){cost+=PORT[0].setup+xcNrc(c);parts.push(tr('ops.tpl_transit'));}}
   // Priced as if the POP were already there (an IX port is dearer from afar). DE-KICKS wants a sales call first, so not those.
   // The standard routers go in first (#261), so they are in the price and the kit is priced for them.
   const sq=popStdQuote();if(sq){cost+=sq.cost;parts.push(tr('ops.tpl_std'));}
   S.pops[c]={day:S.day,bb:null,boost:0,down:0,routers:sq?sq.rt:1,gen:false,rgen:sq?sq.g:0};
-  try{if(T.ix&&CITY[c].ix&&!isDk(c)&&S.ixp[c]===undefined){ix=c;cost+=ixPortMo(c,0);parts.push(tr('ops.tpl_ix'));}
+  try{if(T.ix&&CITY[c].ix&&!isDk(c)&&S.ixp[c]===undefined){ix=c;cost+=ixPortMo(c,0)+xcNrc(c);parts.push(tr('ops.tpl_ix'));}
     if(T.kit){kit=utilityKit(c);if(kit&&kit.cost){cost+=kit.cost;parts.push(tr('ops.tpl_kit'));}}}finally{delete S.pops[c];}
   return {cost,net:net&&net.id,ix,kit:!!(kit&&kit.cost),parts};}

@@ -101,7 +101,7 @@ test('LAGs add members, capacity and cost to transit, IX ports and PNIs', () => 
   ev("const t=S.transit[0];window.__c0=S.cash;ACT.lagT({id:t.id,d:1});ACT.lagT({id:t.id,d:1});ACT.lagIx({city:'fra',d:1});compute()");
   assert.equal(ev('S.transit[0].n'), 3);
   assert.equal(ev("S.ixn.fra"), 2);
-  assert.equal(ev("__c0-S.cash"), 1500 * 2 + ev("ixPortMo('fra',1)"), 'two transit members and one IX member were charged');
+  assert.equal(ev("__c0-S.cash"), (1500 + ev("xcNrc('fra')")) * 2 + ev("ixPortMo('fra',1)+xcNrc('fra')"), 'two transit members and one IX member were charged, each with its cross-connect');
   assert.equal(ev("ixCap('fra')"), 190);
   assert.equal(ev("R.cost.transit>0"), true);
   ev("ACT.buyTransit({city:'fra',net:'cog',tier:2})");

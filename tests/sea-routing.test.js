@@ -86,7 +86,7 @@ test('orders, previews, saved paths and map geometry agree; legacy cables retain
       const l = JSON.parse(ev('JSON.stringify(S.links.at(-1))'));
       assert.deepEqual(l.seaPath, q.pts);
       assert.equal(l.km, q.km);
-      assert.equal(l.paid, q.cost);
+      assert.equal(l.paid, q.cost + ev("linkXcNrc('lag','bde')"), 'the cable and its landing patches');
       assert.equal(l.ready - l.day, q.days);
       assert.equal(ev('linkLat(S.links.at(-1))'), q.ms);
       ev('S=migrate(JSON.parse(JSON.stringify(S)));GEO.clear()');

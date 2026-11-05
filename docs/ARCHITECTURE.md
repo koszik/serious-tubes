@@ -121,6 +121,8 @@ never freezes the game.
    Broadband traffic grows with one clock (`40-progress/18-traffic-growth.js`): `trafG()` scales `cityEye` in the
    engine, `eyeRate()` is what a Gbps pays today, `transitEro()` lowers transit and IX prices, `accessMo()` is the
    access network's cost.
+   Every fiber patch to another network is a cross-connect (`80-simulation/42-cross-connects.js`): `xcMo(c)` a month and
+   `xcNrc(c)` to install, counted by `xcTotal()` into the money view's own line; port and link prices include them.
 6. Every 30 days: bills the month (revenue minus costs) and checks for bankruptcy.
 7. Checks goals, level, badges and scenario end conditions.
 

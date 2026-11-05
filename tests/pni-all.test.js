@@ -19,13 +19,15 @@ test('bulk PNIs add missing shared POPs and upgrade smaller ports once, preservi
     {id:'augment',net:'drz',city:'nyc',tier:0,up:{tier:1,n:1,ready:S.day+20}});compute()`);
   const before = ev('JSON.stringify(S)');
   assert.deepEqual(JSON.parse(ev("JSON.stringify((b=>({shared:b.shared.length,orders:b.orders.length,kept:b.kept,cost:b.cost,mo:b.mo}))(pniBatch('drz',1)))")),
-    { shared: 6, orders: 2, kept: 4, cost: 6750, mo: 650 });
+    // The two new ports each add their cross-connect: installed once, then monthly (São Paulo's is free).
+    { shared: 6, orders: 2, kept: 4, cost: 6750 + ev("(()=>{const b=pniBatch('drz',1);return b.orders.filter(q=>!q.ex).reduce((a,q)=>a+xcNrc(q.city),0);})()"), mo: ev("(()=>{const b=pniBatch('drz',1);return b.orders.filter(q=>!q.ex).reduce((a,q)=>a+xcMo(q.city),0);})()") });
   assert.equal(ev('JSON.stringify(S)'), before, 'preview does not change the save');
   const cash = ev('S.cash');
+  const due = ev("pniBatch('drz',1).cost");
   const existing = JSON.parse(ev("JSON.stringify(S.pni.filter(p=>p.id!=='small'))"));
   ev("const originalAfter=after;window.after=()=>{window.afterCount=(window.afterCount||0)+1;originalAfter()};ACT.pniAll({net:'drz',tier:1})");
   assert.equal(ev('window.afterCount'), 1, 'one recompute/render/save for the whole batch');
-  assert.equal(ev('S.cash'), cash - 6750);
+  assert.equal(ev('S.cash'), cash - due);
   assert.equal(ev('S.pni.length'), 6);
   assert.equal(ev("S.pni.filter(p=>p.city==='sao'||p.city==='tok').length"), 0, 'only shared owned POPs');
   assert.deepEqual(JSON.parse(ev("JSON.stringify(S.pni.filter(p=>['big','equal','pending','augment'].includes(p.id)))")), existing);
@@ -34,7 +36,7 @@ test('bulk PNIs add missing shared POPs and upgrade smaller ports once, preservi
   assert.equal(ev("S.pni.find(p=>p.id==='small').pref"), 'high');
   assert.ok(ev("S.pni.find(p=>p.city==='sjc').ready>S.day"), 'new PNIs still take time');
   ev("ACT.pniAll({net:'drz',tier:1})");
-  assert.equal(ev('S.cash'), cash - 6750, 'repeat clicks neither charge nor duplicate');
+  assert.equal(ev('S.cash'), cash - due, 'repeat clicks neither charge nor duplicate');
   assert.equal(ev('window.afterCount'), 1);
   ev('S=migrate(JSON.parse(JSON.stringify(packSave(S))));S.day=Math.max(...S.pni.map(p=>p.up?p.up.ready:p.ready||0));pniDay(S.day);compute()');
   assert.equal(ev("S.pni.find(p=>p.id==='small').tier"), 1, 'augment survives save migration and delivers');
@@ -60,7 +62,7 @@ test('bulk PNIs skip router speed, port capacity and policy restrictions with ci
   ev("ACT.pniAll({net:'msf',tier:2})");
   assert.equal(ev('S.pni.length'), 1);
   assert.equal(ev('S.pni[0].city'), 'lon');
-  assert.equal(ev('S.cash'), cash - 3500);
+  assert.equal(ev('S.cash'), cash - 3500 - ev("xcNrc('lon')"));
   assert.match(ev("S.log[0].t"), /blocked: 3/);
   assert.deepEqual(errors, []);
   dom.window.close();
@@ -105,14 +107,14 @@ test('Doitsche 1G bulk orders and 10G augments keep paid-peering fees and confer
   setup(ev, ['ams']);
   ev("S.conf={until:S.day+10,reg:'EU'};Math.random=()=>0.5");
   const cash = ev('S.cash');
-  assert.equal(ev("pniBatch('dtk',-1).cost"), 2400);
-  assert.equal(ev("pniBatch('dtk',-1).mo"), ev('2*(PORT[0].pni/2+NET.dtk.paidFee)'));
+  assert.equal(ev("pniBatch('dtk',-1).cost"), 2400 + ev("xcNrc('fra')+xcNrc('ams')"));
+  assert.equal(ev("pniBatch('dtk',-1).mo"), ev("2*NET.dtk.paidFee+xcMo('fra')+xcMo('ams')"));
   ev("ACT.pniAll({net:'dtk',tier:-1})");
-  assert.equal(ev('S.cash'), cash - 2400);
+  assert.equal(ev('S.cash'), cash - 2400 - ev("xcNrc('fra')+xcNrc('ams')"));
   assert.equal(ev('S.stats.beerPni'), 1);
   assert.equal(ev('S.pni.every(p=>p.g1&&pniG(p)===1&&p.ready===S.day+15)'), true);
   ev('S.day+=15;pniDay(S.day);compute()');
-  assert.equal(ev("pniBatch('dtk',0).mo"), 200, 'upgrades add port costs, without charging the peering fee twice');
+  assert.equal(ev("pniBatch('dtk',0).mo"), 0, 'an upgrade keeps its patch: no new monthly cost, and no peering fee twice');
   ev("ACT.pniAll({net:'dtk',tier:0});S.day=Math.max(...S.pni.map(p=>p.up.ready));pniDay(S.day)");
   assert.equal(ev('S.pni.every(p=>!p.g1&&pniG(p)===10)'), true);
   assert.deepEqual(errors, []);
@@ -147,7 +149,7 @@ test('Traffic row buttons and size selection work by DOM events on phones in eve
     submit.click();
     assert.equal(doc.getElementById('modal').hidden, true, lang);
     assert.equal(ev("S.pni.some(p=>p.net==='cfl'&&p.city==='fra'&&p.tier===0)"), true, lang);
-    assert.equal(ev('S.cash'), cash - 1750, lang);
+    assert.equal(ev('S.cash'), cash - 1750 - ev("xcNrc('fra')"), lang);
     assert.doesNotMatch(doc.getElementById('modalCard').textContent, /pni_all\./, lang);
     assert.deepEqual(errors, [], lang);
     dom.window.close();

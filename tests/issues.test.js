@@ -540,7 +540,7 @@ test('#35 your own trench can light another fiber pair once a ROADMaster is full
   ev("ACT.addPair({id:'own1'})");
   assert.equal(ev('S.links[0].pairs'), 2);
   assert.equal(ev('chMax(S.links[0])'), 128);
-  assert.equal(c0 - ev('S.cash'), ev('pairCost(S.links[0])'), 'a ROADMaster plus a chain of amplifiers');
+  assert.equal(c0 - ev('S.cash'), ev('pairCost(S.links[0])+linkXcNrc(S.links[0].a,S.links[0].b)'), 'a ROADMaster plus a chain of amplifiers, and a patch at each end');
   assert.ok(ev('R.cost.optical') > mo0, 'the new amplifier huts cost monthly');
   assert.ok(!/full/.test(ev("chWhy(S.links[0],'zr4')")), 'room for more channels');
   // leased fiber and the smaller line system stay at one pair
@@ -1162,11 +1162,11 @@ test('#110 PNI buttons show the monthly port fee, not just the one-off setup', (
   const { ev, errors } = load();
   ev("ACT.start({});S.cash=1e9;S.lvl=6;for(const g of GOALS)S.done[g.id]=0;ACT.launchBB({city:'fra'});selectCity('fra');ACT.tab({t:'peer'})");
   const txt = ev("document.getElementById('panelBody').textContent");
-  assert.match(txt, /10G \$1\.8k \+ \$200\/mo/, 'setup plus the monthly fee, like IX ports and LAG members');
+  assert.match(txt, /10G \$2\.0k \+ \$180\/mo/, 'setup and the cross-connect, plus the monthly cross-connect, like IX ports and LAG members');
   // upgrading an existing PNI says what the bigger port costs per month too, in the panel and in the NOC's list
   ev("const n=NETS.find(x=>x.pops.includes('fra')&&!x.tail&&peerOk(x.id,'pni','fra').ok);S.pni.push({id:'p1',net:n.id,city:'fra',tier:0,n:1});after();selectCity('fra');ACT.tab({t:'peer'})");
-  assert.match(ev("document.getElementById('panelBody').textContent"), /Upgrade 100G \$2\.3k \+ \$350\/mo/);
-  assert.match(ev("connUp(conns().find(r=>r.k==='p'&&r.id==='p1')).replace(/<[^>]+>/g,'')"), /Upgrade 100G \$2\.3k \+ \$350\/mo/);
+  assert.match(ev("document.getElementById('panelBody').textContent"), /Upgrade 100G \$2\.3k \+ \$180\/mo/);
+  assert.match(ev("connUp(conns().find(r=>r.k==='p'&&r.id==='p1')).replace(/<[^>]+>/g,'')"), /Upgrade 100G \$2\.3k \+ \$180\/mo/);
   assert.deepEqual(errors, []);
 });
 

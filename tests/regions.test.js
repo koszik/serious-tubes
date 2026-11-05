@@ -343,7 +343,7 @@ test('Korea: sender pays, pricey transit, Glitch leaves and Faceplant detours', 
   ev("S.pops.icn.bb={d:400};ACT.buyTransit({city:'icn',net:'ntt',tier:1});ACT.pni({city:'icn',net:'ktt',tier:1});S.pni[0].ready=S.day;compute()");
   const used = ev("R.usePni[S.pni[0].id]||0");
   assert.ok(used > 0, 'traffic flows over the Kay-Tea PNI');
-  assert.equal(ev("R.cost.pni"), ev(`PORT[1].pni+NET.ktt.paidFee+Math.round(NET.ktt.perG*${used})`), 'billed per gigabit sent');
+  assert.equal(ev("R.cost.pni"), ev(`NET.ktt.paidFee+Math.round(NET.ktt.perG*${used})`), 'billed per gigabit sent (the patch is a cross-connect)');
   const amz0 = ev("R.demTo.amz"); ev("S.krExit=S.day+1;compute()");
   assert.ok(ev("R.demTo.amz") < amz0, 'Glitch leaving cuts its Seoul traffic');
   const evSrc = ev('fireEvent.toString()').replace(/^function fireEvent/, 'function').replace('const e=pick(opts);', "const e='krroute';");
@@ -422,7 +422,7 @@ test('#22 Tier 1 networks can lay their own subsea cable', () => {
   ev('ACT.orderCable()');
   const l = JSON.parse(ev("JSON.stringify(S.links.find(l=>l.own&&l.sub))"));
   assert.ok(l, 'the cable is being laid');
-  assert.equal(c0 - ev('S.cash'), ev(`ownCabCost(${km})`));
+  assert.equal(c0 - ev('S.cash'), ev(`ownCabCost(${km})+linkXcNrc('lon','nyc')`), 'the cable and a cross-connect at each landing POP');
   assert.ok(l.ready - ev('S.day') > 300, 'it takes a long time');
   assert.equal(l.sys, 'roadm');
   assert.ok(l.cname && l.cname.length > 3, 'it gets a name');
@@ -840,7 +840,7 @@ test('subsea cable designs trade construction cost and time for previewed latenc
       ev('ACT.orderCable()');
       const l = JSON.parse(ev('JSON.stringify(S.links[S.links.length-1])'));
       assert.equal(l.seaDesign, design);
-      assert.equal(cash - ev('S.cash'), quotes[i].cost);
+      assert.equal(cash - ev('S.cash'), quotes[i].cost + ev("linkXcNrc('lon','nyc')"));
       assert.equal(l.ready - day, quotes[i].days);
       assert.equal(ev(`linkLat(S.links[S.links.length-1])`), quotes[i].ms);
       assert.equal(l.km, quotes[i].km);
@@ -916,7 +916,7 @@ test('new subsea builds include chosen transmission packages in the quote and sa
     const cash = ev('S.cash');
     ev('ACT.orderCable()');
     const cable = JSON.parse(ev('JSON.stringify(S.links[S.links.length-1])'));
-    assert.equal(cash - ev('S.cash'), quote.cost);
+    assert.equal(cash - ev('S.cash'), quote.cost + ev("linkXcNrc('sin','lax')"));
     assert.equal(cable.ready - ev('S.day'), quote.days);
     assert.equal(cable.subterminal, cable.ready);
     assert.equal(cable.subengineering, cable.ready);

@@ -137,7 +137,7 @@ const API_CMD={
   doc:'Swap every router in a city for another model. Omit g for the next class up. One swap per day per city.'},
  addGen:{args:[['city','cityId']],watch:['pops.#city'],quote:a=>({setup:GEN_COST,monthly:GEN_MO}),
   doc:'Install a generator, so a power cut does not take the POP out.'},
- addSite:{args:[['city','cityId']],watch:['pops.#city'],quote:a=>({setup:SITE2_COST,monthly:SITE2_MO}),
+ addSite:{args:[['city','cityId']],watch:['pops.#city'],quote:a=>({setup:site2Cost(a.city),monthly:site2Mo(a.city)}),
   doc:'Add a second building in the city, so one dark data centre does not take everything down.'},
  rmSite:{args:[['city','cityId']],confirm:'double',watch:['pops.#city'],
   doc:'Remove the second building. Every port, PNI and cache there moves back to site A.'},
@@ -145,10 +145,10 @@ const API_CMD={
   doc:'Close POPs: cancels their ports, links, peerings and customers. Refuses to close every POP you have. Irreversible.'},
 /* ---------- upstream (transit) ---------- */
  buyTransit:{args:[['city','cityId'],['net','netId'],['tier','portTier']],
-  quote:a=>({setup:PORT[a.tier].setup,monthly:PORT[a.tier].tmo}),
+  quote:a=>{const ex=S.transit.find(t=>t.city===a.city&&t.net===a.net);return {setup:ex?PORT[a.tier].setup*(ex.n||1):PORT[a.tier].setup+xcNrc(a.city),monthly:(tmoOf(a.tier)+xcMo(a.city))*((ex&&ex.n)||1)};},
   doc:'Order a transit port from a network that sells in that city. Billed monthly on the 95th percentile. A higher tier on an existing port upgrades it.'},
  lagT:{args:[['id','entityId'],['d','step']],watch:['transit.#id'],
-  quote:a=>{const t=S.transit.find(x=>x.id===a.id);return {setup:a.d>0&&t?PORT[t.tier].setup:0};},
+  quote:a=>{const t=S.transit.find(x=>x.id===a.id);return {setup:a.d>0&&t?PORT[t.tier].setup+xcNrc(t.city):0,monthly:a.d>0&&t?tmoOf(t.tier)+xcMo(t.city):0};},
   doc:'Add or remove one LAG member on a transit port, up to LAG_MAX. Adding charges another port setup.'},
  cancelTransit:{args:[['id','entityId']],confirm:'arg',pass:a=>({id:a.id,ok:1}),
   doc:'Cancel a transit port.'},
@@ -159,7 +159,7 @@ const API_CMD={
   doc:'Add or remove the upstream DDoS-scrubbing add-on. Monthly.'},
 /* ---------- exchanges ---------- */
  buyIx:{args:[['city','ixId'],['tier','portTier'],['signed','boolean',false]],decides:true,
-  quote:a=>({setup:ixPortMo(a.city,a.tier),monthly:ixPortMo(a.city,a.tier),blocked:[portOk(ixCity(a.city),a.tier)?'':tr('actions.your_router_can_t_take_a',{port:PORT[a.tier].n})].filter(Boolean)}),
+  quote:a=>({setup:ixPortMo(a.city,a.tier)+(S.ixp[a.city]===undefined?ixXcNrc(a.city):0),monthly:ixPortMo(a.city,a.tier)+ixXcMo(a.city),blocked:[portOk(ixCity(a.city),a.tier)?'':tr('actions.your_router_can_t_take_a',{port:PORT[a.tier].n})].filter(Boolean)}),
   doc:'Take a port on an internet exchange. Monthly. At a De-Kicks exchange the first order returns a personalised quote to answer. A remote port (no POP) is possible at 10G over a fabric.'},
  lagIx:{args:[['city','ixId'],['d','step']],watch:['ixn'],
   doc:'Add or remove one LAG member on an IX port. Not on your own exchange.'},
@@ -181,7 +181,7 @@ const API_CMD={
   doc:'Ask everyone at that exchange who would say yes. No effect if there is nobody new.'},
  pni:{args:[['city','cityId'],['net','netId'],['tier','pniTier']],
   quote:a=>{const t=a.tier===-1?0:a.tier,ex=S.pni.find(p=>p.city===a.city&&p.net===a.net),r=peerOk(a.net,'pni',a.city);
-   return {setup:a.tier===-1?PNI_G1_COST:(1500+PORT[t].setup/2)*((ex&&ex.n)||1),monthly:(a.tier===-1?Math.round(PORT[0].pni/2):PORT[t].pni)*((ex&&ex.n)||1),days:pniLead(a.net),
+   return {setup:(a.tier===-1?PNI_G1_COST:(1500+PORT[t].setup/2)*((ex&&ex.n)||1))+(ex?0:xcNrc(a.city)),monthly:xcMo(a.city)*((ex&&ex.n)||1)+(NET[a.net]&&NET[a.net].pol==='paid'&&!paidFree(NET[a.net])?NET[a.net].paidFee:0),days:pniLead(a.net),
      blocked:[r.ok?'':r.why,portOk(a.city,t)?'':tr('actions.your_router_can_t_take_a',{port:PORT[t].n}),
        a.tier!==-1&&a.tier<pniMin(a.net)?tr('sites_peering_caches.net_does_not_do_port_pnis',{net:NET[a.net].name,port:PORT[t].n}):''].filter(Boolean)};},
   doc:'Order a private interconnect. tier:-1 asks for the 1G courtesy PNI where a network offers one. Takes weeks to months; an existing PNI is augmented instead.'},
@@ -217,7 +217,7 @@ const API_CMD={
    const blocked=[],so=soldOut(A,B,tier,wr.cab);
    if(so)blocked.push(tr('links.no_wave_capacity_on_this_route',{wave:LT[tier].n,why:tr(so.why),n:Math.max(1,so.until-S.day)}));
    const w=subWaveWhy(tier,wr.km,wr.sub);if(w)blocked.push(tr('links.no_wave_waves_on_this_cable',{wave:LT[tier].n,why:w}));
-   return {setup:Math.round(waveMo(wr.km,wr.sub,tier)*wr.wm)+(S.pops[B]?0:popCost(B)),monthly:Math.round(waveMo(wr.km,wr.sub,tier)*wr.wm),blocked};},
+   return {setup:Math.round(waveMo(wr.km,wr.sub,tier)*wr.wm)+(S.pops[B]?0:popCost(B))+linkXcNrc(A,B),monthly:Math.round(waveMo(wr.km,wr.sub,tier)*wr.wm)+linkXcMo(A,B),blocked};},
   doc:'Lease a wave between two cities; opens a POP in b if there is none. A second wave on a pair costs 1.4x unless it joins an existing trench; cross-border into mainland China costs 3x. premiumCrossing applies only via Hong Kong.'},
  upLink:{args:[['id','entityId'],['tier','linkTier']],watch:['links.#id'],
   quote:a=>{const l=S.links.find(x=>x.id===a.id);if(!l)return {};
@@ -236,7 +236,7 @@ const API_CMD={
   doc:'Hold a link in reserve: its capacity fills last.'},
 /* ---------- fabrics and VXCs ---------- */
  buyNni:{args:[['city','cityId'],['prov','fabId'],['tier','nniTier']],
-  quote:a=>({setup:NNI[a.tier]?NNI[a.tier].mo:undefined,monthly:NNI[a.tier]?NNI[a.tier].mo:undefined}),
+  quote:a=>({setup:NNI[a.tier]?NNI[a.tier].mo+(nniPort(a.city,a.prov)?0:xcNrc(a.city)):undefined,monthly:NNI[a.tier]?NNI[a.tier].mo+xcMo(a.city):undefined}),
   doc:'Take a port on an interconnection fabric. Monthly. A higher tier upgrades unless the circuits on it already exceed the smaller port.'},
  rmNni:{args:[['city','cityId'],['prov','fabId']],
   doc:'Give the fabric port back. Rejected while circuits still use it.'},
@@ -795,7 +795,7 @@ const API_RESULTS_DOC={
  sessions:{type:'number',doc:'Peering sessions up.'},
  revMo:{type:'number',doc:'Revenue per month.'},
  costMo:{type:'number',doc:'Cost per month.'},
- cost:{type:'map',doc:'Monthly cost by category (transit, pni, ix, links…; access is the broadband access network, 55% of what subscribers pay outside Australia).'},
+ cost:{type:'map',doc:'Monthly cost by category (transit, pni, ix, links…; xc is every cross-connect: one per transit, exchange, PNI and fabric port or LAG member, one at each end of a wave or lit fiber pair and two for a second site\'s ring, at xcMo(city) each, after a one-off xcNrc(city); pni is only what paid peers charge; access is the broadband access network, 55% of what subscribers pay outside Australia).'},
  rev:{type:'map',doc:'Monthly revenue by source.'},
  reachable:{type:'map',doc:'Networks reachable per net id.'},
  cone:{type:'map',doc:'Which peer\'s customer cone carries each network you reach without transit of your own, by net id.'},
@@ -846,7 +846,7 @@ function apiJson(v){
    carries the keys confGo/confSponsor need, which exist in no field of S; TE_RECIPES renders
    each recipe's script, because the source is a function and some read the live network. The
    recipes' relevance score is not exposed: judging which one fits is the agent's job. */
-const API_TABLES={CITIES,NETS,CABLES,XIX,PORT,LT,NNI,VXC,RG,OPT,DF_SYS,FAB,SCRUB_TIERS,BIZ_T,SLA,LEVELS,GOALS,SCN,BANKS,REQS,NSH,MET,PREF,RT,PPOL,CONFS,LAG_MAX,RMAX,REGEN_MAX,START_CASH,CONF_COST,CONF_SP,CAP_COST,CAP_LV,CONF_DAYS,SUB_UPGRADES,SEA_DESIGNS,TE_COST,TE_MO,MYIX_COST,CN_LIC,SITE2_COST,MYIX_FAB,INTERNS,OPSK,CHARTERS,SEAT_N,CORE_LV,CORE_COST,CORE_REQ,CORE_LAB,INTERN_MO,PZ_TIERS,AR_TIERS,PZ_RG};
+const API_TABLES={CITIES,NETS,CABLES,XIX,PORT,XC_REG,XC_NRC,XC_CITY,LT,NNI,VXC,RG,OPT,DF_SYS,FAB,SCRUB_TIERS,BIZ_T,SLA,LEVELS,GOALS,SCN,BANKS,REQS,NSH,MET,PREF,RT,PPOL,CONFS,LAG_MAX,RMAX,REGEN_MAX,START_CASH,CONF_COST,CONF_SP,CAP_COST,CAP_LV,CONF_DAYS,SUB_UPGRADES,SEA_DESIGNS,TE_COST,TE_MO,MYIX_COST,CN_LIC,SITE2_COST,MYIX_FAB,INTERNS,OPSK,CHARTERS,SEAT_N,CORE_LV,CORE_COST,CORE_REQ,CORE_LAB,INTERN_MO,PZ_TIERS,AR_TIERS,PZ_RG};
 const API_MADE={
   BADGES:()=>!S?[]:BADGES.map(b=>{const on=S.ach&&S.ach[b.id]!==undefined,ever=!!hof()[b.id];
     return b.secret&&!on&&!ever?{id:b.id,i:'❔',t:'???',d:tr('badges.a_secret_badge'),r:b.r,secret:true}:{...b,ever};}),

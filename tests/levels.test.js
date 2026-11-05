@@ -91,11 +91,11 @@ test('paid-peering giants give you a free PNI once you are big enough', () => {
   assert.equal(ev("peerOk('dtk','pni','fra').fee"), ev('NET.dtk.paidFee'));
   assert.match(ev("offTransitHint('dtk','fra')"), /Free from customer level 6/);
   const p = "({id:'p1',city:'fra',net:'dtk',tier:2,n:1})";
-  assert.equal(ev(`pniMo(${p},0)`), ev('PORT[2].pni') + ev('NET.dtk.paidFee'));
+  assert.equal(ev(`pniMo(${p},0)`), ev('NET.dtk.paidFee'), 'the paid fee; the patch is a cross-connect');
   ev('S.lvl=6');
   assert.equal(ev("peerOk('dtk','pni','fra').free"), true);
   assert.match(ev("offTransitHint('dtk','fra')"), /too big to charge/);
-  assert.equal(ev(`pniMo(${p},0)`), ev('PORT[2].pni'), 'only the port is left to pay');
+  assert.equal(ev(`pniMo(${p},0)`), 0, 'only the cross-connect is left to pay');
   assert.equal(ev("peerOk('dtk','ix','fra').ok"), false, 'still no IX peering');
   assert.equal(ev("NETS.filter(n=>n.freeLv).every(n=>n.pol==='paid'&&!n.perG&&n.freeLv>4)"), true, 'Korean sender-pays stays');
   assert.deepEqual(errors, []);

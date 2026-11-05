@@ -37,7 +37,7 @@ function pniVal(id,c){const o=pniFlows(c)[id]||{t:0,ix:0,p:0,h:0,u:0,T:{},I:{}},
   const lo=pniMin(id);let tier=-1;for(let i=lo;i<PORT.length;i++)if(portShown(i)){tier=i;if(PORT[i].g*0.8>=want)break;}
   if(tier<0)tier=lo;const g=Math.min(want,PORT[tier].g),gt=Math.min(o.t,g);let saved=0;
   if(gt>0)for(const tid in o.T){const t=S.transit.find(x=>x.id===tid);if(!t)continue;const q=R.p95[tid]??(R.useT[tid]||0),x=gt*o.T[tid]/o.t;saved+=transitMo(t,q)-transitMo(t,Math.max(0,q-x));}
-  const cost=pniMo({net:id,tier,n:1},g);
+  const cost=pniMo({net:id,tier,n:1},g)+xcMo(c);
   // Then what you drop today for want of room, then a hot exchange port's share.
   const drop=Math.min(o.u,g-gt);let ixLeft=g-gt-drop,hot=0;for(const x in o.I){if(ixLeft<=0)break;const m=Math.min(ixLeft,o.I[x]);ixLeft-=m;const cp=S.ixp[x]!==undefined?ixCap(x):0;if(cp>0&&(R.useIx[x]||0)>=PNI_HOT*cp)hot+=m;}
   const val=saved-cost,worth=g>=1&&(val>0||hot>=1||drop>=1);
