@@ -84,11 +84,11 @@ NETS.push(
  {id:'tnr',name:'Tele-Nor-Way',asn:2119,type:'eye',cc:['NO','SE'],pol:'selective',minIx:5,minPni:20,share:.006,up:['tly','lvl'],col:'#00A9E0',pops:['osl','svg','sto','cph','krs'],ix:['osl','svg'],blurb:tr('long_tail.norway_s_incumbent_neither_yes_nor')});
 NETS.push(
  {id:'hwt',name:'Hawaiian Telecombo',asn:36149,type:'eye',cc:'US',pol:'selective',minIx:3,minPni:15,share:.004,up:['ntt','lvl'],col:'#5B2A86',pops:['hnl'],ix:['hnl'],blurb:tr('long_tail.hawaii_s_incumbent_every_plan_comes')},
- {id:'gtg',name:'Grand Theft Teleguam',asn:9246,type:'t2',cc:'GU',pol:'open',share:.002,price:8,up:['ntt','tat'],col:'#0072CE',pops:['gum','ror','maj','hnl','tok'],ix:['gum','hnl'],blurb:tr('long_tail.guam_s_incumbent_and_the_way')},
+ {id:'gtg',name:'Grand Theft Teleguam',asn:9246,type:'t2',cc:'GU',pol:'open',share:.002,price:80,up:['ntt','tat'],col:'#0072CE',pops:['gum','ror','maj','hnl','tok'],ix:['gum','hnl'],blurb:tr('long_tail.guam_s_incumbent_and_the_way')},
  {id:'dcp',name:'Docomoco Pacific',asn:3605,type:'eye',cc:'GU',pol:'selective',minIx:2,minPni:10,share:.002,up:['ntt'],col:'#E4002B',pops:['gum','ror'],ix:['gum'],blurb:tr('long_tail.guam_s_mobile_network_rice_a')},
- {id:'dsp',name:'Digi-Sell Pacific',asn:38442,type:'t2',cc:['FJ','PG','TO','WS'],pol:'open',share:.005,price:9,up:['ntt','tat'],col:'#E2001A',pops:['pom','suv','tbu','apw','syd'],ix:['suv'],blurb:tr('long_tail.phones_on_every_island_from_papua')},
- {id:'fnt',name:'FINTEL-ligent',asn:9241,type:'t2',pol:'open',share:.002,price:8,up:['ntt','tly'],col:'#00A3AD',pops:['suv','tbu','apw','ppg','syd','hnl'],ix:['suv'],blurb:tr('long_tail.fiji_s_international_gateway_very')},
- {id:'pft',name:'Postes et Télé-Croissant',asn:56055,type:'t2',cc:['NC','PF'],pol:'selective',minIx:3,minPni:15,share:.003,price:10,up:['tly','cog'],col:'#F7B500',pops:['nou','ppt','syd','lax'],ix:['nou'],blurb:tr('long_tail.runs_the_post_the_phones_and')},
+ {id:'dsp',name:'Digi-Sell Pacific',asn:38442,type:'t2',cc:['FJ','PG','TO','WS'],pol:'open',share:.005,price:90,up:['ntt','tat'],col:'#E2001A',pops:['pom','suv','tbu','apw','syd'],ix:['suv'],blurb:tr('long_tail.phones_on_every_island_from_papua')},
+ {id:'fnt',name:'FINTEL-ligent',asn:9241,type:'t2',pol:'open',share:.002,price:80,up:['ntt','tly'],col:'#00A3AD',pops:['suv','tbu','apw','ppg','syd','hnl'],ix:['suv'],blurb:tr('long_tail.fiji_s_international_gateway_very')},
+ {id:'pft',name:'Postes et Télé-Croissant',asn:56055,type:'t2',cc:['NC','PF'],pol:'selective',minIx:3,minPni:15,share:.003,price:100,up:['tly','cog'],col:'#F7B500',pops:['nou','ppt','syd','lax'],ix:['nou'],blurb:tr('long_tail.runs_the_post_the_phones_and')},
  {id:'tkp',name:'Telly-Kom PNG',asn:17828,type:'eye',cc:'PG',pol:'selective',minIx:2,minPni:10,share:.003,up:['tat'],col:'#C8102E',pops:['pom'],ix:[],blurb:tr('long_tail.papua_new_guinea_s_state_telco')},
  {id:'otk',name:'Ours-Truly Telekom',asn:45891,type:'eye',cc:'SB',pol:'selective',minIx:1,minPni:8,share:.001,up:['tly'],col:'#00843D',pops:['hir'],ix:['hir'],blurb:tr('long_tail.the_solomon_islands_incumbent_yours')},
  {id:'tcc',name:'Tongue-in-Cheek Comms',asn:38201,type:'eye',cc:'TO',pol:'selective',minIx:1,minPni:8,share:.001,up:['ntt'],col:'#C10230',pops:['tbu'],ix:[],blurb:tr('long_tail.tonga_s_own_telco_lived_through')},
@@ -97,8 +97,8 @@ NETS.push(
  {id:'nta',name:'Never Too Atoll',asn:24439,type:'eye',cc:'MH',pol:'selective',minIx:1,minPni:8,share:.0005,up:['ntt'],col:'#2E8B57',pops:['maj'],ix:[],blurb:tr('long_tail.the_marshall_islands_telco_two')});
 NETS.push(
  {id:'onc',name:'One Commotion',asn:3855,type:'eye',cc:'BM',pol:'selective',minIx:1,minPni:8,share:.001,up:['lvl','tly'],col:'#E4007C',pops:['bda'],ix:[],blurb:tr('long_tail.bermuda_s_phones_tv_and_internet')},
- {id:'cvt',name:'Curriculum Vitae Telecom',asn:37517,type:'t2',cc:'CV',pol:'open',share:.002,price:8,up:['tat','tly'],col:'#004B87',pops:['rai','lis','for','dkr'],ix:['rai'],blurb:tr('long_tail.cape_verde_s_incumbent_and_the')},
- {id:'pss',name:'Pretty Sure South Atlantic',asn:210841,type:'t2',cc:'SH',pol:'open',share:.0005,price:12,up:['tat'],col:'#7D2B8B',pops:['jam','cpt'],ix:[],blurb:tr('long_tail.the_telco_for_st_helena_ascension')},
+ {id:'cvt',name:'Curriculum Vitae Telecom',asn:37517,type:'t2',cc:'CV',pol:'open',share:.002,price:80,up:['tat','tly'],col:'#004B87',pops:['rai','lis','for','dkr'],ix:['rai'],blurb:tr('long_tail.cape_verde_s_incumbent_and_the')},
+ {id:'pss',name:'Pretty Sure South Atlantic',asn:210841,type:'t2',cc:'SH',pol:'open',share:.0005,price:120,up:['tat'],col:'#7D2B8B',pops:['jam','cpt'],ix:[],blurb:tr('long_tail.the_telco_for_st_helena_ascension')},
  {id:'bst',name:'Beastlink',asn:11260,type:'eye',cc:'CA',pol:'selective',minIx:2,minPni:10,share:.002,up:['cog','lvl'],col:'#EE3124',pops:['hfx','tor'],ix:['hfx'],blurb:tr('long_tail.atlantic_canada_s_cable_company')});
 NETS.push(
  {id:'dgc',name:'Digi-Sell Caribbean',asn:40786,type:'eye',cc:['JM','TT','BB','MQ','CW','AG','DM','GD','GY','HT','KN','LC','SR','VC'],pol:'open',share:.002,up:['tly','lvl'],col:'#E2001A',pops:['kin','pos','bgi','fdf','cur','mia','anu','bas','dom','slu','svd','gnd','geo','pap','pbm'],ix:['kin'],blurb:tr('long_tail.the_same_phone_company_as_in')},
@@ -110,21 +110,21 @@ NETS.push(
  {id:'cnp',name:'Canal Minus',asn:21351,type:'eye',cc:['MQ','RE'],pol:'selective',minIx:2,minPni:8,share:.0006,up:['tly'],col:'#111111',pops:['fdf','run','par'],ix:['run'],blurb:tr('long_tail.french_pay_tv_that_also_runs')},
  {id:'zeo',name:'Zealot',asn:37002,type:'eye',cc:'RE',pol:'open',share:.0005,up:['tly'],col:'#7A1FA2',pops:['run'],ix:['run'],blurb:tr('long_tail.r_union_s_fiber_challenger_very')},
  {id:'srr',name:'Signal Frequently Ruined',asn:49902,type:'eye',cc:'RE',pol:'selective',minIx:1,minPni:8,share:.0005,up:['tly'],col:'#E2001A',pops:['run'],ix:['run'],blurb:tr('long_tail.mobile_and_broadband_on_r_union')},
- {id:'mtc',name:'Dodo Telecom',asn:23889,type:'t2',cc:'MU',pol:'open',share:.001,price:9,up:['tat','tly'],col:'#D52B1E',pops:['mru','run','tnr','jnb','mrs'],ix:['mru'],blurb:tr('long_tail.the_island_s_incumbent_and_a')},
+ {id:'mtc',name:'Dodo Telecom',asn:23889,type:'t2',cc:'MU',pol:'open',share:.001,price:90,up:['tat','tly'],col:'#D52B1E',pops:['mru','run','tnr','jnb','mrs'],ix:['mru'],blurb:tr('long_tail.the_island_s_incumbent_and_a')},
  {id:'emt',name:'Em-Tell',asn:30999,type:'eye',cc:'MU',pol:'open',share:.0004,up:['tat'],col:'#00953B',pops:['mru'],ix:['mru'],blurb:tr('long_tail.mauritius_number_two_telling_everyone')},
- {id:'tlm',name:'Telmaybe',asn:37054,type:'t2',cc:'MG',pol:'open',share:.0015,price:10,up:['tat','tly'],col:'#FFCC00',pops:['tnr','run','mru','jnb'],ix:['tnr'],blurb:tr('long_tail.madagascar_s_incumbent_and_the_only')},
- {id:'cws',name:'Cable & Witless Seychelles',asn:36958,type:'t2',cc:'SC',pol:'open',share:.0003,price:12,up:['tat'],col:'#E4007C',pops:['sez','mba'],ix:[],blurb:tr('long_tail.the_seychelles_old_telco_open_to')},
+ {id:'tlm',name:'Telmaybe',asn:37054,type:'t2',cc:'MG',pol:'open',share:.0015,price:100,up:['tat','tly'],col:'#FFCC00',pops:['tnr','run','mru','jnb'],ix:['tnr'],blurb:tr('long_tail.madagascar_s_incumbent_and_the_only')},
+ {id:'cws',name:'Cable & Witless Seychelles',asn:36958,type:'t2',cc:'SC',pol:'open',share:.0003,price:120,up:['tat'],col:'#E4007C',pops:['sez','mba'],ix:[],blurb:tr('long_tail.the_seychelles_old_telco_open_to')},
  {id:'acs',name:'Alaska Commotions',asn:7782,type:'eye',cc:'US',pol:'open',share:.0008,up:['lvl','cog'],col:'#0072CE',pops:['anc','jnu','sea'],ix:['anc'],blurb:tr('long_tail.alaska_s_old_phone_company_and')},
- {id:'gci',name:'Glacier Comms Inc.',asn:8047,type:'t2',cc:'US',pol:'open',share:.0015,price:11,up:['lvl','ntt'],col:'#00467F',pops:['anc','jnu','ome','brw','dut','sea'],ix:['sea'],blurb:tr('long_tail.alaska_s_biggest_network_from_anchorage')},
+ {id:'gci',name:'Glacier Comms Inc.',asn:8047,type:'t2',cc:'US',pol:'open',share:.0015,price:110,up:['lvl','ntt'],col:'#00467F',pops:['anc','jnu','ome','brw','dut','sea'],ix:['sea'],blurb:tr('long_tail.alaska_s_biggest_network_from_anchorage')},
  {id:'mgf',name:'MegaPhone',asn:31133,type:'eye',cc:'RU',pol:'selective',minIx:4,minPni:15,share:.003,up:['rtc'],col:'#00B956',pops:['mos','vvo','uus','pkc','mmk','gdx'],ix:['mos','vvo'],blurb:tr('long_tail.one_of_russia_s_big_mobile')},
  {id:'ert',name:'Er-Um Telecom',asn:9049,type:'eye',cc:'RU',pol:'open',share:.002,up:['rtc'],col:'#E30613',pops:['mos','vvo'],ix:['mos','vvo'],blurb:tr('long_tail.broadband_in_dozens_of_russian_cities')});
 NETS.push(
  {id:'tet',name:'Tet-à-Tête',asn:12578,type:'eye',cc:'LV',pol:'selective',minIx:2,minPni:10,share:.001,up:['tly'],col:'#3F2A56',pops:['rix','sto'],ix:['rix'],blurb:tr('long_tail.latvia_s_incumbent_peers_face_to')},
- {id:'omt',name:'Omantell',asn:8529,type:'t2',cc:'OM',pol:'selective',minIx:3,minPni:12,share:.002,price:9,up:['tat','tly'],col:'#2F6E3B',pops:['mct','fuj','mrs','lon','bom'],ix:['mct'],blurb:tr('long_tail.oman_s_incumbent_and_owner_of')},
- {id:'dhr',name:'Dhiraa-goo',asn:7642,type:'t2',cc:'MV',pol:'open',share:.0003,price:12,up:['tat'],col:'#E2231A',pops:['mle','cbo'],ix:[],blurb:tr('long_tail.the_maldives_telco_on_islands_one')});
+ {id:'omt',name:'Omantell',asn:8529,type:'t2',cc:'OM',pol:'selective',minIx:3,minPni:12,share:.002,price:90,up:['tat','tly'],col:'#2F6E3B',pops:['mct','fuj','mrs','lon','bom'],ix:['mct'],blurb:tr('long_tail.oman_s_incumbent_and_owner_of')},
+ {id:'dhr',name:'Dhiraa-goo',asn:7642,type:'t2',cc:'MV',pol:'open',share:.0003,price:120,up:['tat'],col:'#E2231A',pops:['mle','cbo'],ix:[],blurb:tr('long_tail.the_maldives_telco_on_islands_one')});
 // The far north and Canada's regional incumbents: the carriers that sell transit where the big ones never went.
 NETS.push(
- {id:'bal',name:'Bell Alien',asn:855,type:'t2',cc:'CA',pol:'selective',minIx:2,minPni:10,share:.0012,price:8,up:['bcd','lvl'],col:'#00549A',pops:['yfc','yyg','yyt','hfx','mtl'],ix:[],blurb:tr('long_tail.atlantic_canada_s_phone_company_landed')},
- {id:'nwt',name:'Northwest Passage Tel',asn:22573,type:'t2',cc:'CA',pol:'open',share:.0004,price:12,up:['bcd','lvl'],col:'#0067B1',pops:['yxy','yzf','yeg','van'],ix:[],blurb:tr('long_tail.the_north_s_only_carrier_fiber')},
- {id:'skt',name:'SaskTell-Tale',asn:803,type:'t2',cc:'CA',pol:'selective',minIx:2,minPni:10,share:.0012,price:8,up:['lvl','tly'],col:'#00A0DF',pops:['yqr','yxe','cal'],ix:[],blurb:tr('long_tail.saskatchewan_s_own_phone_company_still')},
- {id:'tus',name:'Too Sassy',asn:8818,type:'t2',cc:'GL',pol:'open',share:.0002,price:14,up:['tly'],col:'#C8102E',pops:['nuk','qaq','sis','aas'],ix:[],blurb:tr('long_tail.greenland_s_one_telco_answers_back')});
+ {id:'bal',name:'Bell Alien',asn:855,type:'t2',cc:'CA',pol:'selective',minIx:2,minPni:10,share:.0012,price:80,up:['bcd','lvl'],col:'#00549A',pops:['yfc','yyg','yyt','hfx','mtl'],ix:[],blurb:tr('long_tail.atlantic_canada_s_phone_company_landed')},
+ {id:'nwt',name:'Northwest Passage Tel',asn:22573,type:'t2',cc:'CA',pol:'open',share:.0004,price:120,up:['bcd','lvl'],col:'#0067B1',pops:['yxy','yzf','yeg','van'],ix:[],blurb:tr('long_tail.the_north_s_only_carrier_fiber')},
+ {id:'skt',name:'SaskTell-Tale',asn:803,type:'t2',cc:'CA',pol:'selective',minIx:2,minPni:10,share:.0012,price:80,up:['lvl','tly'],col:'#00A0DF',pops:['yqr','yxe','cal'],ix:[],blurb:tr('long_tail.saskatchewan_s_own_phone_company_still')},
+ {id:'tus',name:'Too Sassy',asn:8818,type:'t2',cc:'GL',pol:'open',share:.0002,price:140,up:['tly'],col:'#C8102E',pops:['nuk','qaq','sis','aas'],ix:[],blurb:tr('long_tail.greenland_s_one_telco_answers_back')});

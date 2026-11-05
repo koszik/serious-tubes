@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Transit now costs what it really does, about $30–90 per Gbps a month in Frankfurt and more in Asia, Africa and Australia, so peering, PNIs and caches pay off as they do for real networks: an exchange port in Frankfurt pays for itself at a few dozen Gbps. Broadband earns a little more, business customers pay their city's market price, South Africa's exchanges charge no port fees, and you start with $400k. Saved networks get a one-time credit to adjust.
 - Your network now runs on real BGP: routes are chosen by local-pref, AS path and distance, never by free room, so a full link or port drops packets instead of quietly sending the rest elsewhere. With nothing configured, peering usually wins on AS path; traffic coming to you enters where the far network chooses, and a CDN still moves what does not fit onto its next way in.
 - Every link and port is now two pipes, one per direction: each has its own bar with its packet loss and a chart of the day, the map draws two lanes, and the congested lists name the busy direction.
 - Customers have traffic of their own, through a 24-hour day on local time: homes peak in the evening, offices in office hours, streamers and game servers at their audience's evening, AI training runs flat out, backups at night. Transit is billed on the 95th percentile of hourly samples, on the busier direction.
@@ -33,7 +34,7 @@ All notable changes to this project are documented here. The project follows
 - The attack card now judges the attack itself, against the target's service just before it, and says separately when the target was already short of capacity.
 - Fixed a rare error that could stop the simulation after a customer with no traffic of its own signed or left.
 - Stuttgart's "Only Spätzle IX" scenario starts with $900k, so it stays winnable now that broadband costs more to run.
-- Networks started before this update keep the order they routed by as rules, and get 30 days before packet loss costs customers. Gangnam Style Peering now runs 300 days.
+- Networks started before this update keep the order they routed by as rules, and get 30 days before packet loss costs customers. Gangnam Style Peering now runs 240 days.
 - Every capital in the Americas is on the map: the eastern Caribbean islands, Central America, Haiti, Guyana, Suriname and Bolivia's constitutional capital Sucre. The islands land the real cables (ECFS and Southern Caribbean Fiber), Flow and Digicel serve all of them, and Belize, Guyana, Suriname and Haiti get their own national telcos.
 - Every US state capital and Washington, DC are on the map, with every Canadian provincial and territorial capital and Greenland. Greenland's capital Nuuk and three towns up the coast hang on the real Greenland Connect cables; Iqaluit has only satellites, so land your own cable there. New carriers sell transit in the north and the Canadian provinces, and exchanges sit only where real ones do.
 ## [2.7.0] — 2026-11-03

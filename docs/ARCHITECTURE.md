@@ -124,6 +124,10 @@ never freezes the game.
    access network's cost.
    Every fiber patch to another network is a cross-connect (`80-simulation/42-cross-connects.js`): `xcMo(c)` a month and
    `xcNrc(c)` to install, counted by `xcTotal()` into the money view's own line; port and link prices include them.
+   One price scale (`10-catalog/10-economy.js`): physical things and transit (`NET[].price`, $ per Gbps a month) are at
+   real prices; `EYE_RATE` is the network's share of a subscription, not the whole bill; IP customers pay their city's
+   transit market (`ipMkt()`, its cheapest transit against Frankfurt's). A save from before the scale gets a one-time
+   credit (`pxCredit()`) on its next day (rule F13).
    Latency outside your network comes from the cable map (`80-simulation/81-world-latency.js`: `worldMs(a,b)`, one
    Dijkstra row per source city on first use); latency customers ask for `bestBuildMs(a,b)` × 1.15. Each traffic item
    gets its routing quality in the routing pass (`it.ex`, `it.fx`: in plus out against a handoff in its own city),

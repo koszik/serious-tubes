@@ -24,7 +24,8 @@ function noRemote(id){const n=NET[id];if(!n||n.pol!=='selective')return false;re
    when a challenger in the same metro gets too popular. DE-KICKS harmonises instead. */
 const IX_REG={EU:0.8};
 function ixMul(x){const X=XIXM[x],c=ixCity(x);return (X?X.cheap:(CITY[c].ixCheap||1))*(IX_REG[CITY[c].reg]||1)*(CITY[c].au?AU_IX:1)*((S&&S.ixCut&&S.ixCut[x])||1);}
-function ixPortMo(c,tier){const X=XIXM[c];if(X&&tier<=(X.freeTo??-1))return 0;return Math.round(PORT[tier].ix*transitEro()*(S.pops[ixCity(c)]?1:REMOTE_FEE)*dkMult(c)*ixMul(c));}
+// South Africa's exchanges charge no port fees, like the real one there: you pay only the data centre's cross-connect.
+function ixPortMo(c,tier){const X=XIXM[c];if(X&&tier<=(X.freeTo??-1))return 0;if(!X&&CITY[ixCity(c)].ixFree)return 0;return Math.round(PORT[tier].ix*transitEro()*(S.pops[ixCity(c)]?1:REMOTE_FEE)*dkMult(c)*ixMul(c));}
 function ixPriceWar(d){if(!S.ixp||Math.random()>=1/120)return;
   const mine=Object.keys(S.ixp).filter(x=>{const c=ixCity(x);return CITY[c].reg==='EU'&&ixStatic(c).length>1;});if(!mine.length)return;
   const x=pick(mine),c=ixCity(x),rival=pick(ixStatic(c).filter(y=>y!==x));

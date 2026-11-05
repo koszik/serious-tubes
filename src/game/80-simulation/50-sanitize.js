@@ -13,7 +13,8 @@ function sanitize(s){
   ['links','nni','transit','pni','caches','biz','offers','inc','usedNames','loans','loanOffers','hist','log'].forEach(arr);
   ['pops','ixp','rs','peers','myIx','done','ev','stats','ixn','ixPref','ixSite','confReg','ach','pairMet'].forEach(obj);
   s.v=1;s.name=String(s.name==null?'Packet Pals':s.name).slice(0,24);s.day=int(s.day,0,1e7,0);s.cash=num(s.cash,0);s.asn=int(s.asn,1,4294967294,200000);
-  s.priceMul=num(s.priceMul,1);s.nextFail=num(s.nextFail,s.day+45);s.nextEvent=num(s.nextEvent,s.day+40);s.lvl=int(s.lvl,1,LEVELS.length,1);s.neg=int(s.neg,0,1e7,0);s.loanStrikes=int(s.loanStrikes,0,1e3,0);
+  // A save from before transit cost real prices (px) is owed the one-time credit of pxCredit() on its next day.
+  if(s.px!==1){s.px=1;s.pxOld=1;}s.pxOld=s.pxOld===1?1:0;s.priceMul=num(s.priceMul,1);s.nextFail=num(s.nextFail,s.day+45);s.nextEvent=num(s.nextEvent,s.day+40);s.lvl=int(s.lvl,1,LEVELS.length,1);s.neg=int(s.neg,0,1e7,0);s.loanStrikes=int(s.loanStrikes,0,1e3,0);
   for(const k of Object.keys(s.stats)){const v=s.stats[k];if(k==='by'||k==='f'||k==='ddT'){if(!v||typeof v!=='object')s.stats[k]={};else for(const j of Object.keys(v))v[j]=num(v[j],0);}else if(typeof v!=='boolean')s.stats[k]=num(v,0);}
   for(const k of ['survived','incidents','peak'])s.stats[k]=num(s.stats[k],0);
   // The chaos monkey (2.0): saves without one get their first visit scheduled on the next day tick.

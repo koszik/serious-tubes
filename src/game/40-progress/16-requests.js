@@ -17,7 +17,7 @@ function baseRate(b,bw){const T=BIZ_T[b.type];
   if(T.sdwan&&T.mega)return perG((b.sites||[]).filter(c=>c!==b.city).reduce((a,c)=>a+capMo(b.city,c,bw)*T.mk,0),bw);
   if(T.sdwan)return perG(siteMo(T,bw)*(b.sites||[]).length,bw);
   if(T.l2)return cents(l2Rate(T,b.city,b.city2,bw)*(T.lat?latPay():1));
-  const r=ipRate(T,bw);return CITY[b.city].au?Math.round(r*AU_ARPU):r;}
+  return ipRate(T,bw,b.city);}
 const reqBonus=rs=>1+(rs||[]).reduce((a,k)=>a+(REQS[k]?REQS[k].bonus:0),0);
 const slaMulOf=b=>slasOf(b.type).length?SLA[slaOf(b)].mul:1;
 // Today's price for this customer at size bw: what a new offer like it would get.

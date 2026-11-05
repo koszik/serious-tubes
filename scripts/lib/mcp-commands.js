@@ -656,6 +656,8 @@ const API_STATE_DOC={
  day:{type:'integer',doc:'Days since the company was founded.'},
  cash:{type:'number',doc:'Cash on hand. Goes negative into the red; -100k is bankruptcy.'},
  priceMul:{type:'number',doc:'Multiplier on transit prices (weekly modifier).'},
+ px:{type:'integer',doc:'1: the network is on the real-price scale (transit at real $ per Gbps).'},
+ pxOld:{type:'integer',doc:'1 for one day after loading a save from before real transit prices: the next day pays a one-time credit.'},
  mode:{type:'string',doc:'normal | sandbox | scenario | puzzle.'},
  rules:{type:'map',doc:'The rules this network locked in at its door: preset (soft, freeze, oncall, bgp, sandbox or puzzle), the chaos dial, lead times, the market, and the Best Effort extras (sea, confs, broke, moods, pnis), which are only written where they differ from the classic game. They stay for the network\'s whole life.'},
  charter:{type:'string',doc:'The charter picked in the first month of a normal game: global | boutique.'},

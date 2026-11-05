@@ -41,7 +41,7 @@ test('far from home it costs more than the locals, so it is never the cheap way 
   const { ev, errors } = load();
   ev("ACT.start({})");
   const price = (net, c) => ev(`NET.${net}.price*netMult(NET.${net},'${c}')`);
-  assert.equal(price('gsl', 'nyc'), 5, 'its own price at home in the US');
+  assert.equal(price('gsl', 'nyc'), 50, 'its own price at home in the US');
   assert.ok(price('gsl', 'sin') > ev("NET.gsl.price*regionMult('sin')"), 'a markup in Asia on top of the regional price');
   assert.ok(price('gsl', 'akl') > ev("NET.gsl.price*regionMult('akl')"), 'and in New Zealand');
   assert.equal(ev("NET.gsl.pops.filter(c=>sellsAt(NET.gsl,c)).some(c=>{const p=n=>n.price*netMult(n,c);return NETS.some(n=>n.id!=='gsl'&&sellsAt(n,c))&&p(NET.gsl)<Math.min(...NETS.filter(n=>n.id!=='gsl'&&sellsAt(n,c)).map(p));})"), false, 'never the cheapest seller in any of its cities');

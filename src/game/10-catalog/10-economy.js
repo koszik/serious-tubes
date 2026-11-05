@@ -1,6 +1,10 @@
 /* ================= CONSTANTS ================= */
 const W=2000, H=1000, KM=14;
-const POP_COST=20000, POP_MO=1500, EYE_RATE=150, CACHE_CAP=100, CACHE_MO=400, CACHE_BIG=400, CACHE_BIG_MO=1000;
+/* The price scale: physical things (ports, colo, routers, waves, cross-connects) and transit (NET[].price, $ per Gbps a
+   month) are at real prices. Broadband's EYE_RATE is not a subscriber's whole bill but the share of it that pays for
+   the core network (real ISPs spend 1-3% of a $40-70 bill there; access, retail and content happen outside the game),
+   so transit is a real part of it and peering, PNIs and caches decide the margin. */
+const POP_COST=20000, POP_MO=1500, EYE_RATE=225, CACHE_CAP=100, CACHE_MO=400, CACHE_BIG=400, CACHE_BIG_MO=1000;
 const DAY_MS=2500, ROUTER_COST=15000, ROUTER_MO=1500, GEN_COST=12000, GEN_MO=600, DIVERSE=1.4;
 const RU_BOX=40000, RU_BOX_MO=2000;
 const UAE_LIC=15000,KSA_LIC=25000;
@@ -40,7 +44,7 @@ const SCRUB_TIERS=[{n:'100G',g:100,cost:60000,mo:5000,lvl:1},{n:'1T',g:1000,cost
 const SLA_PEN=20000;
 const scrubMo1=x=>Math.round(SCRUB_TIERS[x.tier||0].mo*(S.scrubMode==='ondemand'?0.6:1)),scrubMo=()=>S.scrubs.reduce((a,x)=>a+scrubMo1(x),0);
 const hasScrub=()=>!!(S&&S.scrubs&&S.scrubs.length),SCRUB_FAR_MS=30;
-const cleanMo=t=>Math.round(PORT[t.tier].g*(t.n||1)*5);
+const cleanMo=t=>Math.round(PORT[t.tier].g*(t.n||1)*50);
 /* DDoS (see docs: sizes come from the world, a flood enters on every port it can reach, each tool acts where it does in
    real networks). A vector's `fs` is whether Flowspec has a signature for it: the known volumetric floods, not ACK or
    application floods. Flowspec lives in each router's TCAM: RG[].fsN is how many rules one POP's routers hold; a live
@@ -60,7 +64,7 @@ const DDOS_VEC={
  racknet:{n:tr('common.racknet'),fs:false,gaming:true},
  teamspooked:{n:tr('common.teamspooked'),fs:false,gaming:true},
 };
-const MYIX_COST=80000, MYIX_MO=3000, MYIX_FEE=1500, START_CASH=200000;
+const MYIX_COST=80000, MYIX_MO=3000, MYIX_FEE=1500, START_CASH=400000;
 // Your own exchange's switching fabric. Bigger fabrics carry more and attract more members.
 const MYIX_FAB=[{n:'400G',g:400,cost:0,mo:3000,max:12},{n:'1.6T',g:1600,cost:60000,mo:6000,max:20,lvl:2},{n:'6.4T',g:6400,cost:200000,mo:12000,max:30,lvl:3},{n:'25.6T',g:25600,cost:600000,mo:25000,max:45,lvl:4},{n:'102.4T',g:102400,cost:1800000,mo:60000,max:60,lvl:9}];
 const myFab=c=>MYIX_FAB[Math.min(MYIX_FAB.length-1,Math.max(0,(S.myIx[c]&&S.myIx[c].fab)|0))];

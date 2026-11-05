@@ -33,6 +33,7 @@ function dayPre(){
     else p.bb.d=Math.max(Math.min(3,P),p.bb.d*(1-(0.9-sf)*0.04));}
   return d;}
 function dayPost(d){
+  if(S.pxOld){S.pxOld=0;const g=pxCredit();if(g>0){S.cash+=g;toast(tr('day_tick.transit_now_costs_real_prices',{cash:fmt$(g)}),'good');}}
   ddosNews();ddosTrack();
   for(const t of S.transit){const s=R.tday&&R.tday[t.id];(t.hist=t.hist||[]).push({d,i:s?s.i:[],o:s?s.o:[]});if(t.hist.length>30)t.hist.shift();}
   S.cash+=(R.revMo-R.costMo)/monLen(d);
@@ -113,7 +114,7 @@ function spawnOffer(){
   if(T.event||T.sdwan||T.fiber||T.mega){spawnSpecial(t);return;}
   if(T.nni){const city=pick(fabC),prov=pick(FABS.filter(f=>f.cities.includes(city))).id,bw=pick(T.opts),others=mine.filter(c=>c!==city),city2=T.l2&&others.length?pick(others):null;if(T.l2&&!city2)return;
     const base=pick(BIZ_N.filter(n=>!S.usedNames.includes(n)).concat(BIZ_N)).replace(/ (Inc\.|Co\.|Ltd)$/,'');const name=tr('day_tick.name_via_fab',{name:base,fab:FAB[prov].name});useName(base);
-    const rate=T.l2?l2Rate(T,city,city2,bw):ipRate(T,bw);
+    const rate=T.l2?l2Rate(T,city,city2,bw):ipRate(T,bw,city);
     S.offers.push({id:uid(),city,city2,prov,name,type:t,bw,rate,reqs:['nni'],exp:S.day+offerExp()});return;}
   let city=(Math.random()<0.65&&mine.length)?pick(mine):pick(OFFC.concat(cnOk()?['pek','sha']:[])),city2=null;
   if(T.l2){city=pick(mine);const pool=(Math.random()<(T.lv>=3?0.8:0.6)?mine:OFFC).filter(c=>c!==city);city2=pick(pool.length?pool:OFFC.filter(c=>c!==city));}
@@ -124,8 +125,8 @@ function spawnOffer(){
   if(t==='provedor')city=pick(br);
   if(t==='isp'&&dense.length&&Math.random()<0.5)city=pick(dense);
   if(t==='hft'){const fin=['nyc','chi','lon','fra','tok','sin','hkg','ams','ash'],mf=mine.filter(c=>fin.includes(c));city=mf.length?pick(mf):pick(mine);city2=pick(fin.filter(c=>c!==city));}
-  let rate=T.l2?cents(l2Rate(T,city,city2,bw)*(T.lat?latPay():1)):ipRate(T,bw);
-  if(CITY[city].au&&!T.l2&&!T.fiber&&!T.event){bw=Math.min(bw,pick(T.opts.slice(0,2)));rate=Math.round(ipRate(T,bw)*AU_ARPU);}
+  let rate=T.l2?cents(l2Rate(T,city,city2,bw)*(T.lat?latPay():1)):ipRate(T,bw,city);
+  if(CITY[city].au&&!T.l2&&!T.fiber&&!T.event){bw=Math.min(bw,pick(T.opts.slice(0,2)));rate=ipRate(T,bw,city);}
   if(T.div&&!reqCan('diverse',{city,city2}))return;
   const reqs=T.div?['diverse']:T.lat?['lat']:[];if((t==='hyper'||t==='ai'||t==='gpu')&&Math.random()<0.4)reqs.push('metro');const pool=Object.keys(REQS).filter(k=>!reqs.includes(k)&&!REQS[k].only&&(!REQS[k].l2||T.l2)&&(!REQS[k].ip||!T.l2)&&reqCan(k,{city,city2}));
   if(Math.random()<(T.lv>=3?0.65:0.3))reqs.push(pick(pool));

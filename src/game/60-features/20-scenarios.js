@@ -28,7 +28,7 @@ const SCN=[
  {id:'ixbr',n:tr('scenarios.order_and_progress'),city:'sao',cash:600000,days:240,rules:{},d:tr('scenarios.sao_paulo_brazil_is_a_continent'),goal:tr('scenarios.ports_on_15_ix_brrr_exchanges_backbone'),ok:()=>brIxN()>=15&&S.ixp.mao!==undefined&&R.served>=200},
   // Sender pays, turned up: with Korea at the usual prices broadband swamped every bill and Seoul alone won on day 73
  // (playtest). Now Seoul transit is dear, the incumbents want a paid PNI and Korean users mind every far exit.
- {id:'gangnam',n:tr('scenarios.gangnam_style_peering'),city:'icn',cash:900000,days:300,rules:{sender:true},d:tr('scenarios.seoul_sender_pays_d'),goal:tr('scenarios.seoul_sender_pays_goal',{g:GN_G,q:Math.round(GN_Q*100)}),ok:()=>R.reach>=0.99&&R.served>=GN_G&&sfOf(R,'icn')>=GN_Q&&R.revMo>=R.costMo},
+ {id:'gangnam',n:tr('scenarios.gangnam_style_peering'),city:'icn',cash:900000,days:240,rules:{sender:true},d:tr('scenarios.seoul_sender_pays_d'),goal:tr('scenarios.seoul_sender_pays_goal',{g:GN_G,q:Math.round(GN_Q*100)}),ok:()=>R.reach>=0.99&&R.served>=GN_G&&sfOf(R,'icn')>=GN_Q&&R.revMo>=R.costMo},
  {id:'flood',n:tr('common.flood_season'),city:'ams',cash:2000000,days:365,rules:{ddos:true},setup:()=>{S.lvl=Math.max(S.lvl||1,4);},d:tr('scenarios.amsterdam_hosting_capital_of_europe'),goal:tr('scenarios.hold_20_floods_5_terabit'),ok:()=>(S.stats.ddosOk||0)>=20&&(S.stats.ddosOkBig||0)>=5},
  // Traffic served too: broadband in five cities and two cables were bought on day 1 and won on day 2 (playtest).
  {id:'fttb',n:tr('scenarios.fibre_to_the_basement'),city:'syd',cash:1500000,days:365,rules:{levy:true},d:tr('scenarios.sydney_2013_the_toilet_paper_group'),goal:tr('scenarios.broadband_in_sydney_melbourne_served'),ok:()=>AU_BB.every(c=>S.pops[c]&&S.pops[c].bb)&&auExits()>=2&&R.served>=FTTB_G},
@@ -38,7 +38,7 @@ const SCN=[
  {id:'atl',n:tr('scenarios.mid_atlantic_accent'),city:'pdl',cash:5000000,days:240,rules:{},setup:()=>{S.lvl=Math.max(S.lvl||1,4);},d:tr('scenarios.ponta_delgada_azores_lisbon_lagos'),goal:tr('scenarios.1_6t_on_every_hop_from'),ok:()=>fastPath('mia','mad',1600)&&fastPath('lis','lag',1600)&&R.served>=100},
 ];
 const WEEK_CITIES=['fra','ams','lon','nyc','ash','sjc','sin','tok','syd','sao','jnb','bom','waw','ist','scl','hkg'];
-const WEEK_MODS=[{id:'pricey',n:tr('scenarios.transit_costs_30_more')},{id:'chaos',n:tr('scenarios.twice_the_failures')},{id:'poor',n:tr('scenarios.start_with_only_100k')},{id:'boom',n:tr('scenarios.eyeballs_grow_50_faster')},{id:'dk',n:tr('scenarios.every_ix_is_run_by_de')},{id:'sharks',n:tr('scenarios.shark_season_subsea_cuts_twice_as')}];
+const WEEK_MODS=[{id:'pricey',n:tr('scenarios.transit_costs_30_more')},{id:'chaos',n:tr('scenarios.twice_the_failures')},{id:'poor',n:tr('scenarios.start_with_only_200k')},{id:'boom',n:tr('scenarios.eyeballs_grow_50_faster')},{id:'dk',n:tr('scenarios.every_ix_is_run_by_de')},{id:'sharks',n:tr('scenarios.shark_season_subsea_cuts_twice_as')}];
 // The in-browser weekly, when no published scenario came: same weeks as the published one (Sunday 06:00 Berlin).
 function weekly(){const [y,w]=pzWeekKey(new Date()).split('-W').map(Number);let r=(y*100+w)*2654435761>>>0;const nx=()=>{r=(r*1103515245+12345)>>>0;return r/4294967296;};const city=WEEK_CITIES[Math.floor(nx()*WEEK_CITIES.length)];const mods=[];while(mods.length<2){const m=WEEK_MODS[Math.floor(nx()*WEEK_MODS.length)];if(!mods.includes(m))mods.push(m);}return {id:'weekly',key:`${y}-W${String(w).padStart(2,'0')}`,seed:y*100+w,city,mods,days:365};}
 const scnRule=k=>!!(S&&S.scn&&S.scn.rules&&S.scn.rules[k]);
@@ -49,7 +49,7 @@ function beginGame(nm,city,o={}){if(needPitch()&&!UI.pitched){UI.pendGame=[nm,ci
   if(S.mode==='sandbox'){S.cash=1e9;S.lvl=LEVELS.length;if(!chaosMul()){S.nextFail=1e9;S.nextEvent=1e9;}}
   if(o.scn){const sc=o.scn;S.scn={id:sc.id,rules:sc.rules||{},days:sc.days,name:sc.n||tr('features.weekly_challenge_key',{key:sc.key}),key:sc.key||null,mods:(sc.mods||[]).map(m=>m.id)};S.rng=(o.seed||hstr(sc.id))|0;S.mode='scenario';S.asn=200000+Math.floor(Math.random()*15000);
     if(sc.cash)S.cash=sc.cash;if(sc.setup)sc.setup();
-    for(const m of S.scn.mods){if(m==='pricey')S.priceMul=1.3;if(m==='poor')S.cash=100000;if(m==='chaos')S.scn.rules.chaos=true;if(m==='boom')S.scn.rules.boom=true;if(m==='dk')S.scn.rules.dkAll=true;if(m==='sharks')S.scn.rules.sharks=true;}}
+    for(const m of S.scn.mods){if(m==='pricey')S.priceMul=1.3;if(m==='poor')S.cash=200000;if(m==='chaos')S.scn.rules.chaos=true;if(m==='boom')S.scn.rules.boom=true;if(m==='dk')S.scn.rules.dkAll=true;if(m==='sharks')S.scn.rules.sharks=true;}}
   // Every new network starts at ½ speed (#186), whatever the last one ran at: slow enough to look around, but things happen.
   UI.speed=UI.lastSpeed=rule('clock')?0.5:0;UI.resumeSpeed=null;
   track('game_new');UI.started=true;closeModal();compute();cam.x=CITY[city].x;cam.y=CITY[city].y;cam.z=innerWidth<760?1.1:1.4;selectCity(city);
