@@ -10,6 +10,7 @@ All notable changes to this project are documented here. The project follows
 - A flood in a link's or port's flow list now says whose it is, where it came in and where it is headed: the target, or your scrubbing center.
 - An attack card now lists every scrubbing center that cleans the flood, each with its detour, not just the farthest one.
 - While a customer is scrubbed, its own traffic still comes in wherever it normally would and takes the detour via the scrubbing center nearest there, so a new center near the customer cuts the delay it complains about.
+- A customer losing traffic now has a "Why the loss?" button: it shows, at its worst hour, which links, ports and routers drop its traffic and how much each costs, plus the Great Firewall and any attack on top.
 - A full scrubbing center now shows on the NOC with the ports and routers running hot, and on the map.
 - A city's "slow routes" warning no longer opens to an empty list when the slow traffic comes from many small networks.
 - Circuits between Europe and Asia are now priced like the subsea capacity the market really sells: a 10G Paris–Seoul circuit offers about $58k a month instead of nearly a million. Building overland across the continent yourself still costs as much as before.

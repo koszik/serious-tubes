@@ -33,7 +33,7 @@ function engHours(X){const {E,NX,NE,R2,EP,F,L,FLAT}=X,NP=2*NE+2*NX,NF=F.v.length
   const SHL=X.SHL,NEP=EP.length;
   // What the day keeps: per pipe and hour offered and loss, per router and hour offered, per endpoint and hour offered and
   // delivered (both directions added), and the network's traffic (the bigger direction of each flow, IP endpoints only).
-  const OFFH=new Float64Array(24*NP),LOSSH=new Float64Array(24*NP),NOH=new Float64Array(24*NPOP),EPO=new Float64Array(24*NEP),EPR=new Float64Array(24*NEP),EPD=new Float64Array(24*NEP),EPN=new Float64Array(24*NEP),TD=new Float64Array(24),TS=new Float64Array(24),TL2=new Float64Array(24);
+  const OFFH=new Float64Array(24*NP),LOSSH=new Float64Array(24*NP),LBH=new Float32Array(24*NP),LQH=new Float32Array(24*NP),NLH=new Float32Array(24*NPOP),NOH=new Float64Array(24*NPOP),EPO=new Float64Array(24*NEP),EPR=new Float64Array(24*NEP),EPD=new Float64Array(24*NEP),EPN=new Float64Array(24*NEP),TD=new Float64Array(24),TS=new Float64Array(24),TL2=new Float64Array(24);
   const EPK=new Uint8Array(NEP);for(let i=0;i<NEP;i++)EPK[i]=EP[i].k==='pop'||EP[i].k==='grp'?1:EP[i].k==='l2'?2:0;
   const FEP=Int32Array.from(F.ep);
   const VI=new Float64Array(NF),VO=new Float64Array(NF),WC=new Float64Array(NF*3),DI=new Float64Array(NF),DO=new Float64Array(NF);
@@ -103,11 +103,12 @@ function engHours(X){const {E,NX,NE,R2,EP,F,L,FLAT}=X,NP=2*NE+2*NX,NF=F.v.length
       // Both ways or not at all: a session that loses its requests (or its replies) loses the rest with them.
       if(vi>0&&vo>0){const r=Math.min(di/vi,dO/vo);di=vi*r;dO=vo*r;}
       DI[f]=di*g;DO[f]=dO*g;}};
-  const record=h=>{const b=h*NP;for(let p=0;p<NP;p++){const O=OF[p];OFFH[b+p]=O;LOSSH[b+p]=O>0?((O-OQ[p]-OJ[p])*L1[2*p]+OQ[p]*L1[2*p+1]+OJ[p]*LJ[p])/O:0;}
+  const record=h=>{const b=h*NP;for(let p=0;p<NP;p++){const O=OF[p];OFFH[b+p]=O;LOSSH[b+p]=O>0?((O-OQ[p]-OJ[p])*L1[2*p]+OQ[p]*L1[2*p+1]+OJ[p]*LJ[p])/O:0;LBH[b+p]=L1[2*p];LQH[b+p]=L1[2*p+1];}
+    for(let k=0;k<NPOP;k++)NLH[h*NPOP+k]=NL[k];
     for(let k=0;k<NPOP;k++)NOH[h*NPOP+k]=NO[k]+NOJ[k];let td=0,ts=0,tl=0;const eb=h*NEP;
     for(let f=0;f<NF;f++){const i=FEP[f],vi=VI[f],vo=VO[f],di=DI[f],dO=DO[f];EPO[eb+i]+=vi+vo;EPD[eb+i]+=di+dO;if(FIN[f*3]>=0||FOUT[f]>=0){EPR[eb+i]+=(FIN[f*3]>=0?vi:0)+(FOUT[f]>=0?vo:0);EPN[eb+i]+=(di+dO)/(1-FG[f]);}const t=EPK[i];if(t===1){td+=vi>vo?vi:vo;ts+=di>dO?di:dO;}else if(t===2)tl+=di>dO?di:dO;}
     TD[h]=td;TS[h]=ts;TL2[h]=tl;};
   for(let h=0;h<24;h++){hour(h);record(h);}
   // The day's peak hour (most asked for); its flows are worked out again for the reports.
   let hp=0;for(let h=1;h<24;h++)if(TD[h]>TD[hp]+1e-9||TD[hp]<=1e-9&&TL2[h]>TL2[hp])hp=h;hour(hp);X.teMoved=moved;
-  X.hauls=hauls;Object.assign(X,{CV,FCV,hp,CAP,NCAP,OFFH,LOSSH,NOH,EPO,EPR,EPD,EPN,TD,TS,TL2,J,FV,FI,FO,FTZ,FSH,FIN,FOUT,FEP,VI:VI.slice(),VO:VO.slice(),DI:DI.slice(),DO:DO.slice(),WC:WC.slice(),L1:L1.slice(),NL:NL.slice(),OF:OF.slice(),OJ:OJ.slice()});}
+  X.hauls=hauls;Object.assign(X,{CV,FCV,hp,CAP,NCAP,OFFH,LOSSH,LBH,LQH,NLH,FG,FQ,LN,LNOFF,NOH,EPO,EPR,EPD,EPN,TD,TS,TL2,J,FV,FI,FO,FTZ,FSH,FIN,FOUT,FEP,VI:VI.slice(),VO:VO.slice(),DI:DI.slice(),DO:DO.slice(),WC:WC.slice(),L1:L1.slice(),NL:NL.slice(),OF:OF.slice(),OJ:OJ.slice()});}

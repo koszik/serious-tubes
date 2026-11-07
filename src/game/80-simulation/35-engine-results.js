@@ -84,7 +84,8 @@ function engResults(X){const {R2,E,NX,NE,NP,EP,IT,F,L,hp,OFFH,LOSSH,CAP,NOH,EPO,
   // Traffic between your own POPs, as the link panel names it.
   for(const it of IT)if(it.o<0&&!it.site){const c=EP[it.ep].city,k='onnet:'+c;if(!R2.egDesc[k])R2.egDesc[k]={lab:labOf(N_('compute.on_net_from_city'),'city',CITY[c].name),city:c,k:'l2'};}
   // Kept for the panels, the map and the worker: plain arrays only.
-  const dp={NE,NX,NP,hp,OFFH,LOSSH,CAP,LP:Int32Array.from(L.LP),LS:Float32Array.from(L.LS),LB:Uint8Array.from(L.LB),LOFF:Int32Array.from(L.LOFF),LX:Int32Array.from(L.LX),
+  // LBH/LQH/NLH: each pipe's (best effort, priority) and router's loss by hour, for the loss explainer.
+  const dp={NE,NX,NP,hp,OFFH,LOSSH,LBH:X.LBH,LQH:X.LQH,NLH:X.NLH,FG:X.FG,FQ:X.FQ,LN:X.LN,LNOFF:X.LNOFF,POPC:X.POPC.slice(),CAP,LP:Int32Array.from(L.LP),LS:Float32Array.from(L.LS),LB:Uint8Array.from(L.LB),LOFF:Int32Array.from(L.LOFF),LX:Int32Array.from(L.LX),
     FIN,FOUT,FV:Float64Array.from(F.v),FEP:Int32Array.from(F.ep),VI,VO,DI,DO,WC,CV:X.CV,FCV:X.FCV,FI:X.FI,FO:X.FO,
     IF,IJ,IV,IE,IC,IO,IS,IOX:Int32Array.from(IT.map(i=>i.outX===undefined?-1:i.outX)),
     EPO,EPD,epCity:EP.map(e=>e.city),epK:EP.map(e=>e.k),epCls:EP.map(e=>e.cls),epB:EP.map(e=>e.b?e.b.id:null),epM:EP.map(e=>e.members||null),ex:E.map(e=>({k:e.k,id:e.id,city:e.city,net:e.net||null,ek:e.ek,rank:e.rank})),

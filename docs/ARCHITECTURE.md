@@ -41,7 +41,7 @@ hoisted across files, and top-level statements run in path order. Find code by n
 | `91-save.js`, `92-audio.js` | Save, export and import; sound effects |
 | `93-ui/` | DOM helpers (`$`, `btn`, `morph`), the phone tab bar, install pitch, HUD, left panel, city and link panels, decommissioning |
 | `94-dashboard/` | Scenario and level progress, where to meet a network, customers and connections overviews, lease swaps, the NOC dashboard, the bank, hints |
-| `95-modals/` | Toasts, notifications, modals, title screen, what's new, help, every flow on a pipe (`64-flows.js`), the link and own-cable modals |
+| `95-modals/` | Toasts, notifications, modals, title screen, what's new, help, every flow on a pipe (`64-flows.js`), where a customer's loss comes from (`66-loss-why.js`, from the routing pass's per-hour pipe and router losses), the link and own-cable modals |
 | `96-map/` | The canvas: resize, land and clouds, settings, level of detail, link geometry, `draw()`, the world layer, cities, input and click delegation |
 | `99-loop.js` | `frame()` and `boot()` |
 

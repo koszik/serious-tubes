@@ -28,7 +28,8 @@ function cachePipes(city,net,cap){const ids=S.caches.filter(x=>x.city===city&&x.
 // A customer's own port: what it sends you (rx) and what you deliver to it (tx), against its port size.
 function custPipes(b){const T=BIZ_T[b.type];if(T.fiber||!R.dp)return '';const D=custDay(b);if(!D||!D.its.length)return '';const cap=b.bw;
   const q={rx:Math.max(...D.rx),tx:Math.max(...D.tx),lr:D.loss,lt:D.loss};
-  return pipePair(q,cap)+pipeFold('b:'+b.id,()=>graph24s([[...D.rx],[...D.tx]],cap,tr('pipes.legend_port'))+`<div class="btns">${flowsBtn('b',b.id)}</div>`);}
+  const tf=(R.tgtF&&R.tgtF[b.id])??1,why=D.loss>=0.0005||tf<0.999?`<div class="btns">${btn(tr('loss_why.why_the_loss'),'lossWhy',{id:b.id},'ghost sm')}</div>`:'';
+  return pipePair(q,cap)+why+pipeFold('b:'+b.id,()=>graph24s([[...D.rx],[...D.tx]],cap,tr('pipes.legend_port'))+`<div class="btns">${flowsBtn('b',b.id)}</div>`);}
 /* The day as a small chart: one direction as an area, the other as a line, capacity dashed, the hour shown marked.
    Pipes p = [a→b, b→a] (or [rx, tx]); a share scales a city pair's pipes down to one of its links. */
 function graph24(p,cap,a,b){if(!p||!R.dp||!(cap>0))return '';const f=pairShareOf(p,cap),pts=[[],[]];
