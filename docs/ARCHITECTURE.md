@@ -126,7 +126,10 @@ never freezes the game.
    `xcNrc(c)` to install, counted by `xcTotal()` into the money view's own line; port and link prices include them.
    One price scale (`10-catalog/10-economy.js`): physical things and transit (`NET[].price`, $ per Gbps a month) are at
    real prices; `EYE_RATE` is the network's share of a subscription, not the whole bill; IP customers pay their city's
-   transit market (`ipMkt()`, its cheapest transit against Frankfurt's). A save from before the scale gets a one-time
+   transit market (`ipMkt()`, its cheapest transit against Frankfurt's). From 400G they pay no premium (`ipPrice()` in
+   `40-progress/12-customer-prices.js`, blended from 40G): 0.9× the cheapest to the median transit (`ipBand()`), placed
+   by how hard each haggles (`hg`, hashed when it first asks), times what its China and Korea traffic costs beyond that
+   (`dstCost()`); their wishes' extras fade out too (`reqMul()`). A save from before the scale gets a one-time
    credit (`pxCredit()`) on its next day (rule F13).
    Latency outside your network comes from the cable map (`80-simulation/81-world-latency.js`: `worldMs(a,b)`, one
    Dijkstra row per source city on first use); latency customers ask for `bestBuildMs(a,b)` × 1.15. Each traffic item

@@ -17,11 +17,10 @@ function baseRate(b,bw){const T=BIZ_T[b.type];
   if(T.sdwan&&T.mega)return perG((b.sites||[]).filter(c=>c!==b.city).reduce((a,c)=>a+capMo(b.city,c,bw)*T.mk,0),bw);
   if(T.sdwan)return perG(siteMo(T,bw)*(b.sites||[]).length,bw);
   if(T.l2)return cents(l2Rate(T,b.city,b.city2,bw)*(T.lat?latPay():1));
-  return ipRate(T,bw,b.city);}
-const reqBonus=rs=>1+(rs||[]).reduce((a,k)=>a+(REQS[k]?REQS[k].bonus:0),0);
+  return ipPrice(T,bw,b.city,b.hg);}
 const slaMulOf=b=>slasOf(b.type).length?SLA[slaOf(b)].mul:1;
 // Today's price for this customer at size bw: what a new offer like it would get.
-function listRate(b,bw=b.bw){const T=BIZ_T[b.type];if(T.fiber)return b.rate;return cents(baseRate(b,bw)*reqBonus(b.reqs)*slaMulOf(b));}
+function listRate(b,bw=b.bw){const T=BIZ_T[b.type];if(T.fiber)return b.rate;return cents(baseRate(b,bw)*reqMul(T,bw,b.reqs)*slaMulOf(b));}
 const rqRecent=b=>(b.rqx||[]).filter(x=>x>S.day-365).length;
 const rqOf=b=>S.offers.find(o=>o.rq&&o.rq.id===b.id);
 const upBw=b=>{const T=BIZ_T[b.type];return T.opts.find(x=>x>b.bw)||b.bw*2;};
@@ -32,8 +31,8 @@ function rqMake(b){const T=BIZ_T[b.type];if(T.fiber||T.event||T.cap)return null;
   const ls=slasOf(b.type),i=ls.indexOf(slaOf(b)),nx=i<0?ls[0]:ls[i+1];if(nx)ks.push(['sla',15]);
   const mine=Object.keys(S.pops).filter(c=>!(b.sites||[]).includes(c));if(T.sdwan&&!T.mega&&(mine.length||OFFC.length))ks.push(['site',10]);
   let r=Math.random()*ks.reduce((a,x)=>a+x[1],0),k=ks[0][0];for(const [x,w] of ks){if(r<w){k=x;break;}r-=w;}
-  if(k==='up'){const bw=upBw(b),a=baseRate(b,b.bw);return a>0?rqBase(b,k,{bw,rate:cents(b.rate*baseRate(b,bw)/a)}):null;}
-  if(k==='req'){const q=pick(pool);return rqBase(b,k,{reqs:(b.reqs||[]).concat(q),rate:cents(b.rate*(1+REQS[q].bonus)),add:q});}
+  if(k==='up'){const T=BIZ_T[b.type],bw=upBw(b),a=baseRate(b,b.bw)*reqMul(T,b.bw,b.reqs);return a>0?rqBase(b,k,{bw,rate:cents(b.rate*baseRate(b,bw)*reqMul(T,bw,b.reqs)/a)}):null;}
+  if(k==='req'){const q=pick(pool);return rqBase(b,k,{reqs:(b.reqs||[]).concat(q),rate:cents(b.rate*reqMul(BIZ_T[b.type],b.bw,(b.reqs||[]).concat(q))/reqMul(BIZ_T[b.type],b.bw,b.reqs)),add:q});}
   if(k==='sla')return rqBase(b,k,{sla:nx,rate:cents(b.rate*SLA[nx].mul/SLA[slaOf(b)].mul)});
   const c=Math.random()<0.85&&mine.length?pick(mine):pick(OFFC.filter(x=>!(b.sites||[]).includes(x))),n=(b.sites||[]).length;
   return c&&n?rqBase(b,'site',{sites:b.sites.concat(c),rate:cents(b.rate*(n+1)/n),add:c}):null;}

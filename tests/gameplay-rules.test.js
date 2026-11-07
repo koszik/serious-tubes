@@ -501,11 +501,15 @@ test('F13: peering pays as it really does', () => {
   const ix = g.ev("ixPortMo('fra',1)+xcMo('fra')") / fra, pni = g.ev("xcMo('fra')") / fra;
   if (ix < 25 || ix > 50) bad.push(`a 100G IX port pays for itself at ${Math.round(ix)} Gbps, not 25–50`);
   if (pni >= 10) bad.push(`a settlement-free PNI pays from ${Math.round(pni)} Gbps, not under 10`);
-  for (const c of ['fra', 'nyc', 'sin', 'jnb', 'sao', 'syd', 'bom'])
-    for (const [k, r] of JSON.parse(g.ev(`JSON.stringify(Object.entries(BIZ_T).filter(([k,T])=>T.rate>0).map(([k,T])=>[k,ipRate(T,T.opts[T.opts.length-1],'${c}')]))`))) {
-      const t = cheapest(c);
-      if (r < 1.2 * t) bad.push(`${k} in ${c} pays $${r}/Gbps at its largest size against $${t.toFixed(0)} of transit`);
+  // Up to 40G customers pay a premium over transit; from 400G the haggled market, times their dear destinations only.
+  for (const c of ['fra', 'nyc', 'sin', 'jnb', 'sao', 'syd', 'bom']) {
+    const t = cheapest(c), [lo, hi] = JSON.parse(g.ev(`JSON.stringify(ipBand('${c}'))`));
+    if (lo < 0.9 * t - 0.01 || hi < lo) bad.push(`the large-customer band in ${c} is ${lo.toFixed(0)}–${hi.toFixed(0)} against $${t.toFixed(0)} of transit`);
+    for (const [k, small, big, d] of JSON.parse(g.ev(`JSON.stringify(Object.entries(BIZ_T).filter(([k,T])=>T.rate>0).map(([k,T])=>[k,ipPrice(T,Math.min(IP_S,T.opts[T.opts.length-1]),'${c}',0),ipPrice(T,IP_L,'${c}',1),dstCost(T,'${c}',(${lo}+${hi})/2)]))`))) {
+      if (small < 1.2 * t) bad.push(`${k} in ${c} pays $${small}/Gbps at 40G against $${t.toFixed(0)} of transit`);
+      if (big > hi * d + 0.01) bad.push(`${k} in ${c} pays $${big}/Gbps at 400G, above the market ($${hi.toFixed(0)} × ${d.toFixed(2)} for its destinations)`);
     }
+  }
   fail('F13', bad, 'transit, exchange ports and what customers pay must stay on one scale');
   assert.deepEqual(g.errors, []);
 });
