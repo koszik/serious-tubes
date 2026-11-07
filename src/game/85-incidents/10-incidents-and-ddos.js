@@ -152,7 +152,9 @@ function ddosOne(a){const V=DDOS_VEC[a.vec]||{n:'?',fs:false},m=ddosReport(a),ro
     else if(hasScrub()&&!scrubLive())h+=row(false,tr('ddos.row_scrub_down',{cities:esc(ddCities(S.scrubs.map(x=>x.city)))}));
     else if(engIdle)h+=row(null,tr('ddos.row_scrub_idle'));
     else if(!hasScrub())h+=row(null,tr('ddos.row_scrub_none'));
-    const far=(R.haul||[]).filter(q=>q.attack===a.id&&q.ms>0).sort((x,y)=>y.ms-x.ms)[0];if(far)h+=row(null,tr('ddos.row_detour',{ms:far.ms.toFixed(0),city:esc(CITY[far.to].name)}));}
+    // Every center it is cleaned at, nearest first: junk goes to the one nearest where it came in, not just the farthest.
+    const far=(R.haul||[]).filter(q=>q.attack===a.id&&q.ms>0).sort((x,y)=>x.ms-y.ms);
+    if(far.length)h+=row(null,tr('ddos.row_detour_via',{list:far.map(q=>tr('ddos.city_ms',{city:esc(CITY[q.to].name),ms:q.ms.toFixed(0)})).join(', ')}));}
   // 3. The result.
   // The attack's own doing, against the target's service just before it; a target already short says so apart.
   const sf=ddosHit(a),col=ddosCol(a),s0=a.sf0??1;

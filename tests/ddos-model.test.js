@@ -255,7 +255,7 @@ test('junk rides the backbone to the center nearest where it came in, and a thin
   assert.equal(rep(ev, id, 'Math.round(m.sent)'), 550);
   assert.ok(ev("R.haul.find(q=>q.to==='nyc').ms") > ev("R.haul.find(q=>q.to==='ams').ms"), 'across the Atlantic and back');
   const card = ev("ddosOne(ddosAll()[0])");
-  assert.match(card, /detour via New York/);
+  assert.match(card, /detour via Amsterdam \(\d+ ms\), New York \(\d+ ms\)/, 'both centers, nearest first');
   assert.match(card, /your backbone fills on the way/);
   assert.ok(sfB(ev, 'g') < before * 0.5, 'the target’s own traffic drowns on the full link');
   // A fat link to Amsterdam: the junk gets there, the target comes back.
