@@ -7,9 +7,10 @@ function engHours(X){const {E,NX,NE,R2,EP,F,L,FLAT}=X,NP=2*NE+2*NX,NF=F.v.length
   const J=new Float64Array(NX),hauls=[];
   // With thin set, returns only what the narrowest link or router on the way can carry (what reaches a scrubbing center;
   // routers serve the junk first, so it is their whole capacity).
-  const haul=(A,B,g,ek,from,clean,thin)=>{if(!(g>0))return 0;const Ai=CIDX[A],Bi=CIDX[B];if(!X.SPD[B]||!(X.SPD[B][Ai]<Infinity))return 0;
-    if(!R2.egDesc[ek])R2.egDesc[ek]={lab:clean?labOf(N_('compute.scrubbed_traffic_from_city'),'city',CITY[A].name):labOf(N_('compute.attack_entering_in_city'),'city',CITY[from].name),city:B,k:'l2'};
-    const w=walkI(X.SPP[B],Bi,Ai);hauls.push([X.pathList(w,false),g,clean?0:1,ek]);if(!thin)return g;let c=g;for(const e of w.path)if(e.cap<c)c=e.cap;for(const i of w.ni){const n=nodeCap(CITIES[i].id);if(n<c)c=n;}return c;};
+  // ek names the flow (attack, way in, where it goes), lab() its words, made once.
+  const haul=(A,B,g,ek,lab,thin)=>{if(!(g>0))return 0;const Ai=CIDX[A],Bi=CIDX[B];if(!X.SPD[B]||!(X.SPD[B][Ai]<Infinity))return 0;
+    if(!R2.egDesc[ek])R2.egDesc[ek]={lab:lab(),city:B,k:'l2'};
+    const w=walkI(X.SPP[B],Bi,Ai);hauls.push([X.pathList(w,false),g,1,ek]);if(!thin)return g;let c=g;for(const e of w.path)if(e.cap<c)c=e.cap;for(const i of w.ni){const n=nodeCap(CITIES[i].id);if(n<c)c=n;}return c;};
   const msOf=(A,B)=>{const Bi=CIDX[B],Ai=CIDX[A];return X.SPD[B]&&X.SPD[B][Ai]<Infinity?walkI(X.SPP[B],Bi,Ai).path.reduce((n,e)=>n+e.lat,0):0;};
   X.DD=ddosLoad({E,okBy:X.okBy,R2,autoBh:!!(X.TRX&&X.TRX.blackhole),haul,ms:msOf,DP:X.DP,COMP:X.COMP});
   for(let x=0;x<NX;x++)J[x]=E[x].J||0;

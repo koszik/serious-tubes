@@ -44,6 +44,8 @@ const ddosBase=(c,tgt)=>{if(!R||!R.cityDem)return 1;if(!tgt||tgt.startsWith('bb:
 const ddosCol=a=>{const m=ddosReport(a);return m&&R.demand>0?m.col/R.demand:0;};
 // Who is under attack, in words.
 function ddosWho(a){const b=ddosBiz(a);return b?tr('ddos.who_customer',{name:b.name,what:BIZ_T[b.type].l,city:CITY[a.city].name}):tr('ddos.who_subscribers',{city:CITY[a.city].name});}
+// The same, short, for a flow's name.
+function ddosWhoShort(a){const b=ddosBiz(a);return b?b.name:tr('ddos.who_subscribers',{city:CITY[a.city].name});}
 // Flowspec capability of a POP's router: 0 none, 1 basic, 2 full (its rule budget is fsCap).
 const fsAt=c=>{const p=S.pops[c];return p?(RG[p.rgen||0].fs||0):0;};
 // A DDoS-protection customer whose attacks ride far to be cleaned (#117).

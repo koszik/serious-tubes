@@ -262,6 +262,9 @@ test('junk rides the backbone to the center nearest where it came in, and a thin
   ev("S.links.find(l=>l.a==='fra'&&l.b==='ams'||l.a==='ams'&&l.b==='fra').tier=5;compute()");
   assert.equal(rep(ev, id, 'Math.round(m.pulled)'), 550);
   assert.ok(sfB(ev, 'g') > 0.9, `held (${sfB(ev, 'g')})`);
+  // Its flows say whose flood it is, where it came in and where it is headed.
+  const flows = ev("(()=>{const l=S.links.find(l=>l.a==='fra'&&l.b==='ams'||l.a==='ams'&&l.b==='fra');return flowsWhat('link',l.id).rows(null).rows.filter(r=>r.junk).map(r=>R.egDesc[r.junk].lab).join('|');})()");
+  assert.match(flows, /Flood on Lag Lords, in at Frankfurt, to your scrubbing center in Amsterdam/);
   // The customer still notices the detour, and is told it is the scrubbing, not something routing can fix.
   const why = ev("rtqWhy(rtq(S.biz.find(b=>b.id==='g')),'Lag Lords')");
   assert.match(why, /goes through your scrubbing center in New York and rides your backbone home/);

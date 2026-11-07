@@ -48,7 +48,7 @@ const fsCap=c=>{const p=S.pops[c];return p?(RG[p.rgen||0].fsN||0):0;};
 // The bandwidth the target itself uses: a customer's port, or a city's broadband subscribers.
 function ddosTb(a,R2){if(a.tgt&&a.tgt.startsWith('bb:'))return Math.max(1,(R2.cityEye||{})[a.city]||1);const b=S.biz.find(x=>x.id===a.tgt);return b?Math.max(0.1,b.bw):1;}
 /* Before routing: spread each live attack, clip it at the ports, filter it on the routers and load what is left onto
-   the backbone ahead of everyone's traffic. X.haul(A,B,g,ek) moves up to g from city A to city B and returns what fit. */
+   the backbone ahead of everyone's traffic. X.haul(A,B,g,ek,lab) moves up to g from city A to city B and returns what fit. */
 function ddosLoad(X){const {E,okBy,R2}=X;R2.ddos=[];R2.haul=[];R2.tgtF={};R2.bbF={};R2.fsUse={};R2.ddosHot={};
   const live=ddosAll().slice().sort((a,b)=>(a.start||0)-(b.start||0)||(a.id<b.id?-1:a.id>b.id?1:0));if(!live.length)return null;
   const recs=[],room={};
@@ -71,8 +71,8 @@ function ddosLoad(X){const {E,okBy,R2}=X;R2.ddos=[];R2.haul=[];R2.tgtF={};R2.bbF
       if(need&&S.pops[city]){const cap=fsCap(city),left=fsLeft[city]??cap;
         if(!cap)m.fsNone.push(city);else if(left>=need){fsLeft[city]=left-need;rest=g*(1-FS_DROP);m.fs+=g-rest;m.fsAt.push(city);}else{fsLeft[city]=left;m.fsFull.push(city);}}
       const sc=m.eng>0&&(!X.COMP||X.COMP[CIDX[city]]===X.COMP[CIDX[a.city]])?rest*m.eng:0;if(sc>0){m.sent+=sc;let x=m.xs[0],d=Infinity;for(const y of m.xs){const v=y.city===city?0:X.ms(city,y.city);if(v<d){d=v;x=y;}}
-        y0(x.city).a+=x.city===city?sc:X.haul(city,x.city,sc,'ddos:'+city,city,false,true);}
-      m.deliv+=X.haul(city,a.city,rest-sc,'ddos:'+city,city);}
+        y0(x.city).a+=x.city===city?sc:X.haul(city,x.city,sc,`ddos:${a.id}:${city}>${x.city}`,()=>tr('compute.flood_on_who_from_city_to_scrub',{who:ddosWhoShort(a),city:CITY[city].name,dst:CITY[x.city].name}),true);}
+      m.deliv+=X.haul(city,a.city,rest-sc,`ddos:${a.id}:${city}`,()=>tr('compute.flood_on_who_from_city_to_city',{who:ddosWhoShort(a),city:CITY[city].name,dst:CITY[a.city].name}));}
     // Each center cleans what reaches it, up to what earlier attacks left of its tier.
     for(const k in arr){const x=arr[k],cap=SCRUB_TIERS[x.tier].g,can=Math.max(0,room[k]??cap),cl=Math.min(x.a,can);room[k]=can-cl;
       m.parts.push({city:k,tier:x.tier,a:x.a,cleaned:cl});m.pulled+=x.a;m.cleaned+=cl;m.over+=x.a-cl;}
