@@ -88,8 +88,9 @@ function cityPanel(c){
     h+=`<section><h3>${tr('city_panel.ddos_scrubbing_center')}</h3>`;
     {const here=S.scrubs.find(x=>x.city===c),others=S.scrubs.filter(x=>x.city!==c);
     if(here){const T=SCRUB_TIERS[here.tier||0];
-      h+=`<p class="lead">${tr('city_panel.pulls_floods_onto_its_own',{g:fmtG(T.g)})}</p>
-      <div class="kv"><span>${tr('common.capacity')}</span><b>${T.n} · ${fmtG(T.g)}</b></div>
+      const ld=(R.ddos||[]).reduce((o,m)=>{for(const x of m.parts||[])if(x.city===c){o.a+=x.a;o.c+=x.cleaned;}return o;},{a:0,c:0});
+      h+=`<p class="lead">${tr('city_panel.cleans_floods_your_routers_divert',{g:fmtG(T.g)})}</p>
+      <div class="kv"><span>${tr('common.capacity')}</span><b>${T.n} · ${fmtG(T.g)}</b></div>${ld.a>0?`<div class="kv"><span>🚨</span><b>${tr('city_panel.scrub_now_in_cleaned',{a:fmtG(ld.a),c:fmtG(ld.c)})}</b></div>`:''}
       <div class="kv"><span>${tr('common.mode')}</span><b>${S.scrubMode==='ondemand'?tr('city_panel.on_demand_half_the_first_day'):tr('common.always_on')} · ${fmt$(scrubMo1(here))}/mo</b></div>
       <div class="btns">${btn(S.scrubMode==='ondemand'?tr('city_panel.switch_to_always_on'):tr('city_panel.switch_to_on_demand_cheaper'),'scrubMode',{},'sm')}${SCRUB_TIERS.map((X,i)=>i>(here.tier||0)?btn(tr('city_panel.upgrade_to_tier_cost',{tier:X.n,cost:fmt$(Math.round(X.cost*0.6))}),'scrubUp',{city:c,tier:i},'sm',(lvl()||1)<X.lvl||S.cash<X.cost*0.6):'').join('')}${btn(UI.confirm==='scrub:'+c?tr('city_panel.really_shut_it_down'):tr('common.shut_down'),'rmScrub',{city:c},'ghost sm')}</div>`;}
     else{h+=`<p class="lead">${others.length?tr('city_panel.floods_here_are_pulled_to',{city:CITY[others.slice().sort((a,b)=>kmBetween(c,a.city)-kmBetween(c,b.city))[0].city].name,km:Math.round(kmBetween(c,others.slice().sort((a,b)=>kmBetween(c,a.city)-kmBetween(c,b.city))[0].city)).toLocaleString()}):tr('city_panel.cleans_ddos_attacks_for_your_whole')}</p><div class="btns">${SCRUB_TIERS.map((X,i)=>btn(tr('city_panel.build_tier_cost_mo_mo',{tier:X.n,cost:fmt$(X.cost),mo:fmt$(X.mo)}),'buildScrub',{city:c,tier:i},i===0?'':'sm',(lvl()||1)<X.lvl||S.cash<X.cost)).join('')}</div>`;}}

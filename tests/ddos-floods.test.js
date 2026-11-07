@@ -123,10 +123,12 @@ test('Flood Season escalates from ordinary floods to monsters, and goes for the 
   ev("for(const c of ['lon','par','fra','mad','mil','vie','waw','sto','osl','hel'])ACT.buildPop({city:c});compute();S.ev.ddos=null;S.ev.ddosMore=[];S.ddosStarts=[]");
   ev("for(let i=0;i<10;i++){S.ddosStarts=[];ddosAttack(false);}");
   assert.deepEqual(JSON.parse(ev('JSON.stringify([...new Set(ddosAll().map(a=>a.city))])')), ['ams']);
-  // A terabit flood on Amsterdam's subscribers: lost without scrubbing, held with a 10T center.
+  // A terabit flood on Amsterdam's subscribers: lost without scrubbing, held with a 10T center behind ports that take it.
   ev("S.ev.ddosMore=[];S.ev.ddos={id:'e',city:'ams',tgt:'bb:ams',vec:'http',gbps:1500,start:S.day,until:S.day+2};compute()");
   assert.ok(ev('ddosSf(S.ev.ddos)') < 0.97, 'unmitigated: not held');
   ev("S.scrubs=[{city:'ams',tier:2}];S.scrubMode='always';compute()");
+  assert.ok(ev('ddosSf(S.ev.ddos)') < 0.97, 'a 100G port fills long before the junk reaches the center');
+  ev("S.pops.ams.rgen=RG_TOP;S.transit[0].tier=5;compute()");
   assert.ok(ev('ddosSf(S.ev.ddos)') >= 0.97, 'scrubbed: held');
   assert.ok(ev('ddosCol(S.ev.ddos)') < 0.01);
   assert.deepEqual(errors, []);

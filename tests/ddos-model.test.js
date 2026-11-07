@@ -95,12 +95,14 @@ test('Flowspec rules are finite on each router: the third flood on a two-rule ro
   assert.deepEqual(errors, []);
 });
 
-test('an engaged scrubbing center pulls the flood off your ports; what it cannot clean hurts only the target', () => {
+test('an engaged scrubbing center takes the flood from your ports; what it cannot clean hurts only the target', () => {
   const { ev, errors } = load();
   fra(ev);
-  ev("S.scrubs=[{city:'fra',tier:1}];S.scrubMode='always';compute()");
+  // The flood still comes in on your ports, so they must take it: a 3.2T transit port in front of a 1T center.
+  ev("S.pops.fra.rgen=RG_TOP;S.transit[0].tier=5;S.scrubs=[{city:'fra',tier:1}];S.scrubMode='always';compute()");
   const id = flood(ev, { gbps: 2000, vec: 'http' });
-  assert.equal(rep(ev, id, 'm.portList.length'), 0, 'nothing on the ordinary ports');
+  assert.ok(rep(ev, id, 'Math.round(m.portList[0].off)') > 1900, 'it arrives on the transit port, like any flood');
+  assert.equal(rep(ev, id, 'm.full'), 0, 'which holds it');
   assert.equal(rep(ev, id, 'Math.round(m.cleaned)'), 1000, 'the 1T sponge is full');
   assert.ok(sfB(ev, 'd') >= 0.97, 'the bystander never notices');
   const t = sfB(ev, 'g');
@@ -241,15 +243,30 @@ test('a sacrificial PNI takes all of its peer\'s junk, and a clean pipe scrubs a
   assert.deepEqual(errors, []);
 });
 
-test('several scrubbing centers share a flood by size, and a far one costs the target latency', () => {
+test('junk rides the backbone to the center nearest where it came in, and a thin backbone chokes on it', () => {
   const { ev, errors } = load();
   fra(ev);
-  ev("for(const c of ['ams','nyc'])ACT.buildPop({city:c});UI.pending={a:'fra',b:'ams'};ACT.buildLink({tier:1});UI.pending={a:'ams',b:'nyc'};ACT.buildLink({tier:1});closeModal();S.scrubs=[{city:'ams',tier:1},{city:'nyc',tier:0}];S.scrubMode='always';compute()");
-  const id = flood(ev, { gbps: 550 });
+  // Frankfurt (3.2T) and New York (400G) take the flood in; Amsterdam's center is a 100G link away, New York has its own.
+  ev("for(const c of ['ams','nyc'])ACT.buildPop({city:c});UI.pending={a:'fra',b:'ams'};ACT.buildLink({tier:1});UI.pending={a:'ams',b:'nyc'};ACT.buildLink({tier:1});closeModal();S.pops.fra.rgen=S.pops.nyc.rgen=S.pops.ams.rgen=RG_TOP;S.transit[0].tier=5;ACT.buyTransit({city:'nyc',net:'cog',tier:2});S.scrubs=[{city:'ams',tier:1},{city:'nyc',tier:0}];S.scrubMode='always';compute()");
+  const before = sfB(ev, 'g');
+  const id = flood(ev, { gbps: 550, vec: 'http' });
   const parts = JSON.parse(rep(ev, id, 'JSON.stringify(m.parts.map(p=>[p.city,Math.round(p.a)]))'));
-  assert.deepEqual(parts, [['ams', 500], ['nyc', 50]]);
+  assert.deepEqual(parts, [['ams', 100], ['nyc', 61]], 'New York cleans its own; only 100G of Frankfurt’s fits the link to Amsterdam');
+  assert.equal(rep(ev, id, 'Math.round(m.sent)'), 550);
   assert.ok(ev("R.haul.find(q=>q.to==='nyc').ms") > ev("R.haul.find(q=>q.to==='ams').ms"), 'across the Atlantic and back');
-  assert.match(ev("ddosOne(ddosAll()[0])"), /detour via New York/);
+  const card = ev("ddosOne(ddosAll()[0])");
+  assert.match(card, /detour via New York/);
+  assert.match(card, /your backbone fills on the way/);
+  assert.ok(sfB(ev, 'g') < before * 0.5, 'the target’s own traffic drowns on the full link');
+  // A fat link to Amsterdam: the junk gets there, the target comes back.
+  ev("S.links.find(l=>l.a==='fra'&&l.b==='ams'||l.a==='ams'&&l.b==='fra').tier=5;compute()");
+  assert.equal(rep(ev, id, 'Math.round(m.pulled)'), 550);
+  assert.ok(sfB(ev, 'g') > 0.9, `held (${sfB(ev, 'g')})`);
+  // The customer still notices the detour, and is told it is the scrubbing, not something routing can fix.
+  const why = ev("rtqWhy(rtq(S.biz.find(b=>b.id==='g')),'Lag Lords')");
+  assert.match(why, /goes through your scrubbing center in New York and rides your backbone home/);
+  assert.doesNotMatch(why, /Fixable with routing/);
+  assert.ok(ev("rtqOver(S.biz.find(b=>b.id==='g'))") > 0, 'and it counts against its mood');
   assert.deepEqual(errors, []);
 });
 
@@ -282,13 +299,13 @@ test('a scrubbing center your backbone does not join to the target cannot hand b
   fra(ev);
   // Amsterdam hangs off Frankfurt; Paris has its own transit and the only center, but no link to either.
   ev("for(const c of ['ams','par'])ACT.buildPop({city:c});UI.pending={a:'fra',b:'ams'};ACT.buildLink({tier:1});closeModal();ACT.buyTransit({city:'par',net:'cog',tier:1});S.scrubs=[{city:'par',tier:1}];S.scrubMode='always';S.biz.push({id:'o',type:'dia',name:'Fiber Optimists',city:'ams',bw:10,rate:100,mood:80,since:0,reqs:[]});compute()");
-  const id = flood(ev, { city: 'ams', tgt: 'o', gbps: 11.1 });
+  const id = flood(ev, { city: 'ams', tgt: 'o', gbps: 11.1, vec: 'http' });
   assert.equal(rep(ev, id, 'm.pulled'), 0, 'nothing is diverted to Paris');
   assert.equal(rep(ev, id, 'm.cut'), true);
   assert.match(ev("ddosOne(ddosAll()[0])"), /your backbone doesn't reach Amsterdam/);
   // Join Paris to Frankfurt and it scrubs, with the way home on the card.
   ev("UI.pending={a:'fra',b:'par'};ACT.buildLink({tier:1});closeModal();compute()");
-  assert.ok(rep(ev, id, 'm.pulled') > 11, 'now it pulls the flood');
+  assert.ok(rep(ev, id, 'm.pulled') > 11, 'now the junk rides to Paris and is cleaned');
   assert.ok(ev(`R.haul.find(q=>q.attack==='${id}'&&q.to==='par').ms`) > 0, 'and the clean traffic rides the backbone home');
   assert.deepEqual(errors, []);
 });

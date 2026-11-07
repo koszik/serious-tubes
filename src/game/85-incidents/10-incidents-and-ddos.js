@@ -34,7 +34,7 @@ const ddosBiz=a=>ddosBb(a)?null:S.biz.find(b=>b.id===a.tgt)||null;
 function ddosExpire(){for(const a of ddosAll(S,false))if(a.until<=S.day||!S.pops[a.city]||(!ddosBb(a)&&!ddosBiz(a))){ddosDone(a);ddosDrop(a);}}
 function ddosReport(a){return (R.ddos||[]).find(m=>m.attack===a)||null;}
 // How well the target is doing: what reached it, times how its city is doing.
-function ddosSf(a){const m=ddosReport(a),tf=m?m.tf:1;if(ddosBb(a))return Math.min(tf,sfOf(R,a.city));return tf*bizSfOf(R,a.city);}
+function ddosSf(a){const m=ddosReport(a),tf=m?m.tf:1;if(ddosBb(a))return Math.min(tf,sfOf(R,a.city));const b=ddosBiz(a);return b?bizSf(b,null):tf*bizSfOf(R,a.city);}
 // What the attack itself did: the target's service against what it had just before (a city already short of
 // capacity is not the attack's doing).
 const ddosHit=a=>Math.min(1,ddosSf(a)/Math.max(0.01,a.sf0??1));
@@ -145,6 +145,7 @@ function ddosOne(a){const V=DDOS_VEC[a.vec]||{n:'?',fs:false},m=ddosReport(a),ro
     else if(m.portList&&m.portList.length)h+=row(null,tr('ddos.row_fs_no_router'));
     if(m.edge)h+=row(true,tr('ddos.row_scrub_not_needed'));
     else if(m.pulled>0)h+=row(m.over>1e-6?false:true,tr('ddos.row_scrub',{g:fmtG(m.pulled),c:fmtG(m.cleaned),cities:esc(ddCities(m.parts.map(x=>x.city)))}));
+    if(m.sent-m.pulled>Math.max(1,m.sent*0.02))h+=row(false,tr('ddos.row_scrub_thin',{g:fmtG(m.pulled),s:fmtG(m.sent)}));
     else if(m.cut)h+=row(false,tr('ddos.row_scrub_cut',{cities:esc(ddCities(S.scrubs.filter(x=>popUp(x.city)).map(x=>x.city))),city:CITY[a.city].name}));
     else if(hasScrub()&&!scrubLive())h+=row(false,tr('ddos.row_scrub_down',{cities:esc(ddCities(S.scrubs.map(x=>x.city)))}));
     else if(engIdle)h+=row(null,tr('ddos.row_scrub_idle'));

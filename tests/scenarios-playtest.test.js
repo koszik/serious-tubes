@@ -40,8 +40,9 @@ const PLAY = {
   // Tokyo and keep Seoul transit as the last resort. Seoul alone loses money on the sender-pays fee and never wins.
   // 3.x: circuits pay what their route's capacity costs, so the Seoul–Tokyo customer breaks even sooner.
   gangnam: { ref: GN_REF, win: [170, 225], cheese: [...home('icn'), ['loans']], by: null },
-  // 2.2: a center pulls the whole flood onto its own ingress, so a terabit flood needs a center that size (10T, level 4).
-  flood: { ref: [...home('ams'), ['scrub', 'ams', 2], ['tr', 'ams', 1], HIRE], win: [80, 200], cheese: [...home('ams'), ['tr', 'ams', 1], ['loans']], by: 180 },
+  // 2.2: a terabit flood needs a center that size (10T, level 4). 3.x: the flood still comes in on your ports and is
+  // diverted to the center behind them, so the reference also buys ingress: 400G exchange ports and an 800G transit.
+  flood: { ref: [['bb', 'ams'], ['tr', 'ams', 1], ['ix', 'ams', 2], ['scrub', 'ams', 2], ['tr', 'ams', 3], HIRE], win: [80, 200], cheese: [...home('ams'), ['tr', 'ams', 1], ['loans']], by: 180 },
   fttb: { ref: [...home('syd'), ['link', 'syd', 'akl', 0, 'tasman'], ['link', 'syd', 'nou', 0, 'gond'], ...['mel', 'bne', 'adl', 'per'].flatMap((c) => [['bb', c], ['tr', c, 1]]), ['link', 'syd', 'mel', 1], ['link', 'syd', 'bne', 1], ['link', 'mel', 'adl', 1], ['link', 'adl', 'per', 0], HIRE],
     win: [80, 200], cheese: [...['syd', 'mel', 'bne', 'adl', 'per'].map((c) => ['bb', c]), ['tr', 'syd', 1], ['link', 'syd', 'akl', 0, 'tasman'], ['link', 'syd', 'nou', 0, 'gond'], ['loans']], by: 60 },
   // Tallinn has no transit: over the water to Helsinki and Stockholm on two cables each way, and round by land to Riga.

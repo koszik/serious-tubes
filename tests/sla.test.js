@@ -148,6 +148,23 @@ test('no SLA while a new customer is still being provisioned', () => {
   assert.deepEqual(errors, []);
 });
 
+test('an attack on a customer is not SLA downtime unless it bought protection', () => {
+  const { ev, errors } = load();
+  net(ev);
+  ev("S.transit=[{id:'t',city:'fra',net:'cog',tier:0}];S.biz.push({id:'u',type:'dia',name:'Unprotected',city:'fra',bw:5,rate:600,mood:80,since:0,reqs:[]},{id:'p',type:'scrub',name:'Protected',city:'fra',bw:5,rate:900,mood:80,since:0,reqs:[]},{id:'r',type:'dia',name:'Asked',city:'fra',bw:5,rate:600,mood:80,since:0,reqs:['scrubbed']})");
+  // Each one attacked on its own day; only the target is checked (the others' downtime that day is collateral, and counts).
+  const hit = (id) => {
+    ev(`for(const b of S.biz)b.dn=0;S.ev.ddos={id:'a${id}',city:'fra',tgt:'${id}',vec:'http',gbps:500,start:S.day,until:S.day+2,bh:false};S.ev.ddosMore=[]`);
+    day(ev);
+    assert.ok(ev(`bizSf(S.biz.find(b=>b.id==='${id}'),linkIds())`) < 0.5, `the attack does hurt ${id}`);
+    return biz(ev, id).dn || 0;
+  };
+  assert.equal(hit('u'), 0, 'no rebate owed for an attack on an unprotected customer');
+  assert.ok(hit('p') > 0, 'DDoS-protected internet counts');
+  assert.ok(hit('r') > 0, 'and so does a contract that asked for scrubbing');
+  assert.deepEqual(errors, []);
+});
+
 test('broadband: 99% a month, and after a long outage some subscribers claim a month back over two weeks', () => {
   const { ev, errors } = load();
   ev("ACT.start({});S.cash=1e9;S.nextFail=S.nextEvent=1e9;ACT.launchBB({city:'fra'});ACT.buyTransit({city:'fra',net:'cog',tier:1});S.pops.fra.bb.d=60;S.day=60;compute()");

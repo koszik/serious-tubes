@@ -20,6 +20,7 @@ function rtqVars(f){const at=(c,n)=>c&&CITY[c]?CITY[c].name+(n&&NET[n]?` (${NET[
 const rtqCache=f=>f.inK==='c'&&!f.outC;
 // The cause, in words: the network, its share, where it comes in (or which of your caches serves it), and the fix.
 function rtqWhy(q,who){if(!q||!q.net||!NET[q.net])return '';const v={who,...rtqVars(q)};
+  if(q.sc)return tr('routing_quality.who_net_p_rt_ms_scrub',{...v,city:CITY[q.inC]?CITY[q.inC].name:v.city});
   return (rtqCache(q)?tr('routing_quality.who_net_p_rt_ms_cache',v):tr('routing_quality.who_net_p_rt_ms_in_out',v))+' '+(q.fix>=Math.max(3,q.ms*0.3)?tr('routing_quality.fixable_with_routing_save_ms',{ms:Math.round(q.fix)}):tr('routing_quality.needs_a_connection_nearer'));}
 // A broadband city's slow flows (over LAT_BB), slowest first.
 const rtqSlowC=c=>((R&&R.rqC&&R.rqC[c]&&R.rqC[c].flows)||[]).filter(f=>f.ms>LAT_BB);

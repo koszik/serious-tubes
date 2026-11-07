@@ -29,12 +29,16 @@ function slaDown(b,ids,fresh,path){const T=BIZ_T[b.type];if(T.fiber)return fiber
   if(h)return h*60;
   if(T.l2&&fresh.size&&!coreFrr()){const p=path.get(b.id);if(p)for(const k of p)if(fresh.has(k))return SLA_BLIP;}
   return 0;}
+// Like real carrier SLAs, an attack aimed at the customer is not downtime you owe for, unless it bought protection
+// (DDoS-protected internet, or a contract that asks for scrubbing). It still makes the customer unhappy.
+const ddosExcused=b=>b.type!=='scrub'&&!(b.reqs||[]).some(k=>k==='scrubbed'||k==='scrubnear')&&ddosAll().some(a=>a.tgt===b.id);
 function slaTick(d){const ids=linkIds(),down=new Set(S.links.filter(linkDown).map(l=>edgeKey(l))),path=new Map();
   for(const id in R.l2path||{})path.set(id,new Set(R.l2path[id]));
   const prev=SLA_PREV,fresh=prev?new Set([...down].filter(k=>!prev.down.has(k))):new Set();
   const mon=monthIdx(d),paid=[];
   for(const b of S.biz.slice()){const T=BIZ_T[b.type];if(!T||T.event||capPend(b)||inGrace(b))continue;const k=slaOf(b),L=SLA[k];
     if(b.dnM!==mon){b.dnM=mon;b.dn=0;b.cr=0;}
+    if(ddosExcused(b))continue;
     const m=slaDown(b,ids,fresh,prev?prev.path:path);if(!m)continue;
     const before=b.dn>slaAllow(k,d);b.dn+=m;const over=b.dn-slaAllow(k,d);if(over<=0)continue;
     const mo=bizMo(b),owe=Math.round(Math.min(L.cap,Math.ceil(over/60)*L.cr)*mo),pay=owe-(b.cr||0);

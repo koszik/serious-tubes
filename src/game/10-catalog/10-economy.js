@@ -36,9 +36,8 @@ const siteName=(c,s)=>s==='b'?CITY[c].dc2?siteNo(CITY[c].dc2,CITY[c].dc2N):SITE2
 const BE_TAPE=30000;
 const popCost=c=>Math.round(POP_COST*colo(c))+(c&&CITY[c]&&CITY[c].tape?BE_TAPE:0)+(c&&CITY[c]&&CITY[c].ru?RU_BOX:0)+(c&&CITY[c]&&CITY[c].uae?UAE_LIC:0)+(c&&CITY[c]&&CITY[c].saudi?KSA_LIC:0);
 const CN_LIC=150000, CN_JV_MO=6000;
-// Scrubbing centers come in tiers by clean bandwidth, and each brings its own dirty-side ingress of that size: when
-// engaged it announces the target's prefix more specifically, so the flood comes to it instead of your ports (a
-// magnet) and it cleans up to its tier (a sponge). Always-on is engaged from the first minute; on-demand is cheaper
+// Scrubbing centers come in tiers by clean bandwidth: when engaged, your ingress routers divert the target's traffic
+// to the nearest one over your backbone (the flood still arrives on your ports) and it cleans up to its tier. Always-on is engaged from the first minute; on-demand is cheaper
 // and pulls half the flood on the first day while the diversion starts. A clean-pipe add-on scrubs upstream, per port.
 const SCRUB_TIERS=[{n:'100G',g:100,cost:60000,mo:5000,lvl:1},{n:'1T',g:1000,cost:180000,mo:15000,lvl:3},{n:'10T',g:10000,cost:500000,mo:40000,lvl:4},{n:'100T',g:100000,cost:1500000,mo:110000,lvl:10}];
 const SLA_PEN=20000;

@@ -547,7 +547,7 @@ test('D2: a full port slows everyone on it', () => {
   assert.ok(g.ev("bizSf(S.biz.find(b=>b.id==='d'),linkIds())") < 0.9, 'D2: the bystander loses traffic');
   assert.deepEqual(g.errors, []);
 });
-test('D3: only upstream tools and scrubbing keep a flood off your ports; Flowspec works behind them, within its budget', () => {
+test('D3: only upstream tools keep a flood off your ports; Flowspec and scrubbing work behind them', () => {
   const g = load();
   ddFra(g.ev);
   ddHit(g.ev, 200);
@@ -556,7 +556,8 @@ test('D3: only upstream tools and scrubbing keep a flood off your ports; Flowspe
   g.ev("S.transit[0].clean=true;compute()");
   assert.equal(g.ev('R.ddos[0].full'), 0, 'D3: a clean pipe scrubs upstream');
   g.ev("S.transit[0].clean=false;S.scrubs=[{city:'fra',tier:1}];S.scrubMode='always';compute()");
-  assert.equal(g.ev('R.ddos[0].full'), 0, 'D3: an engaged center pulls it off the ports');
+  assert.equal(g.ev('R.ddos[0].full'), 1, 'D3: an engaged center is behind the port, which stays full');
+  assert.ok(g.ev('R.ddos[0].cleaned') > 0, 'D3: and cleans what gets through it');
   assert.deepEqual(g.errors, []);
 });
 test('D4: RTBH costs only the target', () => {

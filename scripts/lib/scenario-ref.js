@@ -20,7 +20,9 @@ Q.can=x=>S.cash>=x+Q.reserve();
 Q.cheap=c=>NETS.filter(n=>n.price&&sellsAt(n,c)&&!(Q.avoid||[]).includes(n.id)&&!S.transit.some(t=>t.city===c&&t.net===n.id)).sort((a,b)=>a.price*netMult(a,c)-b.price*netMult(b,c))[0];
 Q.pop=c=>{if(!S.pops[c])ACT.buildPop({city:c});return !!S.pops[c];};
 Q.bb=c=>{Q.pop(c);if(S.pops[c]&&!S.pops[c].bb)ACT.launchBB({city:c});return !!(S.pops[c]&&S.pops[c].bb);};
-Q.tr=(c,tier=1)=>{Q.pop(c);const n=Q.cheap(c);if(!n)return true;ACT.buyTransit({city:c,net:n.id,tier});return true;};
+// A big port needs a big router: swap up first (a day each), like a wave.
+Q.tr=(c,tier=1)=>{Q.pop(c);const n=Q.cheap(c);if(!n)return true;for(let k=0;k<4&&!portOk(c,tier);k++){const g0=S.pops[c].rgen||0;ACT.upRouter({city:c});if((S.pops[c].rgen||0)===g0)break;}
+  if(!portOk(c,tier))return null;ACT.buyTransit({city:c,net:n.id,tier});return true;};
 Q.last=c=>{for(const t of S.transit)if(t.city===c)ACT.setPref({kind:'t',id:t.id,v:'low'});return true;};
 Q.ix=(c,tier=1)=>{if(!S.pops[c])return false;for(const x of ixIdsIn(c)){if(!ixName(x))continue;if(S.ixp[x]===undefined)ACT.buyIx({city:x,tier,signed:true});if(S.ixp[x]===undefined)continue;if(!S.rs[x])ACT.rs({city:x});ACT.peerAll({city:x});}return true;};
 // A wave: big waves need big routers at both ends, and a router swap takes a day, so the step waits (null) until they fit.

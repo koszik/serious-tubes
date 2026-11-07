@@ -3,21 +3,22 @@
    network would use: private peering first, then the exchanges, then transit, spread by port size. Each tool then
    acts where it does in a real network: RTBH and clean pipes upstream, before your port; the port carries what fits
    and everyone on it loses the same share; Flowspec drops matching junk on each ingress router, within that router's
-   rule budget; what is left rides the backbone to the target. An engaged scrubbing center takes the flood on its own
-   ingress instead (magnet) and cleans up to its tier (sponge); what it cannot take hurts only the target. */
+   rule budget; what is left rides the backbone to the target. While a scrubbing center is engaged, your ingress routers
+   divert it there instead: the junk still comes in on every port, rides the backbone to the nearest center your
+   network joins it to and is cleaned up to the center's tier; what the center cannot take hurts only the target. */
 /* Before routing: Flowspec first. The edge takes an attack when it has a signature, every POP it enters has rule room
-   and no port it fills would run full (yesterday's use plus the junk). Anything else goes to scrubbing, which is an
-   announcement: the target's addresses are announced only at the live centers, so the internet sends all its traffic
-   there and routing brings the clean part home. X.DP: attack id -> {edge, why, dv (center city indexes)}. */
+   and no port it fills would run full (yesterday's use plus the junk). Anything else goes to scrubbing: the target's
+   traffic is diverted through the centers and routing brings the clean part home. X.DP: attack id -> {edge, why, dv
+   (center city indexes)}. */
 function ddosPlan(X){const P=X.DP=new Map(),live=ddosAll().slice().sort((a,b)=>(a.start||0)-(b.start||0)||(a.id<b.id?-1:a.id>b.id?1:0));if(!live.length)return P;
   const fsP={},J=new Map(),r=R||{},use=e=>{const m=e.k==='t'?r.useT:e.k==='ix'?r.useIx:e.k==='p'?r.usePni:e.k==='c'?r.useCache:null;return (m&&m[e.id])||0;},bhAll=!!(X.TRX&&X.TRX.blackhole);
   for(const a of live){if(!S.pops[a.city]||!popUp(a.city)||a.bh||bhAll){P.set(a.id,{edge:false,why:null,dv:null});continue;}
     const V=DDOS_VEC[a.vec],need=V&&V.fs?(a.carpet?FS_CARPET:1):0,sp=new Map();ddosSpread(a.gbps,X.E,X.okBy,sp);
-    let why=need?null:{k:'sig'};const by=new Map(),mine=[];
-    for(const [e,g] of sp){const left=e.clean?g*0.1:g;mine.push([e,left]);by.set(e.city,(by.get(e.city)||0)+left);const j=(J.get(e)||0)+left;J.set(e,j);if(!why&&j+use(e)>e.cap)why={k:'port',city:e.city};}
+    let why=need?null:{k:'sig'};const by=new Map();
+    for(const [e,g] of sp){const left=e.clean?g*0.1:g;by.set(e.city,(by.get(e.city)||0)+left);const j=(J.get(e)||0)+left;J.set(e,j);if(!why&&j+use(e)>e.cap)why={k:'port',city:e.city};}
     if(!why)for(const c of by.keys()){const cap=fsCap(c),left=fsP[c]??cap;if(!cap){why={k:'router',city:c};break;}if(left<need){why={k:'rules',city:c};break;}}
     if(!why){for(const c of by.keys())fsP[c]=(fsP[c]??fsCap(c))-need;P.set(a.id,{edge:true,why:null,dv:null});continue;}
-    const xs=scrubsFor(X.COMP,a.city),eng=xs.length?scrubEng(a):0;if(eng>=1)for(const [e,g] of mine)J.set(e,J.get(e)-g);
+    const xs=scrubsFor(X.COMP,a.city),eng=xs.length?scrubEng(a):0;
     P.set(a.id,{edge:false,why,dv:eng>0?[...new Set(xs.map(x=>CIDX[x.city]))]:null});}
   return P;}
 // The centers a target's traffic is diverted to while it is scrubbed (city indexes), by target.
@@ -51,32 +52,37 @@ function ddosTb(a,R2){if(a.tgt&&a.tgt.startsWith('bb:'))return Math.max(1,(R2.ci
 function ddosLoad(X){const {E,okBy,R2}=X;R2.ddos=[];R2.haul=[];R2.tgtF={};R2.bbF={};R2.fsUse={};R2.ddosHot={};
   const live=ddosAll().slice().sort((a,b)=>(a.start||0)-(b.start||0)||(a.id<b.id?-1:a.id>b.id?1:0));if(!live.length)return null;
   const recs=[],room={};
-  for(const a of live){const c=a.city,m={attack:a,tgt:a.tgt,g:a.gbps,bh:!!(a.bh||X.autoBh),ports:new Map(),up:0,fs:0,fsAt:[],fsFull:[],fsNone:[],deliv:0,pulled:0,cleaned:0,over:0,parts:[],tf:1,col:0,slowed:0,eng:0};
+  for(const a of live){const c=a.city,m={attack:a,tgt:a.tgt,g:a.gbps,bh:!!(a.bh||X.autoBh),ports:new Map(),up:0,fs:0,fsAt:[],fsFull:[],fsNone:[],deliv:0,sent:0,pulled:0,cleaned:0,over:0,parts:[],tf:1,col:0,slowed:0,eng:0};
     recs.push(m);R2.ddos.push(m);if(!popUp(c)||!S.pops[c]){m.offline=true;continue;}
-    const pl=X.DP&&X.DP.get(a.id);m.edge=!!(pl&&pl.edge);m.why=pl?pl.why:null;const xs=scrubsFor(X.COMP,c);m.cut=!m.bh&&!m.edge&&scrubLive()&&!xs.length;m.eng=m.bh||m.edge||!xs.length?0:scrubEng(a);const pull=a.gbps*m.eng,sp=new Map();ddosSpread(a.gbps-pull,E,okBy,sp);
+    const pl=X.DP&&X.DP.get(a.id);m.edge=!!(pl&&pl.edge);m.why=pl?pl.why:null;const xs=scrubsFor(X.COMP,c);m.cut=!m.bh&&!m.edge&&scrubLive()&&!xs.length;m.eng=m.bh||m.edge||!xs.length?0:scrubEng(a);m.xs=xs;const sp=new Map();ddosSpread(a.gbps,E,okBy,sp);
     for(const [e,g] of sp){let left=g;
       if(m.bh)left*=e.k==='p'?(pniHonours(e.net)?0:1):RTBH_LEFT[e.k]??1;else if(e.clean)left*=0.1;
       m.up+=g-left;if(left>1e-9){m.ports.set(e,{off:left,in:0});e.J+=left;}}
-    if(pull>0){let tot=0;for(const x of xs)tot+=SCRUB_TIERS[x.tier||0].g;
-      for(const x of xs){const cap=SCRUB_TIERS[x.tier||0].g,share=pull*cap/tot,can=Math.max(0,room[x.city]??cap),cl=Math.min(share,can);room[x.city]=can-cl;
-        m.parts.push({city:x.city,tier:x.tier||0,a:share,cleaned:cl});m.cleaned+=cl;m.over+=share-cl;}
-      m.pulled=pull;}}
+  }
   // The ports: each carries what fits, shared out by what each attack offers it.
   for(const m of recs)for(const [e,p] of m.ports)p.in=p.off*Math.min(1,e.cap/e.J);
-  // Flowspec, oldest attack first, within each router's rule budget; what is left heads for the target.
+  // Flowspec, oldest attack first, within each router's rule budget; what is left heads for the target, or (the engaged
+  // share) for the scrubbing center nearest where it came in.
   const fsLeft={};
-  for(const m of recs){if(m.offline)continue;const a=m.attack,V=DDOS_VEC[a.vec],need=V&&V.fs?(a.carpet?FS_CARPET:1):0,byCity=new Map();
+  for(const m of recs){if(m.offline)continue;const a=m.attack,V=DDOS_VEC[a.vec],need=V&&V.fs?(a.carpet?FS_CARPET:1):0,byCity=new Map(),arr={};
+    const y0=k=>arr[k]||(arr[k]={a:0,tier:(S.scrubs.find(x=>x.city===k)||{}).tier||0});
     for(const [e,p] of m.ports)byCity.set(e.city,(byCity.get(e.city)||0)+p.in);
     for(const [city,g] of byCity){let rest=g;
       if(need&&S.pops[city]){const cap=fsCap(city),left=fsLeft[city]??cap;
         if(!cap)m.fsNone.push(city);else if(left>=need){fsLeft[city]=left-need;rest=g*(1-FS_DROP);m.fs+=g-rest;m.fsAt.push(city);}else{fsLeft[city]=left;m.fsFull.push(city);}}
-      m.deliv+=X.haul(city,a.city,rest,'ddos:'+city,city);}
+      const sc=m.eng>0&&(!X.COMP||X.COMP[CIDX[city]]===X.COMP[CIDX[a.city]])?rest*m.eng:0;if(sc>0){m.sent+=sc;let x=m.xs[0],d=Infinity;for(const y of m.xs){const v=y.city===city?0:X.ms(city,y.city);if(v<d){d=v;x=y;}}
+        y0(x.city).a+=x.city===city?sc:X.haul(city,x.city,sc,'ddos:'+city,city,false,true);}
+      m.deliv+=X.haul(city,a.city,rest-sc,'ddos:'+city,city);}
+    // Each center cleans what reaches it, up to what earlier attacks left of its tier.
+    for(const k in arr){const x=arr[k],cap=SCRUB_TIERS[x.tier].g,can=Math.max(0,room[k]??cap),cl=Math.min(x.a,can);room[k]=can-cl;
+      m.parts.push({city:k,tier:x.tier,a:x.a,cleaned:cl});m.pulled+=x.a;m.cleaned+=cl;m.over+=x.a-cl;}
     // How far the clean traffic travels back from each center, for the card.
     const tb=ddosTb(a,R2);
     // (Routing already carries the clean traffic home: the target's addresses are announced at the centers, ddosPlan.)
     for(const x of m.parts)R2.haul.push({city:a.city,to:x.city,tier:x.tier,a:x.a,h:1,ms:x.city===a.city?0:X.ms(a.city,x.city)*2,attack:a.id});
-    // The target: blackholed, or what its own port and the scrubbing centers let through.
-    const fa=Math.min(1,2*tb/(m.deliv+tb)),fsc=m.pulled>0?m.cleaned/m.pulled:1;
+    // The target: blackholed, or what its own port and the scrubbing centers let through. Its diverted traffic rides
+    // with the junk, so it loses what the junk loses on the way and at the centers.
+    const fa=Math.min(1,2*tb/(m.deliv+tb)),fsc=m.sent>0?m.cleaned/m.sent:1;
     m.tf=m.bh?0:fa*((1-m.eng)+m.eng*fsc);
     if(a.tgt&&a.tgt.startsWith('bb:'))R2.bbF[a.city]=Math.min(R2.bbF[a.city]??1,m.tf);else if(a.tgt)R2.tgtF[a.tgt]=Math.min(R2.tgtF[a.tgt]??1,m.tf);}
   for(const c in S.pops){const cap=fsCap(c);if(fsLeft[c]!==undefined)R2.fsUse[c]={used:cap-fsLeft[c],cap};}

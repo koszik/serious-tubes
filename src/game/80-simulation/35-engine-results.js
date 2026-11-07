@@ -63,7 +63,8 @@ function engResults(X){const {R2,E,NX,NE,NP,EP,IT,F,L,hp,OFFH,LOSSH,CAP,NOH,EPO,
   /* Each endpoint is judged by its slowest far network that carries a noticeable share (RQ_SH) of its traffic; every
      network from RQ_SHOW up is listed (ms the extra round trip, rt the round trip itself, both traffic-weighted). */
   R2.rq={};R2.rqC={};const RQL=new Map(),xn=x=>x.k==='t'||x.k==='p'?x.net:null;for(const o of RQN.values()){const W=RQW[o.ei];if(!(W>0)||!(o.w/W>=RQ_SHOW))continue;const it=IT[o.t],xi=it.inX>=0?E[it.inX]:null,xo=it.outX>=0?E[it.outX]:null;
-    const fl={net:NETS[o.j].id,ms:o.x/o.w,rt:o.r/o.w,fix:o.f/o.w,share:o.w/W,inC:xi&&xi.city,inK:xi&&xi.k,inN:xi&&xn(xi),outC:xo&&xo.city,outK:xo&&xo.k,outN:xo&&xn(xo)};
+    // Traffic diverted to scrubbing (sc) is slow because of the detour, not your routing: nothing to fix there.
+    const sc=!!EP[o.ei].dv,fl={net:NETS[o.j].id,ms:o.x/o.w,rt:o.r/o.w,fix:sc?0:o.f/o.w,share:o.w/W,inC:xi&&xi.city,inK:xi&&xi.k,inN:xi&&xn(xi),outC:xo&&xo.city,outK:xo&&xo.k,outN:xo&&xn(xo)};if(sc)fl.sc=1;
     let L2=RQL.get(o.ei);if(!L2)RQL.set(o.ei,L2=[]);L2.push(fl);}
   for(const [ei,fl] of RQL){fl.sort((a,b)=>b.ms-a.ms);const e=EP[ei],top=fl.find(f=>f.share>=RQ_SH),q=top?{...top,flows:fl}:{ms:0,fix:0,flows:fl};
     if(e.k==='pop')R2.rqC[e.city]=q;else if(e.k==='grp'&&e.members)for(const id of e.members)R2.rq[id]=q;}
@@ -73,7 +74,9 @@ function engResults(X){const {R2,E,NX,NE,NP,EP,IT,F,L,hp,OFFH,LOSSH,CAP,NOH,EPO,
   // Floods: what the ports let through, and who else felt it.
   // Collateral is what everyone loses on the pipes the junk crosses (the ports it comes in on and its way to the target).
   if(X.DD){const JP=new Uint8Array(NP),{LP:lp,LOFF:lo}=L,L1=X.L1;for(let x=0;x<NX;x++)if(X.J[x]>0)JP[2*NE+2*x]=1;for(const h of X.hauls)for(let k=lo[h[0]];k<lo[h[0]+1];k++)JP[lp[k]]=1;
-    const kept=(id,q)=>{let a=1;for(let k=lo[id];k<lo[id+1];k++){const p=lp[k];if(JP[p])a*=1-L1[2*p+q];}return a;};
+    // Only the loss the junk adds counts: a pipe that was full anyway is not the attack's doing.
+    const AT=new Float64Array(NP);for(let p=0;p<NP;p++)if(JP[p]){const O=X.OF[p],O0=O-X.OJ[p],C=X.CAP[p],l=L1[2*p],l0=C>0&&O0>C?1-C/O0:0;AT[p]=l>0?Math.max(0,(l-l0)/l):0;}
+    const kept=(id,q)=>{let a=1;for(let k=lo[id];k<lo[id+1];k++){const p=lp[k];if(JP[p])a*=1-L1[2*p+q]*AT[p];}return a;};
     const lostC={};let lost=0;
     for(let f=0;f<X.NF;f++){const ei=F.ep[f];if(!EPIP[ei])continue;const q=F.q[f];let x=0;for(let k=0;k<3;k++){const id=FIN[f*3+k];if(id>=0&&WC[f*3+k]>0)x+=VI[f]*WC[f*3+k]*(1-kept(id,q));}
       if(FOUT[f]>=0)x+=VO[f]*(1-kept(FOUT[f],q));if(x>0){const ci=EPCI[ei];lostC[ci]=(lostC[ci]||0)+x;lost+=x;}}

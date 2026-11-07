@@ -31,7 +31,8 @@ test('what the edge cannot take goes to scrubbing, and the card says why', () =>
   for (const [label, setup, vec, why, line] of [
     ['no signature', '', 'ack', 'sig', /no signature for ACK flood/],
     ['no Flowspec router', 'S.pops.fra.rgen=0;S.pops.ams.rgen=0', 'dns', 'router', /No Flowspec router in (Frankfurt|Amsterdam)/],
-    ['a port would fill', "for(const t of S.transit)t.tier=0", 'dns', 'port', /would fill a port in/],
+    // The ports fill before anything else can act: the card names them (scrubbing sits behind them now).
+    ['a port would fill', "for(const t of S.transit)t.tier=0", 'dns', 'port', /Enters on 2 ports, 2 full/],
   ]) {
     const { ev, errors } = load();
     net(ev, "ACT.buildScrub({city:'ams',tier:1});" + setup);
@@ -85,7 +86,7 @@ test('the card judges the attack, not a city already short of capacity; so does 
   net(ev, "ACT.buildScrub({city:'ams',tier:1});S.biz.push({id:'p',city:'fra',city2:null,name:'Protected',type:'scrub',bw:5,rate:900,reqs:[],mood:100,since:0})");
   attack(ev, 'ack', 10, "'p'");
   ev("S.ev.ddos.sf0=0.6");
-  ev("const f=bizSfOf;bizSfOf=()=>0.6;window.__f=f");
+  ev("const f=bizSf;bizSf=()=>0.6;window.__f=f");
   assert.ok(ev('ddosSf(S.ev.ddos)') < 0.7 && ev('ddosHit(S.ev.ddos)') > 0.97, 'the city is at 60%, the attack cost nothing');
   assert.match(card(ev), /Held: nobody notices .*Protected was already at 60% before the attack/);
   // The day's DDoS-protection SLA check pays out on ddosHit, not on the city's service.
@@ -93,7 +94,7 @@ test('the card judges the attack, not a city already short of capacity; so does 
   ev('dayTick()');
   assert.ok(ev(`S.cash>${cash}-SLA_PEN+1`) && ev("!(S.ev.ddos&&(S.ev.ddos.sla||[]).includes('p'))"), 'no DDoS SLA penalty for congestion it already had');
   assert.ok(d >= 0);
-  ev("bizSfOf=window.__f");
+  ev("bizSf=window.__f");
   // Saves: the baseline is kept and checked.
   ev("const x=JSON.parse(JSON.stringify(S));x.ev.ddos.sf0='x';S=migrate(x)");
   assert.equal(ev('S.ev.ddos.sf0'), 1);

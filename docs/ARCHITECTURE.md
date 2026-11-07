@@ -41,7 +41,7 @@ hoisted across files, and top-level statements run in path order. Find code by n
 | `91-save.js`, `92-audio.js` | Save, export and import; sound effects |
 | `93-ui/` | DOM helpers (`$`, `btn`, `morph`), the phone tab bar, install pitch, HUD, left panel, city and link panels, decommissioning |
 | `94-dashboard/` | Scenario and level progress, where to meet a network, customers and connections overviews, lease swaps, the NOC dashboard, the bank, hints |
-| `95-modals/` | Toasts, notifications, modals, title screen, what's new, help, the link and own-cable modals |
+| `95-modals/` | Toasts, notifications, modals, title screen, what's new, help, every flow on a pipe (`64-flows.js`), the link and own-cable modals |
 | `96-map/` | The canvas: resize, land and clouds, settings, level of detail, link geometry, `draw()`, the world layer, cities, input and click delegation |
 | `99-loop.js` | `frame()` and `boot()` |
 
@@ -137,7 +137,9 @@ never freezes the game.
    summed per customer and city and per far network into `R.rq` / `R.rqC`: an endpoint is judged by its slowest network
    carrying at least `RQ_SH` of its traffic, so one slow network is not averaged away (`40-progress/19-routing-quality.js`).
    DDoS: `ddosPlan()` runs before endpoints are built (Flowspec at the edge first; a diverted target gets its own
-   endpoint, announced only at the live scrubbing centers), then `ddosLoad()` in the hourly pass.
+   endpoint, reached through the live scrubbing centers its backbone joins), then `ddosLoad()` in the hourly pass:
+   the junk comes in on every port and the engaged share rides the backbone to the nearest center (`haul()`), which
+   cleans what reaches it. Attacks on unprotected customers are not SLA downtime (`ddosExcused()`).
 6. Every 30 days: bills the month (revenue minus costs) and checks for bankruptcy.
 7. Checks goals, level, badges and scenario end conditions.
 

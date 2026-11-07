@@ -26,11 +26,11 @@ const latSlow=c=>!!(R&&R.latF&&R.latF[c]<0.97&&R.latFar[c]);
 const latWarn=c=>latSlow(c)||rtqSlowC(c).length>0;
 function latNote(c){if(!latWarn(c))return '';const f=R.latFar[c],kr=CITY[c].kr&&scnRule('sender'),w=rtqSlowC(c)[0],nm=x=>esc(CITY[x].name);
   const v=w&&!kr?{p:pct(Math.min(1,w.share)),city:nm(c),to:nm(rtqCache(w)||!w.outC||w.outC===c?w.inC:w.outC),ms:Math.round(w.rt||w.ms)}:{p:pct(Math.min(1,f.share)),city:nm(c),to:nm(f.to),ms:Math.round(kr?f.ms:f.rt||f.ms)};
-  const msg=kr?tr('sites_and_service.p_of_city_s_traffic_comes_from_kr',v):w?(rtqCache(w)?tr('sites_and_service.p_of_city_s_traffic_from_cache',v):w.outC&&w.outC!==c?tr('sites_and_service.p_of_city_s_traffic_is',v):tr('sites_and_service.p_of_city_s_traffic_comes_in_at',v)):f.k==='c'?tr('sites_and_service.p_of_city_s_traffic_from_cache',v):tr('sites_and_service.p_of_city_s_traffic_is',v);
+  const msg=kr?tr('sites_and_service.p_of_city_s_traffic_comes_from_kr',v):w?(w.sc?tr('sites_and_service.p_of_city_s_traffic_scrubbed',v):rtqCache(w)?tr('sites_and_service.p_of_city_s_traffic_from_cache',v):w.outC&&w.outC!==c?tr('sites_and_service.p_of_city_s_traffic_is',v):tr('sites_and_service.p_of_city_s_traffic_comes_in_at',v)):f.k==='c'?tr('sites_and_service.p_of_city_s_traffic_from_cache',v):tr('sites_and_service.p_of_city_s_traffic_is',v);
   return `<div class="latwarn">🐢 ${msg}${latFlows(c)}</div>`;}
 // The flows behind a city's latency warning, the same ones the NOC judges: each network's round trip, its extra, and its way.
 function latFlows(c){const fl=rtqSlowC(c).slice(0,5);if(!fl.length)return '';
-  return `<ul class="latflows">${fl.map(f=>{const v=rtqVars(f);for(const k in v)if(typeof v[k]==='string')v[k]=esc(v[k]);return `<li>${rtqCache(f)?tr('sites_and_service.flow_rt_cache',v):tr('sites_and_service.flow_rt_in_out',v)}</li>`;}).join('')}</ul>`;}
+  return `<ul class="latflows">${fl.map(f=>{const v=rtqVars(f);for(const k in v)if(typeof v[k]==='string')v[k]=esc(v[k]);return `<li>${f.sc?tr('sites_and_service.flow_rt_scrub',{...v,city:CITY[f.inC]?esc(CITY[f.inC].name):v.city}):rtqCache(f)?tr('sites_and_service.flow_rt_cache',v):tr('sites_and_service.flow_rt_in_out',v)}</li>`;}).join('')}</ul>`;}
 // The worst extra round trip behind a city's warning, for its chip.
 const latWorst=c=>{const fl=rtqSlowC(c);return Math.round(fl.length?fl[0].ms:R.latFar[c].ms);};
 const LAT_OK=20,LAT_BAD=50,latLoss=rtt=>rtt<=LAT_OK?0:rtt<=LAT_BAD?0.2*(rtt-LAT_OK)/(LAT_BAD-LAT_OK):0.5;
