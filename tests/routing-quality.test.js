@@ -82,3 +82,11 @@ test('one far network served from a distant cache is flagged in every city it sl
   assert.equal(ev("!!document.querySelector('.ph .latflows')"), false, 'and closes it again');
   assert.deepEqual(errors, []);
 });
+
+test('a slow-routes warning from many small networks lists them instead of nothing', () => {
+  const { ev, errors } = load();
+  ev("ACT.start({});if(UI.pendGame)ACT.pitchSkip();compute()");
+  const li = ev("(()=>{R.rqC.fra={ms:0,flows:[]};R.latFar.fra={to:'ams',k:'t',g:5,ms:83,rt:90,share:0.04};return latFlows('fra');})()");
+  assert.match(li, /Many small networks: 4% of the traffic, 90 ms round trip \(\+83 ms\), handed over in Amsterdam/);
+  assert.deepEqual(errors, []);
+});

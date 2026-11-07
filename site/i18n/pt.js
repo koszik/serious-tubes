@@ -3926,6 +3926,7 @@
 "sites_and_service.budget_ms_ms":"orçamento {ms} ms",
 "sites_and_service.flow_rt_cache":"{net}: {p} do tráfego, {rt} ms de ida e volta (+{ms} ms), do teu cache em {city}",
 "sites_and_service.flow_rt_in_out":"{net}: {p} do tráfego, {rt} ms de ida e volta (+{ms} ms), entrando em {city}, saindo em {out}",
+"sites_and_service.flow_rt_many":"Muitas redes pequenas: {p} do tráfego, {rt} ms de ida e volta (+{ms} ms), entregue em {city}",
 "sites_and_service.flow_rt_scrub":"{net}: {p} do tráfego, {rt} ms de ida e volta (+{ms} ms), pelo scrubbing em {city}",
 "sites_and_service.level_n":"Nível {n}",
 "sites_and_service.n_ports":"{n} portas",

@@ -3927,6 +3927,7 @@
 "sites_and_service.budget_ms_ms":"budget {ms} ms",
 "sites_and_service.flow_rt_cache":"{net}: {p} of the traffic, {rt} ms round trip (+{ms} ms), from your cache in {city}",
 "sites_and_service.flow_rt_in_out":"{net}: {p} of the traffic, {rt} ms round trip (+{ms} ms), in at {city}, out at {out}",
+"sites_and_service.flow_rt_many":"Many small networks: {p} of the traffic, {rt} ms round trip (+{ms} ms), handed over in {city}",
 "sites_and_service.flow_rt_scrub":"{net}: {p} of the traffic, {rt} ms round trip (+{ms} ms), through scrubbing in {city}",
 "sites_and_service.level_n":"Level {n}",
 "sites_and_service.n_ports":"{n} ports",

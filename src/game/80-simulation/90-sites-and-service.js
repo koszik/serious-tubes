@@ -29,7 +29,9 @@ function latNote(c){if(!latWarn(c))return '';const f=R.latFar[c],kr=CITY[c].kr&&
   const msg=kr?tr('sites_and_service.p_of_city_s_traffic_comes_from_kr',v):w?(w.sc?tr('sites_and_service.p_of_city_s_traffic_scrubbed',v):rtqCache(w)?tr('sites_and_service.p_of_city_s_traffic_from_cache',v):w.outC&&w.outC!==c?tr('sites_and_service.p_of_city_s_traffic_is',v):tr('sites_and_service.p_of_city_s_traffic_comes_in_at',v)):f.k==='c'?tr('sites_and_service.p_of_city_s_traffic_from_cache',v):tr('sites_and_service.p_of_city_s_traffic_is',v);
   return `<div class="latwarn">🐢 ${msg}${latFlows(c)}</div>`;}
 // The flows behind a city's latency warning, the same ones the NOC judges: each network's round trip, its extra, and its way.
-function latFlows(c){const fl=rtqSlowC(c).slice(0,5);if(!fl.length)return '';
+function latFlows(c){const fl=rtqSlowC(c).slice(0,5);
+  // Warned by many small networks (each under the share the list shows) handed over far away: say so, not nothing.
+  if(!fl.length){const f=R.latFar&&R.latFar[c];return f&&CITY[f.to]?`<ul class="latflows"><li>${tr('sites_and_service.flow_rt_many',{p:pct(Math.min(1,f.share)),rt:Math.round(f.rt||f.ms),ms:Math.round(f.ms),city:esc(CITY[f.to].name)})}</li></ul>`:'';}
   return `<ul class="latflows">${fl.map(f=>{const v=rtqVars(f);for(const k in v)if(typeof v[k]==='string')v[k]=esc(v[k]);return `<li>${f.sc?tr('sites_and_service.flow_rt_scrub',{...v,city:CITY[f.scC]?esc(CITY[f.scC].name):v.city}):rtqCache(f)?tr('sites_and_service.flow_rt_cache',v):tr('sites_and_service.flow_rt_in_out',v)}</li>`;}).join('')}</ul>`;}
 // The worst extra round trip behind a city's warning, for its chip.
 const latWorst=c=>{const fl=rtqSlowC(c);return Math.round(fl.length?fl[0].ms:R.latFar[c].ms);};
