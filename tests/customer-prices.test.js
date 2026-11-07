@@ -45,3 +45,14 @@ test('new offers use the new prices; signed contracts keep theirs', () => {
   assert.equal(ev("slaOf(S.biz.find(b=>b.id==='old'))"), 'std', 'and an old one is Standard');
   assert.deepEqual(errors, []);
 });
+
+test('a circuit across Eurasia is priced over the subsea route, not overland across a dozen borders', () => {
+  const { ev, errors } = load();
+  start(ev);
+  assert.equal(ev("landMult('par','icn')"), ev('LAND_X'), 'building it overland yourself still costs the earth');
+  const seoul = mo(ev, 'l2vpn', 'par', 'icn', 10), tokyo = mo(ev, 'l2vpn', 'fra', 'tok', 10);
+  assert.ok(seoul < 100000, `Paris–Seoul 10G: $${Math.round(seoul)}`);
+  assert.ok(seoul > tokyo * 0.7 && seoul < tokyo * 1.5, `about Frankfurt–Tokyo ($${Math.round(tokyo)})`);
+  assert.ok(mo(ev, 'l2vpn', 'fra', 'lon', 10) < 5000, 'short overland routes stay overland');
+  assert.deepEqual(errors, []);
+});

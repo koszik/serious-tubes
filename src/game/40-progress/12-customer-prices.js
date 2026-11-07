@@ -7,8 +7,10 @@
 // The wave-size multiplier for any capacity: LT[].m interpolated on log g, below 10G a fraction of a 10G wave.
 function ltM(g){if(g<=LT[0].g)return Math.max(0.3,Math.sqrt(g/LT[0].g));const L=LT[LT.length-1];if(g>=L.g)return L.m*Math.pow(g/L.g,0.8);
   for(let i=1;i<LT.length;i++){const a=LT[i-1],b=LT[i];if(g<=b.g){const f=Math.log(g/a.g)/Math.log(b.g/a.g);return a.m+(b.m-a.m)*f;}}return L.m;}
-// What g of capacity between a and b leases for a month.
-function capMo(a,b,g){const sub=isSub(a,b),k=waveMarket(a,b,sub).m*(sub?1:landMult(a,b));return (300+kmBetween(a,b)*1.2)*ltM(g)*(sub?1.8:1)*k;}
+// What g of capacity between a and b leases for a month: overland, or subsea where that is cheaper (the market sells
+// Paris–Seoul around the coast, not across a dozen borders; LAND_X is only what building it yourself costs).
+function capMo(a,b,g){const base=(300+kmBetween(a,b)*1.2)*ltM(g),sea=base*1.8*waveMarket(a,b,true).m;
+  return isSub(a,b)?sea:Math.min(sea,base*waveMarket(a,b,false).m*landMult(a,b));}
 // Per Gbps, in cents, so bw × rate stays a customer's monthly bill everywhere (a 6.4T circuit pays a few dollars a Gbps).
 const cents=x=>Math.round(x*100)/100,perG=(mo,bw)=>Math.max(0.01,cents(mo/bw));
 const l2Rate=(T,a,b,bw)=>perG(capMo(a,b,bw)*(T.mk||1),bw);

@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- Circuits between Europe and Asia are now priced like the subsea capacity the market really sells: a 10G Paris–Seoul circuit offers about $58k a month instead of nearly a million. Building overland across the continent yourself still costs as much as before.
 - A scrubbing center only protects customers your backbone connects it to: the cleaned traffic has to ride home over your own links, so a center in a city you have not joined to the target no longer pretends to help, and the attack card says why.
 - Big internet customers now pay about what transit costs: from 400G a customer pays somewhere between the city's cheapest and its typical transit price, depending on how hard it haggles, plus extra only for traffic to costly places like China, so large contracts make money when you peer, cache and run an efficient network rather than resell transit. Smaller customers keep paying a premium, and contracts you have signed keep their price.
 - Transit now costs what it really does, about $30–90 per Gbps a month in Frankfurt and more in Asia, Africa and Australia, so peering, PNIs and caches pay off as they do for real networks: an exchange port in Frankfurt pays for itself at a few dozen Gbps. Broadband earns a little more, business customers pay their city's market price, South Africa's exchanges charge no port fees, and you start with $400k. Saved networks get a one-time credit to adjust.
