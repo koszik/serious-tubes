@@ -21,6 +21,7 @@
 .noc{cursor:pointer;border:3px solid var(--ink)}
 .hotk{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;padding:0 4px;border-radius:12px;border:2px solid var(--ink,#1E2640);font:900 11px Nunito,sans-serif;margin-right:8px;color:#fff;background:#FF4D5E}
 .hotk.hk-ix{color:#1E2640;background:#FFD23F}
+.hotk.hk-s{background:#2B8A3E}
 .noc.hot{background:var(--bad);color:#fff;animation:throb 1s ease-in-out infinite}
 .noc.hot .lbl{color:#FFE1E4}
 #hCust .cnt{display:inline-block;min-width:18px;padding:0 5px;border-radius:9px;background:var(--bad);color:#fff;font-size:11px;line-height:18px;text-align:center;vertical-align:3px;margin-left:2px}

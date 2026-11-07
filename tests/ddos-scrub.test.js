@@ -99,3 +99,18 @@ test('the card judges the attack, not a city already short of capacity; so does 
   assert.equal(ev('S.ev.ddos.sf0'), 1);
   assert.deepEqual(errors, []);
 });
+
+test('a full scrubbing center runs hot on the NOC, with what it drops', () => {
+  const { ev, errors } = load();
+  net(ev, "ACT.buildScrub({city:'ams',tier:0})");
+  attack(ev, 'ack', 400);
+  const hot = JSON.parse(ev("JSON.stringify(hotPorts().filter(h=>h.k==='s').map(h=>[h.city,h.lab,h.loss]))"));
+  assert.equal(hot.length, 1);
+  assert.equal(hot[0][0], 'ams');
+  assert.equal(hot[0][1], 'Scrubbing center (100G)');
+  assert.ok(hot[0][2] > 0.5, `it drops most of what reaches it (${hot[0][2]})`);
+  ev("UI.left='noc';renderLeft()");
+  assert.match(ev("document.body.textContent"), /Scrubbing center \(100G\)/, 'listed with the hot ports');
+  assert.equal(ev("UI.hotMap.ams.s>1"), true, 'and badged on the map');
+  assert.deepEqual(errors, []);
+});

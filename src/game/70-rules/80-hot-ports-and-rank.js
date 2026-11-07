@@ -1,5 +1,5 @@
-// Everything that can fill up at a POP: transit ports, IX ports, PNIs, caches and the routers themselves.
-const HOT=0.9,HOTL={t:'T',ix:'IX',p:'P',c:'C',r:'R'},HOTC={t:'#7B61FF',ix:'#FFD23F',p:'#2C7A7B',c:'#C8102E',r:'#FF4F9A'};
+// Everything that can fill up at a POP: transit ports, IX ports, PNIs, caches, the routers and scrubbing centers.
+const HOT=0.9,HOTL={t:'T',ix:'IX',p:'P',c:'C',r:'R',s:'S'},HOTC={t:'#7B61FF',ix:'#FFD23F',p:'#2C7A7B',c:'#C8102E',r:'#FF4F9A',s:'#2B8A3E'};
 // Each says which way runs hot (rx, tx) and the worst loss of its day, so the list ranks what is dropping first.
 function hotPorts(){const out=[];if(!R||!S)return out;
   const pd=(k,ids)=>{const D=R.dp?portsDay(k,ids):null;return D?{dir:D.q.tx>D.q.rx?'tx':'rx',loss:Math.max(D.q.lr,D.q.lt)}:{dir:null,loss:0};};
@@ -10,6 +10,10 @@ function hotPorts(){const out=[];if(!R||!S)return out;
   for(const k in cc){const x=cc[k],u=x.used/x.cap;if(u>=HOT)out.push({k:'c',city:x.city,lab:x.n>1?tr('hot_ports_and_rank.name_caches',{name:NET[x.net].cache.name}):tr('common.name_cache',{name:NET[x.net].cache.name}),u,tip:tr('hot_ports_and_rank.ask_for_another_box_the_overflow'),...pd('c',x.ids)});}
   // A router drops what is over its capacity.
   for(const c in S.pops){const cap=R.nodeCap[c];if(!cap)continue;const u=(R.nodeLoad[c]||0)/cap;if(u>=HOT)out.push({k:'r',city:c,lab:tr('common.routers'),u,tip:tr('hot_ports_and_rank.upgrade_the_router_or_add_a'),dir:null,loss:u>1?1-1/u:0});}
+  // A scrubbing center cleans up to its tier, shared by every attack; the rest of what reaches it is dropped there.
+  {const sc={};for(const m of R.ddos||[])for(const x of m.parts||[]){const o=sc[x.city]||(sc[x.city]={a:0,cl:0,tier:x.tier});o.a+=x.a;o.cl+=x.cleaned;}
+    for(const c in sc){const o=sc[c],T=SCRUB_TIERS[o.tier]||SCRUB_TIERS[0],u=o.a/T.g;if(u>=HOT)out.push({k:'s',city:c,lab:tr('hot_ports_and_rank.scrubbing_center_tier',{tier:T.n}),u,
+      tip:tr('hot_ports_and_rank.upgrade_the_scrubbing_center_or'),dir:null,loss:o.a>0?Math.max(0,1-o.cl/o.a):0});}}
   return out.sort((a,b)=>b.loss-a.loss||b.u-a.u);}
 function hotByCity(){const m={};for(const h of hotPorts())(m[h.city]=m[h.city]||{})[h.k]=Math.max((m[h.city]||{})[h.k]||0,h.u);return m;}
 function isTier2(){return Object.keys(S.pops).length>=5&&Object.keys(S.ixp).length>=3&&R.sessions>=15;}
