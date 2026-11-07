@@ -9,7 +9,7 @@ function engHours(X){const {E,NX,NE,R2,EP,F,L,FLAT}=X,NP=2*NE+2*NX,NF=F.v.length
     if(!R2.egDesc[ek])R2.egDesc[ek]={lab:clean?labOf(N_('compute.scrubbed_traffic_from_city'),'city',CITY[A].name):labOf(N_('compute.attack_entering_in_city'),'city',CITY[from].name),city:B,k:'l2'};
     hauls.push([X.pathList(walkI(X.SPP[B],Bi,Ai),false),g,clean?0:1,ek]);return g;};
   const msOf=(A,B)=>{const Bi=CIDX[B],Ai=CIDX[A];return X.SPD[B]&&X.SPD[B][Ai]<Infinity?walkI(X.SPP[B],Bi,Ai).path.reduce((n,e)=>n+e.lat,0):0;};
-  X.DD=ddosLoad({E,okBy:X.okBy,R2,autoBh:!!(X.TRX&&X.TRX.blackhole),haul,ms:msOf,DP:X.DP});
+  X.DD=ddosLoad({E,okBy:X.okBy,R2,autoBh:!!(X.TRX&&X.TRX.blackhole),haul,ms:msOf,DP:X.DP,COMP:X.COMP});
   for(let x=0;x<NX;x++)J[x]=E[x].J||0;
   // Pipe capacities: an edge holds the sum of its links both ways, a port its size each way.
   const CAP=new Float64Array(NP);for(const e of X.EA){CAP[2*e.i]=e.cap;CAP[2*e.i+1]=e.cap;}for(let x=0;x<NX;x++){CAP[2*NE+2*x]=E[x].cap;CAP[2*NE+2*x+1]=E[x].cap;}

@@ -1871,6 +1871,7 @@
 "ddos.row_ports_ok":{"one":"Entre par {n} port, pas plein","other":"Entre par {n} ports, aucun plein"},
 "ddos.row_rtbh":"Le RTBH jette {g} en amont",
 "ddos.row_scrub":"Le scrubbing attire {g} et nettoie {c} ({cities})",
+"ddos.row_scrub_cut":"Le scrubbing ({cities}) ne sert à rien : ton backbone n'atteint pas {city}, le trafic nettoyé n'aurait aucun chemin de retour",
 "ddos.row_scrub_down":"Centre de scrubbing en panne ({cities}) : le flot prend le chemin normal",
 "ddos.row_scrub_idle":"Le scrubbing à la demande t’attend",
 "ddos.row_scrub_none":"Pas de centre de scrubbing",

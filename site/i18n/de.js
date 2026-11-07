@@ -1873,6 +1873,7 @@
 "ddos.row_ports_ok":{"one":"Kommt über {n} Port rein, nicht voll","other":"Kommt über {n} Ports rein, keiner voll"},
 "ddos.row_rtbh":"RTBH verwirft {g} upstream",
 "ddos.row_scrub":"Scrubbing zieht {g} an und filtert {c} ({cities})",
+"ddos.row_scrub_cut":"Scrubbing ({cities}) hilft nicht: dein Backbone reicht nicht bis {city}, der saubere Traffic käme nicht zurück",
 "ddos.row_scrub_down":"Scrubbing-Center ausgefallen ({cities}): die Flut nimmt den normalen Weg",
 "ddos.row_scrub_idle":"On-Demand-Scrubbing wartet auf dich",
 "ddos.row_scrub_none":"Kein Scrubbing Center",

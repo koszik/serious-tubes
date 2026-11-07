@@ -276,3 +276,19 @@ test('an attack started during the day is announced and scored after the day\'s 
   assert.ok(ev("window.__t.some(m=>/attack is hitting/.test(m))"));
   assert.deepEqual(errors, []);
 });
+
+test('a scrubbing center your backbone does not join to the target cannot hand back the clean traffic', () => {
+  const { ev, errors } = load();
+  fra(ev);
+  // Amsterdam hangs off Frankfurt; Paris has its own transit and the only center, but no link to either.
+  ev("for(const c of ['ams','par'])ACT.buildPop({city:c});UI.pending={a:'fra',b:'ams'};ACT.buildLink({tier:1});closeModal();ACT.buyTransit({city:'par',net:'cog',tier:1});S.scrubs=[{city:'par',tier:1}];S.scrubMode='always';S.biz.push({id:'o',type:'dia',name:'Fiber Optimists',city:'ams',bw:10,rate:100,mood:80,since:0,reqs:[]});compute()");
+  const id = flood(ev, { city: 'ams', tgt: 'o', gbps: 11.1 });
+  assert.equal(rep(ev, id, 'm.pulled'), 0, 'nothing is diverted to Paris');
+  assert.equal(rep(ev, id, 'm.cut'), true);
+  assert.match(ev("ddosOne(ddosAll()[0])"), /your backbone doesn't reach Amsterdam/);
+  // Join Paris to Frankfurt and it scrubs, with the way home on the card.
+  ev("UI.pending={a:'fra',b:'par'};ACT.buildLink({tier:1});closeModal();compute()");
+  assert.ok(rep(ev, id, 'm.pulled') > 11, 'now it pulls the flood');
+  assert.ok(ev(`R.haul.find(q=>q.attack==='${id}'&&q.to==='par').ms`) > 0, 'and the clean traffic rides the backbone home');
+  assert.deepEqual(errors, []);
+});

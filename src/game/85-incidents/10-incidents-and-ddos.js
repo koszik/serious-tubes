@@ -145,6 +145,7 @@ function ddosOne(a){const V=DDOS_VEC[a.vec]||{n:'?',fs:false},m=ddosReport(a),ro
     else if(m.portList&&m.portList.length)h+=row(null,tr('ddos.row_fs_no_router'));
     if(m.edge)h+=row(true,tr('ddos.row_scrub_not_needed'));
     else if(m.pulled>0)h+=row(m.over>1e-6?false:true,tr('ddos.row_scrub',{g:fmtG(m.pulled),c:fmtG(m.cleaned),cities:esc(ddCities(m.parts.map(x=>x.city)))}));
+    else if(m.cut)h+=row(false,tr('ddos.row_scrub_cut',{cities:esc(ddCities(S.scrubs.filter(x=>popUp(x.city)).map(x=>x.city))),city:CITY[a.city].name}));
     else if(hasScrub()&&!scrubLive())h+=row(false,tr('ddos.row_scrub_down',{cities:esc(ddCities(S.scrubs.map(x=>x.city)))}));
     else if(engIdle)h+=row(null,tr('ddos.row_scrub_idle'));
     else if(!hasScrub())h+=row(null,tr('ddos.row_scrub_none'));

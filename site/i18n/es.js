@@ -1871,6 +1871,7 @@
 "ddos.row_ports_ok":{"one":"Entra por {n} puerto, sin llenarlo","other":"Entra por {n} puertos, ninguno lleno"},
 "ddos.row_rtbh":"RTBH descarta {g} aguas arriba",
 "ddos.row_scrub":"El scrubbing atrae {g} y limpia {c} ({cities})",
+"ddos.row_scrub_cut":"El scrubbing ({cities}) no sirve: tu backbone no llega a {city}, así que el tráfico limpio no tendría por dónde volver",
 "ddos.row_scrub_down":"Centro de scrubbing caído ({cities}): la inundación toma el camino normal",
 "ddos.row_scrub_idle":"El scrubbing bajo demanda te está esperando",
 "ddos.row_scrub_none":"Sin centro de scrubbing",

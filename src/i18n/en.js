@@ -1872,6 +1872,7 @@
 "ddos.row_ports_ok":{"one":"Enters on {n} port, not full","other":"Enters on {n} ports, none full"},
 "ddos.row_rtbh":"RTBH drops {g} upstream",
 "ddos.row_scrub":"Scrubbing pulls {g} and cleans {c} ({cities})",
+"ddos.row_scrub_cut":"Scrubbing ({cities}) can't help: your backbone doesn't reach {city}, so the clean traffic would have no way back",
 "ddos.row_scrub_down":"Scrubbing center down ({cities}): the flood takes the normal path",
 "ddos.row_scrub_idle":"On-demand scrubbing is waiting for you",
 "ddos.row_scrub_none":"No scrubbing center",
