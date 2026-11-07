@@ -64,7 +64,7 @@ function engResults(X){const {R2,E,NX,NE,NP,EP,IT,F,L,hp,OFFH,LOSSH,CAP,NOH,EPO,
      network from RQ_SHOW up is listed (ms the extra round trip, rt the round trip itself, both traffic-weighted). */
   R2.rq={};R2.rqC={};const RQL=new Map(),xn=x=>x.k==='t'||x.k==='p'?x.net:null;for(const o of RQN.values()){const W=RQW[o.ei];if(!(W>0)||!(o.w/W>=RQ_SHOW))continue;const it=IT[o.t],xi=it.inX>=0?E[it.inX]:null,xo=it.outX>=0?E[it.outX]:null;
     // Traffic diverted to scrubbing (sc) is slow because of the detour, not your routing: nothing to fix there.
-    const sc=!!EP[o.ei].dv,fl={net:NETS[o.j].id,ms:o.x/o.w,rt:o.r/o.w,fix:sc?0:o.f/o.w,share:o.w/W,inC:xi&&xi.city,inK:xi&&xi.k,inN:xi&&xn(xi),outC:xo&&xo.city,outK:xo&&xo.k,outN:xo&&xn(xo)};if(sc)fl.sc=1;
+    const sc=!!EP[o.ei].dv,fl={net:NETS[o.j].id,ms:o.x/o.w,rt:o.r/o.w,fix:sc?0:o.f/o.w,share:o.w/W,inC:xi&&xi.city,inK:xi&&xi.k,inN:xi&&xn(xi),outC:xo&&xo.city,outK:xo&&xo.k,outN:xo&&xn(xo)};if(sc&&it.sc>=0){fl.sc=1;fl.scC=CITIES[it.sc].id;}
     let L2=RQL.get(o.ei);if(!L2)RQL.set(o.ei,L2=[]);L2.push(fl);}
   for(const [ei,fl] of RQL){fl.sort((a,b)=>b.ms-a.ms);const e=EP[ei],top=fl.find(f=>f.share>=RQ_SH),q=top?{...top,flows:fl}:{ms:0,fix:0,flows:fl};
     if(e.k==='pop')R2.rqC[e.city]=q;else if(e.k==='grp'&&e.members)for(const id of e.members)R2.rq[id]=q;}

@@ -8,7 +8,7 @@
    network joins it to and is cleaned up to the center's tier; what the center cannot take hurts only the target. */
 /* Before routing: Flowspec first. The edge takes an attack when it has a signature, every POP it enters has rule room
    and no port it fills would run full (yesterday's use plus the junk). Anything else goes to scrubbing: the target's
-   traffic is diverted through the centers and routing brings the clean part home. X.DP: attack id -> {edge, why, dv
+   traffic comes in as always and its ingress router diverts it via the nearest center. X.DP: attack id -> {edge, why, dv
    (center city indexes)}. */
 function ddosPlan(X){const P=X.DP=new Map(),live=ddosAll().slice().sort((a,b)=>(a.start||0)-(b.start||0)||(a.id<b.id?-1:a.id>b.id?1:0));if(!live.length)return P;
   const fsP={},J=new Map(),r=R||{},use=e=>{const m=e.k==='t'?r.useT:e.k==='ix'?r.useIx:e.k==='p'?r.usePni:e.k==='c'?r.useCache:null;return (m&&m[e.id])||0;},bhAll=!!(X.TRX&&X.TRX.blackhole);
@@ -78,7 +78,7 @@ function ddosLoad(X){const {E,okBy,R2}=X;R2.ddos=[];R2.haul=[];R2.tgtF={};R2.bbF
       m.parts.push({city:k,tier:x.tier,a:x.a,cleaned:cl});m.pulled+=x.a;m.cleaned+=cl;m.over+=x.a-cl;}
     // How far the clean traffic travels back from each center, for the card.
     const tb=ddosTb(a,R2);
-    // (Routing already carries the clean traffic home: the target's addresses are announced at the centers, ddosPlan.)
+    // (The target's own traffic takes the same detour: routing adds the leg via the center nearest where it comes in.)
     for(const x of m.parts)R2.haul.push({city:a.city,to:x.city,tier:x.tier,a:x.a,h:1,ms:x.city===a.city?0:X.ms(a.city,x.city)*2,attack:a.id});
     // The target: blackholed, or what its own port and the scrubbing centers let through. Its diverted traffic rides
     // with the junk, so it loses what the junk loses on the way and at the centers.

@@ -137,7 +137,8 @@ never freezes the game.
    summed per customer and city and per far network into `R.rq` / `R.rqC`: an endpoint is judged by its slowest network
    carrying at least `RQ_SH` of its traffic, so one slow network is not averaged away (`40-progress/19-routing-quality.js`).
    DDoS: `ddosPlan()` runs before endpoints are built (Flowspec at the edge first; a diverted target gets its own
-   endpoint, reached through the live scrubbing centers its backbone joins), then `ddosLoad()` in the hourly pass:
+   endpoint: its traffic comes in where it always does, and its round trip adds the backbone detour via the center
+   nearest that entry), then `ddosLoad()` in the hourly pass:
    the junk comes in on every port and the engaged share rides the backbone to the nearest center (`haul()`), which
    cleans what reaches it. Attacks on unprotected customers are not SLA downtime (`ddosExcused()`).
 6. Every 30 days: bills the month (revenue minus costs) and checks for bankruptcy.

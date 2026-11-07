@@ -1,5 +1,5 @@
-// Flowspec first, scrubbing for what the edge cannot take: a diversion moves the target's inbound traffic to the
-// centers (announced there) instead of hauling it twice; a center that is down pulls nothing; the card reports what
+// Flowspec first, scrubbing for what the edge cannot take: the target's traffic comes in where it always does and its
+// routers divert it via the nearest center; a center that is down pulls nothing; the card reports what
 // the attack itself did, against the target's service just before it.
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -46,15 +46,14 @@ test('what the edge cannot take goes to scrubbing, and the card says why', () =>
   }
 });
 
-test('a diversion moves the target’s inbound traffic to the center: carried once, not twice', () => {
+test('a diversion leaves the target’s traffic coming in where it always did, and adds the detour via the center', () => {
   const { ev, errors } = load();
   net(ev, "ACT.buildScrub({city:'ams',tier:1})");
-  const fra0 = use(ev, 'fra'), ams0 = use(ev, 'ams');
+  const fra0 = use(ev, 'fra');
   attack(ev, 'ack', 20);
-  assert.ok(use(ev, 'fra') < fra0 * 0.3, `Frankfurt’s own transit carries little of it now (${use(ev, 'fra')} from ${fra0})`);
-  assert.ok(use(ev, 'ams') > ams0 + fra0 * 0.7, 'it comes in at Amsterdam, where the center announces it');
-  const wave = ev("R.load[S.links[0].id]||0");
-  assert.ok(wave < fra0 * 1.3, `the wave home carries it once (${wave})`);
+  assert.ok(use(ev, 'fra') > fra0 * 0.9, `Frankfurt’s transit still brings its subscribers’ traffic in (${use(ev, 'fra')} from ${fra0})`);
+  const fl = JSON.parse(ev("JSON.stringify(R.rqC.fra.flows.filter(f=>f.inC==='fra'&&f.inK==='t').map(f=>f.scC||null))"));
+  assert.ok(fl.length > 0 && fl.every(c => c === 'ams'), `its router sends it via Amsterdam (${fl})`);
   assert.equal(ev('(R.haul||[]).every(q=>q.h===1)'), true);
   assert.match(card(ev), /detour via Amsterdam/);
   assert.deepEqual(errors, []);

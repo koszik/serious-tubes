@@ -89,7 +89,7 @@ function engRoute(X){const key=RC.on&&X.GK!==null?engKey(X):null;
   engRouteBuild(X);
   if(key!==null){
     Object.assign(ENGC,{key,L:X.L,M:X.M,CH:X.CH,LALT:X.LALT,POPI:X.POPI,POPC:X.POPC,SHL:X.SHL,pathList:X.pathList,walkList:X.walkList,inList:X.inList,F:{...X.F,v:null},
-      IT:X.IT.map(it=>({f:it.f,lat:it.lat,inX:it.inX,outX:it.outX,lx:it.lx,tz:it.tz,ex:it.ex,fx:it.fx,rt:it.rt}))});}}
+      IT:X.IT.map(it=>({f:it.f,lat:it.lat,inX:it.inX,outX:it.outX,lx:it.lx,tz:it.tz,ex:it.ex,fx:it.fx,rt:it.rt,sc:it.sc}))});}}
 /* What routing learns from the network's structure alone (views, best paths, ways in, pipe lists, second paths): kept
    while the structure stays (ENGS), so a day where only customers sign or leave redoes just the per-item work. */
 const ENGS={key:null,M:null};
@@ -131,10 +131,9 @@ function engRouteBuild(X){const {E,okBy,PC,COMP,SDi,SPi,adj,wW,NE,R2,EP,IT,NC}=X
   const expM=e=>{if(!PC.expAny)return '';const m=[];let i=0;for(const rs of PC.exp.values())for(const r of rs){if(polHit(r,e.has))m.push(i);i++;}return m.join(',');};
   for(const e of EP)e.xm=expM(e);
   const XA=M.XA,XA0={no:false,prep:0,reg:false,bh:false},XA3={no:false,prep:3,reg:false,bh:false},xattr=(x,e)=>{if(!PC.expAny)return x.pref==='low'?XA3:XA0;const k=x.xi+'|'+e.xm;let a=XA.get(k);if(!a)XA.set(k,a=PC.expAny?polExport(PC,x,e.has):{no:false,prep:x.pref==='low'?3:0,reg:false,bh:false});return a;};
-  const INM=M.INM,inCands=(o,e,ce,sv)=>{const O=ORIGINS[o],pi=e.ci,isl=COMP[pi],key=o+'|'+sv+'|'+isl+'|'+e.xm+'|'+(ce===1?pi:ce===0?'':'n')+(e.dv?'|dv'+e.dv.join('.'):'');let c=INM.get(key);if(c)return c;
-    // Scrubbing: the far network can only reach these addresses where the centers announce them (if it reaches you there).
-    const dv=e.dv&&okBy[O.net].some(x=>e.dv.includes(x.ci)&&COMP[x.ci]===isl&&x.k!=='c')?e.dv:null;
-    const sc=[];for(const x of okBy[O.net]){if(COMP[x.ci]!==isl)continue;if(dv&&!dv.includes(x.ci))continue;if(x.k==='c'&&ce!==1)continue;const a=xattr(x,e);if(a.no||a.reg&&CITY[x.city].rg!==O.reg)continue;
+  const INM=M.INM,inCands=(o,e,ce,sv)=>{const O=ORIGINS[o],pi=e.ci,isl=COMP[pi],key=o+'|'+sv+'|'+isl+'|'+e.xm+'|'+(ce===1?pi:ce===0?'':'n');let c=INM.get(key);if(c)return c;
+    // (Scrubbing changes nothing here: traffic comes in where it always does and your routers divert it, below.)
+    const sc=[];for(const x of okBy[O.net]){if(COMP[x.ci]!==isl)continue;if(x.k==='c'&&ce!==1)continue;const a=xattr(x,e);if(a.no||a.reg&&CITY[x.city].rg!==O.reg)continue;
       // A cache maps users only across the links its routes may cross (a `nocarry` rule keeps it to its side).
       if(x.k==='c'&&PC.linkAny){const v=viewOf(polNoCarry(PC,routeHas(PC,x,O,false)));CVW.set(x.xi+'|'+pi,v);if(!(spOf(v,pi).D[x.ci]<Infinity))continue;}
       const al=asLen(x,O.net),rel=x.k==='c'?0:(x.k==='p'&&x.net===O.net)||(x.k==='ix'&&al===1&&x.id!=='~grace')?1:2;
@@ -200,7 +199,11 @@ function engRouteBuild(X){const {E,okBy,PC,COMP,SDi,SPi,adj,wW,NE,R2,EP,IT,NC}=X
       /* Routing quality: the round trip in (where the far network chose to hand it over) and out (where you did),
          over the internet and your backbone, against the ideal of a handoff in the customer's own city; `fx` is what the
          exits you already have to that network could save. */
-      const xi=inX>=0?inX:outX,xo=outX>=0?outX:inX;if(xi>=0&&e.k!=='fill'){const leg=x=>bbMs(pi,E[x].ci)+(E[x].k==='c'?0:worldMs(E[x].ci,sv)),li=leg(xi),lo=leg(xo),rtt=li+lo,ideal=2*worldMs(pi,sv);
+      const xi=inX>=0?inX:outX,xo=outX>=0?outX:inX;if(xi>=0&&e.k!=='fill'){const leg=x=>bbMs(pi,E[x].ci)+(E[x].k==='c'?0:worldMs(E[x].ci,sv));
+        // Scrubbed: the router where it comes in sends it to the center nearest it, and the clean part rides home from there
+        // (a cache inside your network is past the scrubbing).
+        let li=leg(xi),sc=-1;if(e.dv&&inX>=0&&E[inX].k!=='c'){const x=E[inX].ci;let d=Infinity;for(const c of e.dv)if(COMP[c]===COMP[pi]){const v=c===x?0:bbMs(c,x);if(v<d){d=v;sc=c;}}if(sc>=0)li=d+bbMs(pi,sc)+worldMs(x,sv);}
+        const lo=leg(xo),rtt=li+lo,ideal=2*worldMs(pi,sv);it.sc=sc;
         const ak=O.net+'|'+pi+'|'+sv+'|'+it.ce;let ach=ACH.get(ak);if(ach===undefined){ach=Infinity;for(const x of okBy[O.net])if((x.k!=='c'||it.ce===1)&&COMP[x.ci]===COMP[pi]){const l=leg(x.xi);if(l<ach)ach=l;}ACH.set(ak,ach=2*ach);}
         it.rt=rtt;it.ex=Math.max(0,rtt-ideal);it.fx=Math.max(0,rtt-Math.max(ideal,ach));const lx=li-worldMs(pi,sv)>=lo-worldMs(pi,sv)?xi:xo;
         // Under sender pays Korean users mind the haul itself, however direct (Gangnam Style Peering).

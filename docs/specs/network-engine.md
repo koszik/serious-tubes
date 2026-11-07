@@ -523,7 +523,9 @@ Storage is CSR typed arrays: `IO_OFF/IO_P/IO_S` for out, `II_OFF/II_P/II_S` for 
   attack traffic toward them is dropped **before** your exits (it adds no load). The target's own legitimate traffic is
   lost as well, which is the trade-off, as today.
 - **Scrubbing** (your own scrub centres): attack flows enter at your exits as always; ingress routers divert them over
-  the backbone to the nearest centre the target's island has, which cleans up to its tier. Clean traffic is hauled to
+  the backbone to the nearest centre the target's island has, which cleans up to its tier. The target's own traffic
+  enters where it always would and is diverted the same way: its round trip adds the leg to the centre nearest its
+  entry and back over the backbone (caches inside your network are past the scrubbing). Clean traffic is hauled to
   the target over the backbone as a `site`-like flow.
 - `R.tgtF` and `R.bbF` disappear. The attack's effect is its loss on shared pipes, read through §8.
 

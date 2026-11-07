@@ -265,11 +265,14 @@ test('junk rides the backbone to the center nearest where it came in, and a thin
   // Its flows say whose flood it is, where it came in and where it is headed.
   const flows = ev("(()=>{const l=S.links.find(l=>l.a==='fra'&&l.b==='ams'||l.a==='ams'&&l.b==='fra');return flowsWhat('link',l.id).rows(null).rows.filter(r=>r.junk).map(r=>R.egDesc[r.junk].lab).join('|');})()");
   assert.match(flows, /Flood on Lag Lords, in at Frankfurt, to your scrubbing center in Amsterdam/);
-  // The customer still notices the detour, and is told it is the scrubbing, not something routing can fix.
-  const why = ev("rtqWhy(rtq(S.biz.find(b=>b.id==='g')),'Lag Lords')");
+  // Its own traffic comes in where it always does and detours via the center nearest there: Frankfurt's via Amsterdam,
+  // New York's cleaned in New York and hauled across. The customer notices that, told it is the scrubbing, not routing.
+  const fl = JSON.parse(ev("JSON.stringify(rtq(S.biz.find(b=>b.id==='g')).flows.map(f=>[f.inC,f.scC]))"));
+  assert.ok(fl.some(([i, c]) => i === 'fra' && c === 'ams') && fl.some(([i, c]) => i === 'nyc' && c === 'nyc'), JSON.stringify(fl));
+  const why = ev("rtqWhy(rtq(S.biz.find(b=>b.id==='g')).flows.find(f=>f.inC==='nyc'),'Lag Lords')");
   assert.match(why, /goes through your scrubbing center in New York and rides your backbone home/);
   assert.doesNotMatch(why, /Fixable with routing/);
-  assert.ok(ev("rtqOver(S.biz.find(b=>b.id==='g'))") > 0, 'and it counts against its mood');
+  assert.ok(ev("rtqPain(S.biz.find(b=>b.id==='g'))") > 0, 'and it counts against its mood');
   assert.deepEqual(errors, []);
 });
 
