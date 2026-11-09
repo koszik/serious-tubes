@@ -23,6 +23,7 @@ Object.assign(ACT,{
  pipeFold:({key})=>{if(typeof key!=='string')return;UI.pOpen=UI.pOpen||{};UI.pOpen[key]=!UI.pOpen[key];renderPanel();},
  flowsOpen:({k,id})=>{UI.flowsF=null;flowsModal(k,id);},
  lossWhy:({id})=>lossWhyModal(id),
+ moodWhy:({id})=>moodWhyModal(id),
  flowsSet:({p,now,more}={})=>{const F=UI.flowsF;if(!F)return;if(p!==undefined)F.p=p;if(now!==undefined)F.now=!!now;if(more)F.n+=FLOWS_N;flowsModal(F.k,F.id);},
  traceCopy:()=>{try{navigator.clipboard.writeText(UI.trText||'');toast(tr('route_script_and_tools.copied_paste_it_into_your_favourite'),'good');}catch(e){}},
  share:()=>shareModal(),

@@ -345,6 +345,8 @@ const API_CMD={
   doc:'Looking glass: every route a POP has to a network, best first, with local-pref, AS path, IGP cost, communities and what decided each; then how that network sends traffic back (its ways in, in its order). Report text.'},
  flowsOpen:{args:[['k','flowsKind'],['id','entityId']],reads:'modal',
   doc:'Every flow on a link (k "link", a link id) or a port (k t, p, ix or c and its id): far end, the port it enters or leaves by, the endpoint it serves, direction and Gbps, at the busiest hour. Report text.'},
+ moodWhy:{args:[['id','entityId']],reads:'modal',
+  doc:'Why a customer\'s happiness moves: each test of the daily mood update (service, reach, scrubbing, its requirements, latency), whether it passes and what a failure costs a day, and the day\'s net change. Report text.'},
  lossWhy:{args:[['id','entityId']],reads:'modal',
   doc:'Where a customer\'s loss comes from at its worst hour: each link, port and router its traffic crosses with what it drops and the share of the customer\'s traffic crossing it, the Great Firewall, sessions lost with their other half, and what an attack\'s scrubbing costs on top. Report text.'},
 /* ---------- money ---------- */
