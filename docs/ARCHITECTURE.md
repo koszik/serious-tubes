@@ -27,7 +27,7 @@ hoisted across files, and top-level statements run in path order. Find code by n
 | Folder under `src/game/` | What lives there |
 | --- | --- |
 | `00-core/` | `tr()`/`trn()`/`N_()` and the dictionary; version, release notes and the analytics counter |
-| `10-catalog/` | Prices and gear: POP and port costs, routers (`RG`), supply chain, port slots, dark fiber systems and optics (`OPT`), reach and subsea upgrades |
+| `10-catalog/` | Prices and gear: POP and port costs, supplier contract terms (`TERMS`, `15-supplier-terms.js`: what you lease is on a rolling month, a year or three years; billing multiplies by `supMul()`, cancelling early pays `supFee()`), routers (`RG`), supply chain, port slots, dark fiber systems and optics (`OPT`), reach and subsea upgrades |
 | `20-world/` | Map projection, landmasses, coastline, city coordinates (`CITY_LL`), `CITIES`, `CABLES` |
 | `30-networks/` | Other ASes (`NETS`), rival exchanges (`XIX`), the long tail, hosters, traffic shares (`NSH`), origins |
 | `40-progress/` | Customer types (`BIZ_T`), `LEVELS` and their requirements, `GOALS`; the per-save ruleset (`S.rules`, `rule()`, `PRESETS`, `chaosMul()`, `leadDays()`) |

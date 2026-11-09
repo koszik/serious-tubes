@@ -307,12 +307,16 @@ test('decommissioning POPs, one or several, removes what is there and charges fo
   ev("ACT.decomOpen({city:'ams'})");
   assert.match(ev("document.getElementById('modalCard').textContent"), /Tulip Bank/);
   const cash = ev('S.cash');
-  ev("ACT.decomToggle({city:'lon'});ACT.decomGo();compute()");
+  // The year-long supplier terms bought today are paid out too (supplier terms).
+  const sup = ev("decomImpact(['ams','lon']).sup");
+  assert.ok(sup > 0, 'leases there still have most of a year to run');
+  assert.match(ev("(ACT.decomToggle({city:'lon'}),document.getElementById('modalCard').textContent)"), /Supplier contracts paid out/);
+  ev("ACT.decomGo();compute()");
   assert.equal(ev("!!S.pops.ams||!!S.pops.lon"), false, 'both gone');
   assert.equal(ev("S.links.some(l=>[l.a,l.b].some(c=>c==='ams'||c==='lon'))"), false);
   assert.equal(ev("S.transit.length+Object.keys(S.ixp).length"), 0, 'ports and exchange go with them');
   assert.equal(ev("S.biz.map(b=>b.id).join()"), 'b2', 'only the Amsterdam customer is let go');
-  assert.equal(cash - ev('S.cash'), 10 * 300 * 3, 'three months of the contract');
+  assert.equal(cash - ev('S.cash'), 10 * 300 * 3 + sup, 'three months of the contract, and the supplier terms');
   // never the last one
   ev("ACT.decomOpen({});for(const c of Object.keys(S.pops))ACT.decomToggle({city:c});ACT.decomGo()");
   assert.ok(ev("Object.keys(S.pops).length") >= 1);

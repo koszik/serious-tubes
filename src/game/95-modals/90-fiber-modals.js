@@ -19,17 +19,17 @@ function dfModalBody(a,b,km,pop){
   <p class="note">${tr('fiber_modals.for_comparison_a_leased_1_6t',{price:fmt$(w)})}</p>
   <div class="btns" style="margin-top:10px">${btn(`${src==='build'?tr('common.start_construction'):tr('fiber_modals.sign_the_iru')} <small>${fmt$(up)}</small>`,'orderDf',{},'pink big',S.cash<up)}</div>`;
 }
-function openVxcModal({from,to,prov}){
+function openVxcModal({from,to,prov}){UI.vxcArgs={from,to,prov};const tk=supPick(),vm=(km,sub,t)=>Math.round(vxcMo(km,sub,t)*TERMS[tk].mul);
   let rows='';const row=(f,a,b)=>{const km=kmBetween(a,b),sub=isSub(a,b),pb=S.pops[b]?nniPort(b,f.id):null,remote=!S.pops[b];
     const label=remote?tr('fiber_modals.remote_peering_at_ix_discouraged',{ix:esc(CITY[b].ix)}):pb?tr('common.your_pop'):tr('fiber_modals.your_pop_needs_a_fabric_port');
     const freeA=nniPort(a,f.id)?NNI[nniPort(a,f.id).tier].g-nniUsed(a,f.id):0,freeB=remote?1e9:pb?NNI[pb.tier].g-nniUsed(b,f.id):0;
     return `<div class="row"><span class="logo" style="--c:${f.col}">${initials(f)}</span><div class="grow"><div class="nm">${CITY[a].name} → ${CITY[b].name}</div><div class="meta">${label} · ${km.toLocaleString()} km${sub?' '+tr('common.subsea'):''}</div>
-    <div class="btns">${VXC.map((V,t)=>btn(`${V.n} <small>${tr('common.price_mo',{price:fmt$(vxcMo(km,sub,t))})}</small>`,'buyVxc',{a,b,prov:f.id,t},'sm',(!remote&&!pb)||V.g>freeA||V.g>freeB||S.cash<vxcMo(km,sub,t))).join('')}</div></div></div>`;};
+    <div class="btns">${VXC.map((V,t)=>btn(`${V.n} <small>${tr('common.price_mo',{price:fmt$(vm(km,sub,t))})}</small>`,'buyVxc',{a,b,prov:f.id,t,term:tk},'sm',(!remote&&!pb)||V.g>freeA||V.g>freeB||S.cash<vm(km,sub,t))).join('')}</div></div></div>`;};
   for(const f of FABS){if(prov&&f.id!==prov)continue;
     if(from){if(!nniPort(from,f.id))continue;for(const b of f.cities){if(b===from)continue;if(!S.pops[b]&&!CITY[b].ix)continue;rows+=row(f,from,b);}}
     else if(to&&f.cities.includes(to)){for(const a of Object.keys(S.pops))if(a!==to&&nniPort(a,f.id))rows+=row(f,a,to);}}
   if(!rows){const fs=FABS.filter(f=>!to||f.cities.includes(to));rows=`<p class="empty">${tr('fiber_modals.you_need_a_fabric_port_at',{list:fs.map(f=>`<b>${esc(f.name)}</b> (${f.cities.filter(c=>S.pops[c]).map(c=>CITY[c].name).join(', ')||tr('fiber_modals.no_pop_of_yours_on_it')})`).join(', ')})}</p>`;}
   openModal(`<div style="display:flex;align-items:center"><div><div class="eyebrow">${tr('fiber_modals.virtual_circuit_over_an_nni_fabric')}</div><h2 style="font-size:26px">${from?tr('fiber_modals.from_city',{city:CITY[from].name}):tr('fiber_modals.to_city',{city:CITY[to].name})}</h2></div><button class="x" data-act="closeModal" aria-label="${tr('common.close')}">×</button></div>
-  <p class="lead" style="margin-top:8px">${tr('fiber_modals.no_install_fee_live_in_minutes')}</p>${rows}`);
+  <p class="lead" style="margin-top:8px">${tr('fiber_modals.no_install_fee_live_in_minutes')}</p>${supPicker('vxc')}${rows}`);
 }
 

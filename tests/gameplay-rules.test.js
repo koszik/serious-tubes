@@ -527,6 +527,21 @@ test('F12: a customer is judged on the extra round trip its routing adds, both w
   assert.deepEqual(g.errors, []);
 });
 
+test('F14: leased capacity comes on a term; short term costs, leaving early pays out', () => {
+  const g = load(), bad = [];
+  const T = g.ev('TERMS');
+  if (!(T.m.mul >= 3 && T.m.nrc >= 3)) bad.push('a rolling month is not dear enough');
+  if (T.y1.mul !== 1 || T.y1.n !== 12) bad.push('a year is not the list price');
+  if (!(T.y3.mul < 1 && T.y3.nrc === 0 && T.y3.n === 36)) bad.push('three years is not cheaper with no install');
+  g.ev("ACT.start({});S.cash=1e9;S.lvl=6;S.nextFail=S.nextEvent=1e9;for(const x of GOALS)S.done[x.id]=0;S.pops.fra.rgen=RG_TOP;ACT.buyTransit({city:'fra',net:'cog',tier:2,term:'y1'});S.day+=60");
+  const t = 'S.transit.find(x=>x.city==="fra")';
+  if (g.ev(`supFee(${t},1000)`) !== 10000) bad.push('leaving a year after two months does not pay the ten left');
+  if (g.ev(`supFee({term:'m',tEnd:S.day+30},1000)`) !== 0) bad.push('a rolling month is not free to leave');
+  if (g.ev('supMul({})') !== 1 || g.ev('supFee({},1000)') !== 0) bad.push('an old purchase does not keep its price and leave free');
+  fail('F14', bad, 'supplier terms: short term is dear, a term discounts the market, leaving early pays out');
+  assert.deepEqual(g.errors, []);
+});
+
 test('D1: attack sizes come from the world, never from your network', () => {
   const g = load();
   ddFra(g.ev);

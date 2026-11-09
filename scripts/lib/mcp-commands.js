@@ -28,6 +28,8 @@ const API_DOMAINS={
   vxcTier:{table:'VXC',kind:'index'},
   routerModel:{table:'RG',kind:'index'},
   scrubTier:{table:'SCRUB_TIERS',kind:'index'},
+  // A supplier contract term (15-supplier-terms.js): m rolling month, y1 one year, y3 three years.
+  supTerm:{table:'TERMS',kind:'key'},
   // Small fixed vocabularies the game itself checks by list membership.
   // The link metric presets, plus "custom" for a hand-tuned number (ACT.setMetric).
   metric:{kind:'enum',values:()=>[...Object.keys(MET),'custom']},
@@ -144,23 +146,25 @@ const API_CMD={
  decomGo:{args:[['cities','cityIdArray']],bindsUI:['decom'],bind:a=>{UI.decom=new Set((a.cities||[]).filter(c=>S.pops[c]));},
   doc:'Close POPs: cancels their ports, links, peerings and customers. Refuses to close every POP you have. Irreversible.'},
 /* ---------- upstream (transit) ---------- */
- buyTransit:{args:[['city','cityId'],['net','netId'],['tier','portTier']],
-  quote:a=>{const ex=S.transit.find(t=>t.city===a.city&&t.net===a.net);return {setup:ex?PORT[a.tier].setup*(ex.n||1):PORT[a.tier].setup+xcNrc(a.city),monthly:(tmoOf(a.tier)+xcMo(a.city))*((ex&&ex.n)||1)};},
-  doc:'Order a transit port from a network that sells in that city. Billed monthly on the 95th percentile. A higher tier on an existing port upgrades it.'},
+ buyTransit:{args:[['city','cityId'],['net','netId'],['tier','portTier'],['term','supTerm',false]],
+  quote:a=>{const ex=S.transit.find(t=>t.city===a.city&&t.net===a.net),T=TERMS[supPick(a.term)],m=ex?supMul(ex):T.mul;return {setup:ex?PORT[a.tier].setup*(ex.n||1):PORT[a.tier].setup*T.nrc+xcNrc(a.city),monthly:(Math.round(tmoOf(a.tier)*m)+xcMo(a.city))*((ex&&ex.n)||1)};},
+  doc:'Order a transit port from a network that sells in that city. Billed monthly on the 95th percentile. term: m (rolling month, 3x the price and 3x the setup), y1 (one year, list price; the default), y3 (three years, 0.75x, no setup); leaving a 1- or 3-year term early pays the months left. A higher tier on an existing port upgrades it on its current term.'},
  lagT:{args:[['id','entityId'],['d','step']],watch:['transit.#id'],
   quote:a=>{const t=S.transit.find(x=>x.id===a.id);return {setup:a.d>0&&t?PORT[t.tier].setup+xcNrc(t.city):0,monthly:a.d>0&&t?tmoOf(t.tier)+xcMo(t.city):0};},
   doc:'Add or remove one LAG member on a transit port, up to LAG_MAX. Adding charges another port setup.'},
  cancelTransit:{args:[['id','entityId']],confirm:'arg',pass:a=>({id:a.id,ok:1}),
-  doc:'Cancel a transit port.'},
+  doc:'Cancel a transit port. Before its 1- or 3-year term ends, the months left are paid out at once.'},
+ supTerm:{args:[['kind','string'],['id','entityId'],['term','supTerm']],watch:['transit','links','ixTerm'],
+  doc:'Sign a longer supplier term on something you lease (kind link: a wave or fabric circuit by id; t: a transit port by id; ix: an exchange port by its ix id). Only y1 or y3, and only if it ends no sooner than the current term. It reprices to that term from today, with no setup.'},
  togglePrem:{args:[['id','entityId']],watch:['transit.#id'],
   doc:'Turn the premium upstream product on or off, where the network sells one in that city.'},
  cleanPipe:{args:[['id','entityId']],watch:['transit.#id'],
   quote:a=>{const t=S.transit.find(x=>x.id===a.id);return t?{monthly:cleanMo(t)}:{};},
   doc:'Add or remove the upstream DDoS-scrubbing add-on. Monthly.'},
 /* ---------- exchanges ---------- */
- buyIx:{args:[['city','ixId'],['tier','portTier'],['signed','boolean',false]],decides:true,
-  quote:a=>({setup:ixPortMo(a.city,a.tier)+(S.ixp[a.city]===undefined?ixXcNrc(a.city):0),monthly:ixPortMo(a.city,a.tier)+ixXcMo(a.city),blocked:[portOk(ixCity(a.city),a.tier)?'':tr('actions.your_router_can_t_take_a',{port:PORT[a.tier].n})].filter(Boolean)}),
-  doc:'Take a port on an internet exchange. Monthly. At a De-Kicks exchange the first order returns a personalised quote to answer. A remote port (no POP) is possible at 10G over a fabric.'},
+ buyIx:{args:[['city','ixId'],['tier','portTier'],['signed','boolean',false],['term','supTerm',false]],decides:true,
+  quote:a=>({setup:ixPortMo(a.city,a.tier)*(S.ixp[a.city]===undefined?TERMS[supPick(a.term)].nrc:1)+(S.ixp[a.city]===undefined?ixXcNrc(a.city):0),monthly:Math.round(ixPortMo(a.city,a.tier)*(S.ixp[a.city]===undefined?TERMS[supPick(a.term)].mul:supMul((S.ixTerm||{})[a.city])))+ixXcMo(a.city),blocked:[portOk(ixCity(a.city),a.tier)?'':tr('actions.your_router_can_t_take_a',{port:PORT[a.tier].n})].filter(Boolean)}),
+  doc:'Take a port on an internet exchange. Monthly, on a supplier term like buyTransit (term m, y1 or y3). At a De-Kicks exchange the first order returns a personalised quote to answer. A remote port (no POP) is possible at 10G over a fabric.'},
  lagIx:{args:[['city','ixId'],['d','step']],watch:['ixn'],
   doc:'Add or remove one LAG member on an IX port. Not on your own exchange.'},
  cancelIx:{args:[['city','ixId']],confirm:'arg',pass:a=>({city:a.city,ok:1}),decides:true,
@@ -205,11 +209,11 @@ const API_CMD={
  cacheSite:{args:[['city','cityId'],['net','netId'],['s','site']],watch:['caches'],
   doc:'Move one of that CDN\'s boxes to the other building.'},
 /* ---------- backbone links ---------- */
- buildLink:{args:[['a','cityId'],['b','cityId'],['tier','linkTier'],['cable','cableId',false],['route','string',false],['premiumCrossing','boolean',false]],
+ buildLink:{args:[['a','cityId'],['b','cityId'],['tier','linkTier'],['cable','cableId',false],['route','string',false],['premiumCrossing','boolean',false],['term','supTerm',false]],
   bindsUI:['pending','route','via','cnPrem'],
   bind:a=>{UI.pending={a:a.a,b:a.b};UI.route=a.route||'';UI.via=a.cable||'';UI.cnPrem=!!a.premiumCrossing;},
-  pass:a=>({tier:a.tier}),
-  quote:a=>{const A=a.a,B=a.b,tier=a.tier;
+  pass:a=>({tier:a.tier,term:a.term}),
+  quote:a=>{const A=a.a,B=a.b,tier=a.tier,T=TERMS[supPick(a.term)];
    if(!waveOk(A,B,tier))return {blocked:[tr('links.a_wave_wave_needs_need_at',{wave:LT[tier].n,need:waveNeed(tier)})]};
    const sib=pairLinks(A,B).filter(l=>l.kind!=='vxc'),jn=sib.length?routeJoin(A,B):null,border=cnCity(A)!==cnCity(B);
    const mult=(sib.length&&!(jn&&jn.k===(landTrenches(A,B)[0]||{}).k)?DIVERSE:1)*(border?3*((a.premiumCrossing&&(A==='hkg'||B==='hkg'))?1.6:1):1);
@@ -217,8 +221,8 @@ const API_CMD={
    const blocked=[],so=soldOut(A,B,tier,wr.cab);
    if(so)blocked.push(tr('links.no_wave_capacity_on_this_route',{wave:LT[tier].n,why:tr(so.why),n:Math.max(1,so.until-S.day)}));
    const w=subWaveWhy(tier,wr.km,wr.sub);if(w)blocked.push(tr('links.no_wave_waves_on_this_cable',{wave:LT[tier].n,why:w}));
-   return {setup:Math.round(waveMo(wr.km,wr.sub,tier)*wr.wm)+(S.pops[B]?0:popCost(B))+linkXcNrc(A,B),monthly:Math.round(waveMo(wr.km,wr.sub,tier)*wr.wm)+linkXcMo(A,B),blocked};},
-  doc:'Lease a wave between two cities; opens a POP in b if there is none. A second wave on a pair costs 1.4x unless it joins an existing trench; cross-border into mainland China costs 3x. premiumCrossing applies only via Hong Kong.'},
+   const base=Math.round(waveMo(wr.km,wr.sub,tier)*wr.wm);return {setup:base*T.nrc+(S.pops[B]?0:popCost(B))+linkXcNrc(A,B),monthly:Math.round(base*T.mul)+linkXcMo(A,B),blocked};},
+  doc:'Lease a wave between two cities, on a supplier term like buyTransit (term m, y1 or y3); opens a POP in b if there is none. A second wave on a pair costs 1.4x unless it joins an existing trench; cross-border into mainland China costs 3x. premiumCrossing applies only via Hong Kong.'},
  upLink:{args:[['id','entityId'],['tier','linkTier']],watch:['links.#id'],
   quote:a=>{const l=S.links.find(x=>x.id===a.id);if(!l)return {};
    const blocked=[waveOk(l.a,l.b,a.tier)?'':tr('links.a_wave_wave_needs_need_at',{wave:LT[a.tier].n,need:waveNeed(a.tier)})];
@@ -240,8 +244,8 @@ const API_CMD={
   doc:'Take a port on an interconnection fabric. Monthly. A higher tier upgrades unless the circuits on it already exceed the smaller port.'},
  rmNni:{args:[['city','cityId'],['prov','fabId']],
   doc:'Give the fabric port back. Rejected while circuits still use it.'},
- buyVxc:{args:[['a','cityId'],['b','cityId'],['prov','fabId'],['t','vxcTier']],
-  quote:a=>({monthly:vxcMo(kmBetween(a.a,a.b),isSub(a.a,a.b),a.t)}),
+ buyVxc:{args:[['a','cityId'],['b','cityId'],['prov','fabId'],['t','vxcTier'],['term','supTerm',false]],
+  quote:a=>({monthly:Math.round(vxcMo(kmBetween(a.a,a.b),isSub(a.a,a.b),a.t)*TERMS[supPick(a.term)].mul)}),
   doc:'Buy a virtual circuit between two fabric ports. Up in 59 seconds, which is the joke.'},
  upVxc:{args:[['id','entityId'],['t','vxcTier']],watch:['links.#id'],
   quote:a=>{const l=S.links.find(x=>x.id===a.id);return l&&l.kind==='vxc'?{monthly:vxcMo(l.km,l.sub,a.t)}:{};},
@@ -614,6 +618,7 @@ const API_BOUND={
  openVxc:{command:'buyVxc',note:'opens the circuit picker from a fabric port ({from, prov}); buyVxc takes a, b, prov and t itself'},
  connCancel:{command:'cancelTransit',note:'the connections list\'s cancel button: it arms, then dispatches cancelTransit, cancelPni, cancelIx, rmCache or rmNni'},
  cnPrem:{command:'buildLink',arg:'premiumCrossing'},
+ supUse:{command:'buildLink',arg:'term',note:'the buy screens\' term picker; buildLink, buyVxc, buyTransit and buyIx take term themselves'},
  addParallel:{command:'buildLink',note:'opens the link modal on the same pair',arg:'a/b'},
  via:{command:'buildLink',arg:'cable'},
  route:{command:'buildLink',arg:'route'},
@@ -673,11 +678,12 @@ const API_STATE_DOC={
  auV:{type:'integer',doc:'Australia content level gate.'},
  seen:{type:'array',doc:'Network ids the deals panel has already shown. Vestigial: written by newGame, read nowhere.'},
  pops:{type:'map',doc:'Your POPs by city id: day opened, broadband (bb), ad boost, downtime, routers, generator, second site, and the broadband SLA (99% a month): hours out this month (bbDn, month bbDnM), the share of subscribers who claimed (bbCl, up to 0.25), claims still to pay (bbOwe over bbOweD days).'},
- links:{type:'array',doc:'Your links: waves, dark fiber (df), own cables and fabric circuits (vxc), each with an entity id.'},
- transit:{type:'array',doc:'Transit ports: city, net, tier, LAG members, port history for 95th-percentile billing.'},
+ links:{type:'array',doc:'Your links: waves, dark fiber (df), own cables and fabric circuits (vxc), each with an entity id. Waves and fabric circuits carry their supplier term (term: m, y1 or y3; tEnd: the day it ends; none on a purchase from before terms), and mo is what they cost at that term.'},
+ transit:{type:'array',doc:'Transit ports: city, net, tier, LAG members, port history for 95th-percentile billing, and the supplier term (term, tEnd) as on links.'},
  ixp:{type:'map',doc:'IX ports by exchange city; tier per port (may exceed 1 with LAG members in ixn).'},
  rs:{type:'map',doc:'Route-server sessions by exchange city.'},
  ixn:{type:'map',doc:'LAG members on IX ports by exchange city.'},
+ ixTerm:{type:'map',doc:'Supplier term of each IX port you lease, by exchange city: {term: m|y1|y3, tEnd: day}. A port without one is from before terms (its old price, free to leave).'},
  ixSite:{type:'map',doc:'Which building each IX port sits in (a, b or ab).'},
  ixPref:{type:'map',doc:'Unused since port preferences became rules in pol (kept empty for old saves).'},
  myIx:{type:'map',doc:'Exchanges you founded: name, members, join schedule, fabric step.'},
@@ -855,7 +861,7 @@ function apiJson(v){
    carries the keys confGo/confSponsor need, which exist in no field of S; TE_RECIPES renders
    each recipe's script, because the source is a function and some read the live network. The
    recipes' relevance score is not exposed: judging which one fits is the agent's job. */
-const API_TABLES={CITIES,NETS,CABLES,XIX,PORT,XC_REG,XC_NRC,XC_CITY,LAT_TOL,LT,NNI,VXC,RG,OPT,DF_SYS,FAB,SCRUB_TIERS,BIZ_T,SLA,LEVELS,GOALS,SCN,BANKS,REQS,NSH,MET,PREF,RT,PPOL,CONFS,LAG_MAX,RMAX,REGEN_MAX,START_CASH,CONF_COST,CONF_SP,CAP_COST,CAP_LV,CONF_DAYS,SUB_UPGRADES,SEA_DESIGNS,TE_COST,TE_MO,MYIX_COST,CN_LIC,SITE2_COST,MYIX_FAB,INTERNS,OPSK,CHARTERS,SEAT_N,CORE_LV,CORE_COST,CORE_REQ,CORE_LAB,INTERN_MO,PZ_TIERS,AR_TIERS,PZ_RG};
+const API_TABLES={CITIES,NETS,CABLES,XIX,PORT,TERMS,XC_REG,XC_NRC,XC_CITY,LAT_TOL,LT,NNI,VXC,RG,OPT,DF_SYS,FAB,SCRUB_TIERS,BIZ_T,SLA,LEVELS,GOALS,SCN,BANKS,REQS,NSH,MET,PREF,RT,PPOL,CONFS,LAG_MAX,RMAX,REGEN_MAX,START_CASH,CONF_COST,CONF_SP,CAP_COST,CAP_LV,CONF_DAYS,SUB_UPGRADES,SEA_DESIGNS,TE_COST,TE_MO,MYIX_COST,CN_LIC,SITE2_COST,MYIX_FAB,INTERNS,OPSK,CHARTERS,SEAT_N,CORE_LV,CORE_COST,CORE_REQ,CORE_LAB,INTERN_MO,PZ_TIERS,AR_TIERS,PZ_RG};
 const API_MADE={
   BADGES:()=>!S?[]:BADGES.map(b=>{const on=S.ach&&S.ach[b.id]!==undefined,ever=!!hof()[b.id];
     return b.secret&&!on&&!ever?{id:b.id,i:'❔',t:'???',d:tr('badges.a_secret_badge'),r:b.r,secret:true}:{...b,ever};}),

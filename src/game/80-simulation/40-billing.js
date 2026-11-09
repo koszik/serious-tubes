@@ -16,7 +16,8 @@ function linkDown(l){return l.cut>S.day||(S.ev.runet>S.day&&ruCity(l.a)!==ruCity
 function remoteCities(){return [...new Set(S.links.filter(l=>l.kind==='vxc').flatMap(l=>[l.a,l.b]))].filter(c=>!S.pops[c]);}
 function nniUsed(c,prov){return S.links.filter(l=>l.kind==='vxc'&&l.prov===prov&&(l.a===c||l.b===c)).reduce((a,l)=>a+VXC[l.vt].g,0)+S.biz.filter(b=>BIZ_T[b.type].nni&&b.prov===prov&&b.city===c).reduce((a,b)=>a+b.bw,0);}
 // Monthly price of one connection; compute() sums these, the connections overview lists them.
-function transitMo(t,q){const n=t.n||1;return Math.max(q,PORT[t.tier].g*n*0.2)*transitPerG(NET[t.net],t.city,premOn(t))*S.priceMul+tmoOf(t.tier)*n+(t.clean?cleanMo(t):0)+krFee(t,q);}
+// Its term (15-supplier-terms.js) scales the port and the Gbps; the clean pipe and Korea's fee are on top.
+function transitMo(t,q){const n=t.n||1;return (Math.max(q,PORT[t.tier].g*n*0.2)*transitPerG(NET[t.net],t.city,premOn(t))*S.priceMul+tmoOf(t.tier)*n)*supMul(t)+(t.clean?cleanMo(t):0)+krFee(t,q);}
 /* When transit went to real prices (×10, clean pipe too) and broadband to $225 (from $150), a network in an old save got
    six months of the difference, so a running game is not bankrupted by a price list. */
 function pxCredit(){if(!R||!R.rev)return 0;let up=0;for(const t of S.transit){const n=t.n||1,q=R.p95[t.id]||0;up+=0.9*(Math.max(q,PORT[t.tier].g*n*0.2)*transitPerG(NET[t.net],t.city,premOn(t))*S.priceMul+(t.clean?cleanMo(t):0));}
@@ -25,6 +26,6 @@ function pxCredit(){if(!R||!R.rev)return 0;let up=0;for(const t of S.transit){co
 const krFee=(t,q)=>CITY[t.city].kr&&scnRule('sender')?Math.round(q*KR_FEE):0;
 // A PNI's own bill is only what a paid peer charges; its patches are cross-connects (42-cross-connects.js).
 function pniMo(p,use){if(!pniOn(p))return 0;return (NET[p.net].pol==='paid'&&!paidFree(NET[p.net])?NET[p.net].paidFee:0)+(NET[p.net].perG?Math.round(NET[p.net].perG*use):0);}
-function ixMo(c){return S.myIx[c]?Math.round(myFab(c).mo*((S.ixSite||{})[c]==='ab'?1.5:1)):ixPortMo(c,S.ixp[c])*((S.ixn||{})[c]||1)+dkAddonMo(c);}
+function ixMo(c){return S.myIx[c]?Math.round(myFab(c).mo*((S.ixSite||{})[c]==='ab'?1.5:1)):ixPortMo(c,S.ixp[c])*((S.ixn||{})[c]||1)*supMul((S.ixTerm||{})[c])+dkAddonMo(c);}
 function nniPort(c,prov){return (S.nni||[]).find(x=>x.city===c&&x.prov===prov);}
 function repayCost(l,B){return B.equity?Math.round(l.amount*3):Math.round(Math.max(l.bal,B.crypto&&l.got?l.got:0)*1.02);}

@@ -154,7 +154,7 @@ test('saves go out and come back, and a bug report save loads as the game loads 
 test('only game actions: files, slots, settings and the clock stay out of reach', () => {
   const s = createSession(), T = tools(s);
   const acts = T('actions');
-  assert.ok(acts.includes('buyTransit(city,net,tier)'), 'with their arguments');
+  assert.ok(acts.includes('buyTransit(city,net,tier,term?)'), 'with their arguments');
   assert.ok(acts.includes('pni(city,net,tier)'));
   for (const no of ['slotDel', 'exportSave', 'importPick', 'langSet', 'speed', 'resetAsk']) assert.ok(!acts.some((a) => a.split('(')[0] === no), no);
   assert.throws(() => T('act', { action: 'slotDelGo' }), /not available/);

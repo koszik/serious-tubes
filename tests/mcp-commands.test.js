@@ -275,7 +275,7 @@ test('everything an action needs can be read: loan offers, conference keys, reci
   assert.throws(() => T('schema', { section: 'nope' }), /No section/);
   assert.deepEqual(Object.keys(T('schema')).sort(), ['clock', 'commands', 'denied', 'domains', 'drafts', 'results', 'session', 'state', 'view']);
   const a = T('actions');
-  for (const x of ['buildLink(a,b,tier,cable?,route?,premiumCrossing?)', 'orderDf(a,b,source,system)', 'teDeploy(script)', 'renameGo(name)', 'rtbh(id?)', 'startScn(id)', 'dfSrc(v)']) assert.ok(a.includes(x), x);
+  for (const x of ['buildLink(a,b,tier,cable?,route?,premiumCrossing?,term?)', 'orderDf(a,b,source,system)', 'teDeploy(script)', 'renameGo(name)', 'rtbh(id?)', 'startScn(id)', 'dfSrc(v)']) assert.ok(a.includes(x), x);
   assert.deepEqual(s.errors(), []);
 });
 
