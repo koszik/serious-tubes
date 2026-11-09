@@ -32,11 +32,11 @@ unless the game rejects them. `release.yml` runs it before the tests on every de
 regenerated. A change to prices, cables or cities fails `npm test` until you run `node scripts/weekly-puzzle.js --check`
 and commit the regenerated files with it (and `node scripts/weekly-scenario.js --check` for the scenarios).
 
-## Only release when Frederic says so
+## Only release when the maintainer says so
 
 Never bump the version on your own. Finished work is committed and pushed with its
 bullets under `## [Unreleased]`, and you say it is ready to ship. A release happens only
-when Frederic explicitly asks for one ("release", "ship it"), and then it includes
+when the maintainer explicitly asks for one ("release", "ship it"), and then it includes
 everything under `## [Unreleased]`. Docs, skills, CI, issue templates, tests and
 refactors are just pushed and never need a release.
 
@@ -50,11 +50,11 @@ gh api repos/fjaeckel/seriesoftubes/releases/latest --jq '.tag_name+" "+.publish
 ```
 
 - **Less than 60 minutes ago:** even when asked, say so and suggest waiting until the hour
-  is up; release only if Frederic still wants it now.
+  is up; release only if the maintainer still wants it now.
 - **60 minutes or more:** release everything under `## [Unreleased]` together, as one
   version.
 - **Live game broken for players** (it won't start, saves are lost, a phone can't get
-  past a screen): tell Frederic right away and propose a hotfix release; still wait for
+  past a screen): tell the maintainer right away and propose a hotfix release; still wait for
   his go.
 
 ## Pick the version
@@ -74,12 +74,11 @@ gh api repos/fjaeckel/seriesoftubes/releases/latest --jq '.tag_name+" "+.publish
    - `package.json` → `"version"`
    - `package-lock.json` → top-level `"version"` and `packages[""].version`
 4. `npm test` once more.
-   Then compare performance with the previous release and mention anything notable to Frederic:
+   Then compare performance with the previous release and mention anything notable to the maintainer:
    `npm run perf -- --base-ref v<last>`.
-5. Commit on `main` as Frederic, with no attribution trailers:
+5. Commit on `main` with the machine's own git identity, with no attribution trailers:
    ```bash
-   git -c user.name="Frederic Jung" -c user.email="frederic@jc-ix.net" commit \
-     --author="Frederic Jung <frederic@jc-ix.net>" -m "Short summary (x.y.z)"
+   git commit -m "Short summary (x.y.z)"
    git push origin main
    ```
 6. Watch the workflows until both finish:

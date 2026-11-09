@@ -43,11 +43,11 @@ npm run mcp                  # the game as a local MCP server for AI clients (do
 - **No runtime cost for structure.** The page ships as one assembled `index.html`. Organise code
   into files under `src/` freely (build time is cheap), but never in a way that adds requests or
   work to page load or to the game loop.
-- **Git:** work on `main`, no branches. Commits are authored and committed as
-  `Frederic Jung <frederic@jc-ix.net>`. Never add `Co-Authored-By`, `Claude-Session`
+- **Git:** work on `main`, no branches. Commits use the machine's own git identity
+  (`git config user.name`/`user.email`); never set another author or committer. Never add `Co-Authored-By`, `Claude-Session`
   or any other attribution trailers.
-- **Releases only when Frederic says so.** Never bump the version on your own: push finished
-  work with its CHANGELOG bullets under `## [Unreleased]` and say it is ready. When he asks
+- **Releases only when the maintainer says so.** Never bump the version on your own: push finished
+  work with its CHANGELOG bullets under `## [Unreleased]` and say it is ready. When they ask
   for a release, follow the `release` skill: small fixes get a patch (`x.y.Z`), features a
   minor, at most one release per hour. Docs, skills, CI, tests and refactors never need one.
 - **Release notes in the app are short**: only the first sentence of each CHANGELOG bullet

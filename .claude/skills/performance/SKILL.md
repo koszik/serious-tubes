@@ -73,7 +73,7 @@ incidents and failures).
 - **Every pull request**: the Performance workflow runs the same comparison and posts the table as a
   comment on the PR (updated on every push). Read it before merging. Locally, paste the table into
   the PR description or the commit summary you report.
-- **Everything you hand back to Frederic** that touched `src/` or `site/`: include the table, or at least the
+- **Everything you hand back to the maintainer** that touched `src/` or `site/`: include the table, or at least the
   rows that moved, in your summary. Say plainly when something got slower.
 - **Before a release**: compare the release against the previous tag
   (`npm run perf -- --base-ref v<last>`) and mention notable changes.
