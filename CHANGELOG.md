@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- A customer now minds slow routes only once 5% of its traffic is slow, the same allowance it gives packet loss, so a few far-off small networks no longer keep it from recovering.
+- A customer unhappy about many small slow networks, none slow enough to name alone, now says so on the NOC and in its reasons, instead of losing happiness with no reason shown.
 - Scrubbing centers now work like ones you really run: a flood still arrives on your ports wherever it comes in, rides your backbone to the nearest center and is cleaned there, so ports, links and routers on the way show it and can fill up, and the center's city panel shows what is arriving. The customer still feels the detour, and an attack on a customer that bought no DDoS protection no longer earns it an SLA rebate.
 - A flood in a link's or port's flow list now says whose it is, where it came in and where it is headed: the target, or your scrubbing center.
 - An attack card now lists every scrubbing center that cleans the flood, each with its detour, not just the farthest one.

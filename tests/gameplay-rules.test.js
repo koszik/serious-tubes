@@ -522,6 +522,7 @@ test('F12: a customer is judged on the extra round trip its routing adds, both w
   g.ev("ACT.buyTransit({city:'fra',net:'cog',tier:2});compute()");
   if (!(g.ev('R.rq.g.ms') < far / 3)) bad.push('local transit does not fix it');
   if (Object.values(g.ev('LAT_TOL')).some((v) => !(v >= 10 && v <= 50))) bad.push('tolerances outside 10–50 ms');
+  if (g.ev('RQ_BAD') !== 0.05) bad.push('a customer minds latency from 5% of its traffic, like loss');
   fail('F12', bad, 'routing quality: in where the far network hands over, out where you send it, against a handoff where the customer is');
   assert.deepEqual(g.errors, []);
 });

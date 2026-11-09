@@ -90,3 +90,32 @@ test('a slow-routes warning from many small networks lists them instead of nothi
   assert.match(li, /Many small networks: 4% of the traffic, 90 ms round trip \(\+83 ms\), handed over in Amsterdam/);
   assert.deepEqual(errors, []);
 });
+
+test('many small slow networks, none big enough to judge alone: the mood, the reasons and the NOC agree', () => {
+  const { ev, errors } = load();
+  far(ev);
+  ev("ACT.buyTransit({city:'fra',net:'cog',tier:2});compute()");
+  // Three networks at 4% of its traffic each, 40 ms over its tolerance; no slow one carries 5%.
+  const set = "R.rq.g={ms:0,fix:0,flows:['cog','tel','ntt'].map(n=>({net:n,ms:50,rt:60,fix:0,share:0.04,inC:'fra',inK:'t',outC:'fra',outK:'t'}))}";
+  ev(set);
+  assert.ok(ev("rtqBad(S.biz.find(b=>b.id==='g'))"), 'it minds');
+  assert.match(ev("bizWhy(S.biz.find(b=>b.id==='g')).join('|')"), /Fragger: traffic to Cogentle \(4% of it\) takes 50 ms longer/);
+  assert.equal(ev("rtqRows().some(r=>r.id==='g')"), true, 'and the NOC lists it');
+  // The day's mood uses the same test: stub the routing so it keeps these flows.
+  ev(`const c=compute;compute=function(){c.apply(this,arguments);${set}};S.biz.find(b=>b.id==='g').mood=80;dayTick();compute=c`);
+  assert.ok(ev("S.biz.find(b=>b.id==='g').mood") < 80, 'and its happiness falls');
+  assert.deepEqual(errors, []);
+});
+
+test('one far-off network carrying 2% of the traffic, however slow, does not stop a customer recovering', () => {
+  const { ev, errors } = load();
+  far(ev);
+  ev("ACT.buyTransit({city:'fra',net:'cog',tier:2});compute()");
+  const set = "R.rq.g={ms:0,fix:0,flows:[{net:'cog',ms:144,rt:219,fix:0,share:0.02,inC:'fra',inK:'t',outC:'fra',outK:'t'}]}";
+  ev(set);
+  assert.equal(ev("rtqSlow(S.biz.find(b=>b.id==='g'))"), 0.02);
+  assert.equal(ev("rtqBad(S.biz.find(b=>b.id==='g'))"), false, 'under the 5% it allows, as with loss');
+  ev(`const c=compute;compute=function(){c.apply(this,arguments);${set}};S.biz.find(b=>b.id==='g').mood=80;dayTick();compute=c`);
+  assert.ok(ev("S.biz.find(b=>b.id==='g').mood") > 80, 'and its happiness rises');
+  assert.deepEqual(errors, []);
+});
