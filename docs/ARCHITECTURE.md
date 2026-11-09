@@ -139,7 +139,7 @@ never freezes the game.
    DDoS: `ddosPlan()` runs before endpoints are built (Flowspec at the edge first; a diverted target gets its own
    endpoint: its traffic comes in where it always does, and its round trip adds the backbone detour via the center
    nearest that entry), then `ddosLoad()` in the hourly pass:
-   the junk comes in on every port and the engaged share rides the backbone to the nearest center (`haul()`), which
+   the junk comes in on every port of the target's island (only it announces the target) and the engaged share rides the backbone to the nearest center (`haul()`), which
    cleans what reaches it. Attacks on unprotected customers are not SLA downtime (`ddosExcused()`).
 6. Every 30 days: bills the month (revenue minus costs) and checks for bankruptcy.
 7. Checks goals, level, badges and scenario end conditions.

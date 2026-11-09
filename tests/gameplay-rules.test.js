@@ -561,6 +561,9 @@ test('D2: a full port slows everyone on it', () => {
   ddHit(g.ev, 200);
   assert.equal(g.ev('R.ddos[0].full'), 1, 'D2: the port is full');
   assert.ok(g.ev("bizSf(S.biz.find(b=>b.id==='d'),linkIds())") < 0.9, 'D2: the bystander loses traffic');
+  // Another island (a POP with its own transit, no link to Frankfurt) does not announce the target, so it takes none.
+  g.ev("ACT.buildPop({city:'nyc'});S.pops.nyc.rgen=RG_TOP;ACT.buyTransit({city:'nyc',net:'cog',tier:2});compute()");
+  assert.equal(g.ev("[...R.ddos[0].ports.keys()].some(e=>e.city==='nyc')"), false, 'D2: only the target\'s island takes the flood');
   assert.deepEqual(g.errors, []);
 });
 test('D3: only upstream tools keep a flood off your ports; Flowspec and scrubbing work behind them', () => {

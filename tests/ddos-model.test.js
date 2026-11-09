@@ -66,7 +66,7 @@ test('RTBH saves everyone else and sends only the target dark', () => {
 test('the same flood spread over eight POPs fills no port', () => {
   const { ev, errors } = load();
   fra(ev);
-  ev("const cs=['ams','lon','par','zrh','mad','mil','vie'];for(const c of cs){ACT.buildPop({city:c});ACT.buyTransit({city:c,net:'cog',tier:1});}for(const c of cs){UI.pending={a:'fra',b:c};ACT.buildLink({tier:1});}closeModal();compute()");
+  ev("const cs=['ams','bru','par','zrh','mad','mil','vie'];for(const c of cs){ACT.buildPop({city:c});ACT.buyTransit({city:c,net:'cog',tier:1});}for(const c of cs){UI.pending={a:'fra',b:c};ACT.buildLink({tier:1});}closeModal();compute()");
   // (A star: each piece rides its own link in. On a chain they would all pile onto the last links before Frankfurt.)
   const id = flood(ev, { gbps: 200 });
   assert.equal(rep(ev, id, 'm.portList.length'), 8);
@@ -313,5 +313,17 @@ test('a scrubbing center your backbone does not join to the target cannot hand b
   ev("UI.pending={a:'fra',b:'par'};ACT.buildLink({tier:1});closeModal();compute()");
   assert.ok(rep(ev, id, 'm.pulled') > 11, 'now the junk rides to Paris and is cleaned');
   assert.ok(ev(`R.haul.find(q=>q.attack==='${id}'&&q.to==='par').ms`) > 0, 'and the clean traffic rides the backbone home');
+  assert.deepEqual(errors, []);
+});
+
+test('a flood comes in only on the target\'s island: the other islands do not announce it, so they never see it', () => {
+  const { ev, errors } = load();
+  fra(ev);
+  // New York is a POP of yours with its own transit and subscribers, but no link to Frankfurt: another island.
+  ev("ACT.buildPop({city:'nyc'});S.pops.nyc.rgen=RG_TOP;ACT.buyTransit({city:'nyc',net:'cog',tier:2});ACT.launchBB({city:'nyc'});compute()");
+  const id = flood(ev, { city: 'nyc', tgt: 'bb:nyc', gbps: 60, vec: 'dns' });
+  const cities = JSON.parse(rep(ev, id, 'JSON.stringify([...new Set([...m.ports.keys()].map(e=>e.city))])'));
+  assert.deepEqual(cities, ['nyc'], 'only New York\'s ports take it');
+  assert.equal(ev("Math.round((R.useT[S.transit.find(t=>t.city==='fra').id]||0)*10)"), ev("(()=>{const a=S.ev.ddos;S.ev.ddos=null;compute();const v=Math.round((R.useT[S.transit.find(t=>t.city==='fra').id]||0)*10);S.ev.ddos=a;compute();return v;})()"), 'Frankfurt\'s transit carries what it did before');
   assert.deepEqual(errors, []);
 });

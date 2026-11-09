@@ -4,7 +4,7 @@
    acts where it does in a real network: RTBH and clean pipes upstream, before your port; the port carries what fits
    and everyone on it loses the same share; Flowspec drops matching junk on each ingress router, within that router's
    rule budget; what is left rides the backbone to the target. While a scrubbing center is engaged, your ingress routers
-   divert it there instead: the junk still comes in on every port, rides the backbone to the nearest center your
+   divert it there instead: the junk still comes in on every port of the target's island, rides the backbone to the nearest center your
    network joins it to and is cleaned up to the center's tier; what the center cannot take hurts only the target. */
 /* Before routing: Flowspec first. The edge takes an attack when it has a signature, every POP it enters has rule room
    and no port it fills would run full (yesterday's use plus the junk). Anything else goes to scrubbing: the target's
@@ -13,7 +13,7 @@
 function ddosPlan(X){const P=X.DP=new Map(),live=ddosAll().slice().sort((a,b)=>(a.start||0)-(b.start||0)||(a.id<b.id?-1:a.id>b.id?1:0));if(!live.length)return P;
   const fsP={},J=new Map(),r=R||{},use=e=>{const m=e.k==='t'?r.useT:e.k==='ix'?r.useIx:e.k==='p'?r.usePni:e.k==='c'?r.useCache:null;return (m&&m[e.id])||0;},bhAll=!!(X.TRX&&X.TRX.blackhole);
   for(const a of live){if(!S.pops[a.city]||!popUp(a.city)||a.bh||bhAll){P.set(a.id,{edge:false,why:null,dv:null});continue;}
-    const V=DDOS_VEC[a.vec],need=V&&V.fs?(a.carpet?FS_CARPET:1):0,sp=new Map();ddosSpread(a.gbps,X.E,X.okBy,sp);
+    const V=DDOS_VEC[a.vec],need=V&&V.fs?(a.carpet?FS_CARPET:1):0,sp=new Map();ddosSpread(a.gbps,X.E,X.okBy,sp,X.COMP,a.city);
     let why=need?null:{k:'sig'};const by=new Map();
     for(const [e,g] of sp){const left=e.clean?g*0.1:g;by.set(e.city,(by.get(e.city)||0)+left);const j=(J.get(e)||0)+left;J.set(e,j);if(!why&&j+use(e)>e.cap)why={k:'port',city:e.city};}
     if(!why)for(const c of by.keys()){const cap=fsCap(c),left=fsP[c]??cap;if(!cap){why={k:'router',city:c};break;}if(left<need){why={k:'rules',city:c};break;}}
@@ -26,9 +26,11 @@ function ddosDiverted(X){const m=new Map();if(X.DP)for(const a of ddosAll()){con
 // Does this private peer honour blackhole communities? About half do, the same ones in every game.
 function pniHonours(n){let h=0;for(let i=0;i<n.length;i++)h=(h*31+n.charCodeAt(i))|0;return (h&2)===0;}
 const ddRank=e=>e.k==='p'?1:e.k==='ix'?2:e.k==='t'?3:9;
-// Adds to `out` (exit -> Gbps) the share of g that reaches you on each exit, before upstream tools.
-function ddosSpread(g,E,okBy,out){if(g<=0)return;let tot=0;const pick=[];
-  for(const n of NETS){const s=NSH[n.id]||0,L=okBy[n.id];if(s<=0||!L||!L.length)continue;let best=9,sac=false;
+/* Adds to `out` (exit -> Gbps) the share of g that reaches you on each exit, before upstream tools. Only exits on the
+   target's island count (comp: city index -> island, tgt: its city): each island announces its own addresses, so a
+   flood comes in only where the target can be reached, as its normal traffic does (33-engine-routes.js). */
+function ddosSpread(g,E,okBy,out,comp,tgt){if(g<=0)return;let tot=0;const pick=[],isl=comp&&tgt?comp[CIDX[tgt]]:undefined;
+  for(const n of NETS){const s=NSH[n.id]||0;let L=okBy[n.id];if(s<=0||!L||!L.length)continue;if(isl!==undefined){L=L.filter(e=>comp[CIDX[e.city]]===isl);if(!L.length)continue;}let best=9,sac=false;
     for(const e of L){if(e.id==='~grace')continue;const r=ddRank(e);if(r<best)best=r;}
     if(best===9)continue;if(best===1)for(const e of L)if(e.k==='p'&&e.sac)sac=true;
     let cap=0;for(const e of L)if(ddRank(e)===best&&e.id!=='~grace'&&(!sac||e.sac))cap+=e.cap;
@@ -54,7 +56,7 @@ function ddosLoad(X){const {E,okBy,R2}=X;R2.ddos=[];R2.haul=[];R2.tgtF={};R2.bbF
   const recs=[],room={};
   for(const a of live){const c=a.city,m={attack:a,tgt:a.tgt,g:a.gbps,bh:!!(a.bh||X.autoBh),ports:new Map(),up:0,fs:0,fsAt:[],fsFull:[],fsNone:[],deliv:0,sent:0,pulled:0,cleaned:0,over:0,parts:[],tf:1,col:0,slowed:0,eng:0};
     recs.push(m);R2.ddos.push(m);if(!popUp(c)||!S.pops[c]){m.offline=true;continue;}
-    const pl=X.DP&&X.DP.get(a.id);m.edge=!!(pl&&pl.edge);m.why=pl?pl.why:null;const xs=scrubsFor(X.COMP,c);m.cut=!m.bh&&!m.edge&&scrubLive()&&!xs.length;m.eng=m.bh||m.edge||!xs.length?0:scrubEng(a);m.xs=xs;const sp=new Map();ddosSpread(a.gbps,E,okBy,sp);
+    const pl=X.DP&&X.DP.get(a.id);m.edge=!!(pl&&pl.edge);m.why=pl?pl.why:null;const xs=scrubsFor(X.COMP,c);m.cut=!m.bh&&!m.edge&&scrubLive()&&!xs.length;m.eng=m.bh||m.edge||!xs.length?0:scrubEng(a);m.xs=xs;const sp=new Map();ddosSpread(a.gbps,E,okBy,sp,X.COMP,c);
     for(const [e,g] of sp){let left=g;
       if(m.bh)left*=e.k==='p'?(pniHonours(e.net)?0:1):RTBH_LEFT[e.k]??1;else if(e.clean)left*=0.1;
       m.up+=g-left;if(left>1e-9){m.ports.set(e,{off:left,in:0});e.J+=left;}}
