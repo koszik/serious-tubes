@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+- A link no longer shows "DDoS junk" when there is no attack: your own traffic between POPs is now named as such.
 - A flood now comes in only on the part of your network that announces its target: an island your backbone does not join to it never sees the attack.
 - Waves, fabric circuits, transit and exchange ports now come on supplier terms like real ones: a rolling month costs three times as much (and three times the install), a year is the list price, three years is a quarter off, and leaving a term early pays out the months left.
 - A customer now minds slow routes only once 5% of its traffic is slow, the same allowance it gives packet loss, so a few far-off small networks no longer keep it from recovering.

@@ -97,14 +97,15 @@ function engDefine(R2,dp){Object.defineProperty(R2,'dp',{value:dp,configurable:t
   const recs={};Object.defineProperty(R2,'ef',{configurable:true,enumerable:false,value:new Proxy({},{get:(t,k)=>typeof k!=='string'?undefined:k in recs?recs[k]:(recs[k]=ek[k]===undefined?undefined:engEdgeRec(dp,ek[k])),
     has:(t,k)=>ek[k]!==undefined,ownKeys:()=>Object.keys(ek),getOwnPropertyDescriptor:(t,k)=>ek[k]===undefined?undefined:{enumerable:true,configurable:true,value:recs[k]||(recs[k]=engEdgeRec(dp,ek[k]))}})});
   let fl=null;Object.defineProperty(R2,'fl',{configurable:true,get(){return fl||(fl=engFlows(dp));}});}
-// What crosses edge i at its own busiest hour: by exit (eg), by network and by the city it serves (dst).
+// What crosses edge i at its own busiest hour: by exit (eg), by network and by the city it serves (dst). Besides
+// networks: 'l2vpn' (circuit customers), 'onnet' (your own traffic between POPs, no far network) and 'junk' (floods).
 function engEdgeRec(dp,i){const rec={eg:{},net:{},dst:{}},{LP,LS,LB,LOFF,LX,FIN,FOUT,WC,FV}=dp,a=2*i,b=2*i+1,NF=FV.length;
   let h=dp.hp,bv=-1;for(let k=0;k<24;k++){const o=k*dp.NP,v=Math.max(dp.OFFH[o+a],dp.OFFH[o+b]);if(v>bv){bv=v;h=k;}}
   const VI=new Float64Array(NF),VO=new Float64Array(NF);for(let f=0;f<NF;f++){const s=dp.CV[dp.FCV[f]+h];VI[f]=FV[f]*dp.FI[f]*s;VO[f]=FV[f]*dp.FO[f]*s;}
   const on=id=>{let s=0;for(let k=LOFF[id],e=LOFF[id+1];k<e;k++)if(LP[k]===a||LP[k]===b)s+=LS[k];return s;};
   const byF=new Map();for(let t=0;t<dp.IF.length;t++){const f=dp.IF[t];let l=byF.get(f);if(!l)byF.set(f,l=[]);l.push(t);}
   const add=(f,g,egk)=>{if(!(g>0))return;rec.eg[egk]=(rec.eg[egk]||0)+g;const items=byF.get(f)||[],tot=FV[f]||1;
-    for(const t of items){const j=dp.IJ[t],ep=dp.IE[t],w=g*dp.IV[t]/tot,n=j>=0?NETS[j].id:dp.epK[ep]==='l2'?'l2vpn':'junk',c=dp.epCity[ep];rec.net[n]=(rec.net[n]||0)+w;rec.dst[c]=(rec.dst[c]||0)+w;}};
+    for(const t of items){const j=dp.IJ[t],ep=dp.IE[t],w=g*dp.IV[t]/tot,n=j>=0?NETS[j].id:dp.epK[ep]==='l2'?'l2vpn':'onnet',c=dp.epCity[ep];rec.net[n]=(rec.net[n]||0)+w;rec.dst[c]=(rec.dst[c]||0)+w;}};
   for(let f=0;f<NF;f++){const ep=dp.FEP[f],l2=dp.epK[ep]==='l2'?'l2:'+dp.epB[ep]:'onnet:'+dp.epCity[ep];
     for(let k=0;k<3;k++){const id=FIN[f*3+k];if(id<0||!(WC[f*3+k]>0))continue;const s=on(id);if(s>0)add(f,VI[f]*WC[f*3+k]*s,LX[id]>=0?dp.ex[LX[id]].ek:l2);}
     if(FOUT[f]>=0){const s=on(FOUT[f]);if(s>0)add(f,VO[f]*s,LX[FOUT[f]]>=0?dp.ex[LX[FOUT[f]]].ek:l2);}}

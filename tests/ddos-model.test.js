@@ -327,3 +327,15 @@ test('a flood comes in only on the target\'s island: the other islands do not an
   assert.equal(ev("Math.round((R.useT[S.transit.find(t=>t.city==='fra').id]||0)*10)"), ev("(()=>{const a=S.ev.ddos;S.ev.ddos=null;compute();const v=Math.round((R.useT[S.transit.find(t=>t.city==='fra').id]||0)*10);S.ev.ddos=a;compute();return v;})()"), 'Frankfurt\'s transit carries what it did before');
   assert.deepEqual(errors, []);
 });
+
+test('with no attack, a link shows no DDoS junk: your own traffic between POPs has its own name', () => {
+  const { ev, errors } = load();
+  ev("ACT.start({});if(UI.pendGame)ACT.pitchSkip();S.cash=1e9;S.lvl=4;S.nextFail=S.nextEvent=1e9;for(const g of GOALS)S.done[g.id]=0;ACT.launchBB({city:'fra'});S.pops.fra.bb.d=40;S.pops.fra.rgen=RG_TOP;ACT.buyTransit({city:'fra',net:'cog',tier:2});ACT.buildPop({city:'ams'});S.pops.ams.rgen=RG_TOP;UI.pending={a:'fra',b:'ams'};ACT.buildLink({tier:2});closeModal();ACT.launchBB({city:'ams'});S.biz.push({id:'h',type:'host',name:'H',city:'ams',bw:20,rate:100,mood:90,since:-99,reqs:[]});compute()");
+  const net = JSON.parse(ev("JSON.stringify(R.ef['ams|fra'].net)"));
+  assert.equal(net.junk, undefined, 'nothing is junk without a flood');
+  assert.ok(net.onnet > 0, 'Frankfurt\'s subscribers reaching the Amsterdam host');
+  ev("UI.sel={type:'link',id:S.links[0].id};renderPanel()");
+  const t = ev("document.getElementById('panelBody').textContent");
+  assert.doesNotMatch(t, /DDoS junk/);
+  assert.deepEqual(errors, []);
+});

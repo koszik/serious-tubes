@@ -2764,6 +2764,7 @@
 "link_panels.your_joint_venture_holds_an":"Dein Joint Venture hat eine Betriebslizenz.",
 "link_panels.your_own_build":"dein eigener Bau",
 "link_panels.your_own_fabric_name":"Deine eigene Fabric · {name}",
+"link_panels.your_own_traffic_between_pops":"Dein eigener Traffic zwischen POPs",
 "link_panels.your_routers_pick_the_lowest_cost_0160":"Deine Router wählen den Pfad mit den niedrigsten Kosten. Erhöhe die Metrik, um Traffic auf andere Pfade zu drücken. „Nur Backup“ hält ihn untätig, außer nichts anderes funktioniert. Mit „Eigene“ setzt du deinen eigenen Faktor oder deine eigenen Kosten. Gilt für jeden Link zwischen diesen beiden Städten.",
 "link_panels.your_traffic_crossing_the_border":"Dein Traffic über die Grenze",
 "link_panels.your_wave_was_sold_before_the":"Deine Wave wurde verkauft, bevor der Kabelbesitzer es neu ausgelegt hat, also läuft sie weiter.",

@@ -2762,6 +2762,7 @@
 "link_panels.your_joint_venture_holds_an":"Ta coentreprise détient une licence d’opérateur.",
 "link_panels.your_own_build":"construite par toi",
 "link_panels.your_own_fabric_name":"Ton propre fabric · {name}",
+"link_panels.your_own_traffic_between_pops":"Ton propre trafic entre POPs",
 "link_panels.your_routers_pick_the_lowest_cost_0160":"Tes routeurs choisissent le chemin le moins coûteux. Augmente la métrique pour pousser le trafic vers d’autres chemins. « Secours seul » le laisse au repos tant que le reste fonctionne. Choisis Perso pour fixer ton propre multiplicateur ou coût. S’applique à tous les liens entre ces deux villes.",
 "link_panels.your_traffic_crossing_the_border":"Ton trafic qui passe la frontière",
 "link_panels.your_wave_was_sold_before_the":"Ta longueur d’onde a été vendue avant que le propriétaire du câble ne le réingénie, donc elle continue de tourner.",

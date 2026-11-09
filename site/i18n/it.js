@@ -2762,6 +2762,7 @@
 "link_panels.your_joint_venture_holds_an":"La tua joint venture ha una licenza operativa.",
 "link_panels.your_own_build":"costruita da te",
 "link_panels.your_own_fabric_name":"Il tuo fabric · {name}",
+"link_panels.your_own_traffic_between_pops":"Il tuo traffico tra i POP",
 "link_panels.your_routers_pick_the_lowest_cost_0160":"I tuoi router scelgono il percorso a costo minore. Alza la metrica per spingere il traffico su altri percorsi. “Solo backup” lo lascia a riposo finché il resto funziona. Scegli Personalizzata per impostare il tuo moltiplicatore o costo. Vale per tutti i link tra queste due città.",
 "link_panels.your_traffic_crossing_the_border":"Il tuo traffico che passa il confine",
 "link_panels.your_wave_was_sold_before_the":"La tua wave è stata venduta prima che il proprietario del cavo lo riprogettasse, quindi continua a funzionare.",
